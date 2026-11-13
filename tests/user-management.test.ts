@@ -358,6 +358,43 @@ test("actor authority is rechecked inside the transaction", async () => {
   }
 });
 
+test("merged PATCH validation rejects an invalid resulting profile", async () => {
+  const { prisma, userService } = await loadUserService();
+  const dosen: Target = {
+    ...TARGET,
+    role: "dosen",
+    npm: null,
+    academicLevel: null,
+    nip: "1987654321",
+  };
+
+  const staffWithNpm = userTx({ target: dosen });
+  let restore = stubTransaction(prisma, staffWithNpm.tx);
+  try {
+    await assert.rejects(
+      () => userService.updateUser("user-1", { npm: "0012345678" }, "admin-1"),
+      (error: unknown) =>
+        error instanceof userService.UserServiceError && error.status === 400
+    );
+    assert.equal(staffWithNpm.updates.length, 0);
+  } finally {
+    restore();
+  }
+
+  const studentWithoutLevel = userTx();
+  restore = stubTransaction(prisma, studentWithoutLevel.tx);
+  try {
+    await assert.rejects(
+      () => userService.updateUser("user-1", { academicLevel: null }, "admin-1"),
+      (error: unknown) =>
+        error instanceof userService.UserServiceError && error.status === 400
+    );
+    assert.equal(studentWithoutLevel.updates.length, 0);
+  } finally {
+    restore();
+  }
+});
+
 test("assigned lecturer demotion is rejected without deleting history", async () => {
   const { prisma, userService } = await loadUserService();
   const dosen: Target = {

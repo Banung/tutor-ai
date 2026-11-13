@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -93,12 +92,6 @@ interface User {
   bio: string | null;
   createdAt: string;
 }
-
-const ROLE_BADGE_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  admin: "destructive",
-  dosen: "default",
-  mahasiswa: "secondary",
-};
 
 function UserFormFields({
   form,

@@ -229,7 +229,7 @@ async function main() {
     const deadline = Date.now() + 10000;
     let pids = await chainWaiters(blockerPid);
     while (pids.length < expected && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 25));
+      await new Promise((resolve) => setTimeout(resolve, 10));
       pids = await chainWaiters(blockerPid);
     }
     if (pids.length < expected) {
@@ -246,28 +246,33 @@ async function main() {
     first: () => Promise<T>,
     second: () => Promise<U>
   ) {
+    // Baseline and blocker pid are captured before the lock is taken, keeping
+    // the fixture transaction short enough for Prisma's 5s interactive budget.
+    const blockerPid = await backendPid(blocker);
+    const baseline = await chainWaiters(blockerPid);
+    check("lock baseline is empty", baseline.length === 0, baseline);
+
     await blocker.query("BEGIN");
     const started: Array<Promise<unknown>> = [];
     try {
       await blocker.query(lockSql, params);
-      const blockerPid = await backendPid(blocker);
-      const baseline = await chainWaiters(blockerPid);
-      check("lock baseline is empty", baseline.length === 0, baseline);
 
       const firstSettled = first();
       started.push(firstSettled);
+      // The first operation must be queued in this fixture's blocking chain
+      // before the second one starts. The queue position then fixes the order.
       const firstWaiters = await waitForWaiters(blockerPid, 1, "first operation");
 
       const secondSettled = second();
       started.push(secondSettled);
-      const secondWaiters = await waitForWaiters(blockerPid, 2, "second operation");
+      const overlapWaiters = await chainWaiters(blockerPid);
 
       await blocker.query("COMMIT");
       const [r1, r2] = await Promise.allSettled([firstSettled, secondSettled]);
       return {
         first: observed(r1),
         second: observed(r2),
-        waiters: { baseline, firstWaiters, secondWaiters },
+        waiters: { baseline, firstWaiters, overlapWaiters },
       };
     } catch (error) {
       await blocker.query("ROLLBACK").catch(() => undefined);
@@ -608,6 +613,14 @@ async function main() {
       return course;
     }
 
+    // Warm the Prisma pool so interactive transactions are not charged for
+    // cold connection setup while the fixture blocker is held.
+    await Promise.all([
+      prisma.$queryRaw`SELECT 1`,
+      prisma.$queryRaw`SELECT 1`,
+      prisma.$queryRaw`SELECT 1`,
+    ]);
+
     const assignDosen = await createFixtureUser({
       label: "assign-dosen",
       role: "dosen",
@@ -667,6 +680,11 @@ async function main() {
       "demotion-first: no assignment is created",
       (await prisma.courseInstructor.count({ where: { userId: demoteDosen.user.id } })) === 0
     );
+
+    results.lockEvidence = {
+      assignmentFirst: assignmentFirst.waiters,
+      demotionFirst: demotionFirst.waiters,
+    };
 
     // --- Concurrent reciprocal admin changes ---
     const adminAAudits = await auditCount(adminA.user.id);
