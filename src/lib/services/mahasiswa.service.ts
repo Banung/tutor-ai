@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { generateCourseCover, isCurrentCourseCover } from "@/lib/course-cover";
+import { generateCourseCover, isCurrentCourseCover, isCustomCourseCover } from "@/lib/course-cover";
 
 type CourseWithCover = {
   id: string;
@@ -9,7 +9,9 @@ type CourseWithCover = {
 };
 
 async function ensureCourseCover<T extends CourseWithCover>(course: T): Promise<T> {
-  if (isCurrentCourseCover(course.coverImage)) return course;
+  if (isCurrentCourseCover(course.coverImage) || isCustomCourseCover(course.coverImage)) {
+    return course;
+  }
 
   const coverImage = generateCourseCover(course);
   await prisma.course.update({
@@ -80,6 +82,7 @@ export async function searchAvailableCourses(mahasiswaId: string, search?: strin
   const courses = await prisma.course.findMany({
     where: {
       isActive: true,
+      catalogStatus: "PUBLISHED",
       enrollments: {
         none: {
           userId: mahasiswaId,
@@ -117,6 +120,7 @@ export async function enrollMahasiswaCourse(
     where: {
       id: courseId,
       isActive: true,
+      catalogStatus: "PUBLISHED",
     },
     select: {
       id: true,

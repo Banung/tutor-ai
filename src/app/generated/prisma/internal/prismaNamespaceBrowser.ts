@@ -55,6 +55,8 @@ export const ModelName = {
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
+  Faculty: 'Faculty',
+  StudyProgram: 'StudyProgram',
   Course: 'Course',
   CourseInstructor: 'CourseInstructor',
   Enrollment: 'Enrollment',
@@ -148,14 +150,39 @@ export const VerificationScalarFieldEnum = {
 export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
 
 
+export const FacultyScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdAt: 'createdAt'
+} as const
+
+export type FacultyScalarFieldEnum = (typeof FacultyScalarFieldEnum)[keyof typeof FacultyScalarFieldEnum]
+
+
+export const StudyProgramScalarFieldEnum = {
+  id: 'id',
+  facultyId: 'facultyId',
+  name: 'name',
+  createdAt: 'createdAt'
+} as const
+
+export type StudyProgramScalarFieldEnum = (typeof StudyProgramScalarFieldEnum)[keyof typeof StudyProgramScalarFieldEnum]
+
+
 export const CourseScalarFieldEnum = {
   id: 'id',
   createdBy: 'createdBy',
   title: 'title',
   description: 'description',
   coverImage: 'coverImage',
+  coverStoragePath: 'coverStoragePath',
   enrollmentKey: 'enrollmentKey',
   isActive: 'isActive',
+  studyProgramId: 'studyProgramId',
+  courseCode: 'courseCode',
+  learningOutcomes: 'learningOutcomes',
+  hasArModule: 'hasArModule',
+  catalogStatus: 'catalogStatus',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

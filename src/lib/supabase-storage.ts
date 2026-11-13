@@ -137,6 +137,52 @@ export async function uploadMaterialFileToSupabase({
   throw new Error("Gagal upload ke Supabase Storage: nama materi sudah terlalu banyak dipakai.");
 }
 
+const COURSE_COVER_PREFIX = "course-covers";
+
+export async function uploadCourseCoverToSupabase(input: {
+  buffer: Buffer;
+  contentType: "image/jpeg" | "image/png";
+  courseId: string;
+  extension: "jpg" | "png";
+}): Promise<{ publicUrl: string; storagePath: string }> {
+  const { supabaseUrl, serviceRoleKey, bucket } = getStorageConfig();
+  const storagePath = `${COURSE_COVER_PREFIX}/${input.courseId}/${crypto.randomUUID()}.${input.extension}`;
+  const encodedPath = encodeStoragePath(storagePath);
+  const uploadBody = input.buffer.buffer.slice(
+    input.buffer.byteOffset,
+    input.buffer.byteOffset + input.buffer.byteLength
+  ) as ArrayBuffer;
+
+  const response = await fetch(
+    `${supabaseUrl}/storage/v1/object/${bucket}/${encodedPath}`,
+    {
+      method: "POST",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": input.contentType,
+        "x-upsert": "false",
+      },
+      body: uploadBody,
+    }
+  );
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(`Gagal upload cover ke Supabase Storage: ${message || response.statusText}`);
+  }
+
+  return {
+    storagePath,
+    publicUrl: `${supabaseUrl}/storage/v1/object/public/${bucket}/${encodedPath}`,
+  };
+}
+
+export async function deleteCourseCoverFromSupabase(storagePath: string | null | undefined) {
+  if (!storagePath?.startsWith(`${COURSE_COVER_PREFIX}/`)) return;
+  await deleteMaterialFilesFromSupabase([storagePath]);
+}
+
 export async function downloadMaterialFileFromSupabase(storagePath: string): Promise<Buffer> {
   const { supabaseUrl, serviceRoleKey, bucket } = getStorageConfig();
   const encodedPath = encodeStoragePath(storagePath);

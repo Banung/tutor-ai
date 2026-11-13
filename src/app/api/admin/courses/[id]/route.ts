@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, type RouteContext } from "@/lib/api-utils";
 import { updateCourseSchema } from "@/lib/schemas/course.schema";
 import * as courseService from "@/lib/services/course.service";
+import { AcademicReferenceError } from "@/lib/services/academic.service";
+
+function toErrorResponse(err: unknown, fallback: string) {
+  if (err instanceof courseService.CourseServiceError) {
+    return NextResponse.json({ error: err.message }, { status: err.status });
+  }
+  if (err instanceof AcademicReferenceError) {
+    return NextResponse.json({ error: err.message }, { status: err.status });
+  }
+  return NextResponse.json(
+    { error: err instanceof Error ? err.message : fallback },
+    { status: 500 }
+  );
+}
 
 export async function GET(request: NextRequest, context: RouteContext) {
   const { error } = await requireAdmin(request);
@@ -33,8 +47,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const course = await courseService.updateCourse(id, result.data);
     return NextResponse.json(course);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Gagal mengupdate course";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return toErrorResponse(err, "Gagal mengupdate course");
   }
 }
 
@@ -44,11 +57,13 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
   const { id } = await context.params;
 
-  try {
-    await courseService.deleteCourse(id);
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Gagal menghapus course";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  return NextResponse.json(
+    {
+      error:
+        "Penghapusan permanen dinonaktifkan. Gunakan aksi arsip untuk course ini.",
+      action: "archive",
+      courseId: id,
+    },
+    { status: 405, headers: { Allow: "GET, PATCH" } }
+  );
 }

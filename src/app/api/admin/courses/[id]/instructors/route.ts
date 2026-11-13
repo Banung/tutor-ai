@@ -3,6 +3,16 @@ import { requireAdmin, type RouteContext } from "@/lib/api-utils";
 import { assignInstructorSchema } from "@/lib/schemas/course.schema";
 import * as courseService from "@/lib/services/course.service";
 
+function toErrorResponse(err: unknown, fallback: string) {
+  if (err instanceof courseService.CourseServiceError) {
+    return NextResponse.json({ error: err.message }, { status: err.status });
+  }
+  return NextResponse.json(
+    { error: err instanceof Error ? err.message : fallback },
+    { status: 500 }
+  );
+}
+
 export async function POST(request: NextRequest, context: RouteContext) {
   const { error } = await requireAdmin(request);
   if (error) return error;
@@ -19,8 +29,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const instructor = await courseService.assignInstructor(courseId, result.data.userId);
     return NextResponse.json(instructor, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Gagal menambahkan dosen";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return toErrorResponse(err, "Gagal menambahkan dosen");
   }
 }
 
@@ -40,7 +49,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     await courseService.removeInstructor(courseId, userId);
     return NextResponse.json({ success: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Gagal menghapus dosen";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return toErrorResponse(err, "Gagal menghapus dosen");
   }
 }

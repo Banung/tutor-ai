@@ -12,6 +12,7 @@
     "start:next": "next start",
     "start:worker": "tsx src/workers/material-processing.worker.ts",
     "lint": "eslint",
+    "test": "tsx --test tests/*.test.ts",
     "worker:materials": "tsx src/workers/material-processing.worker.ts",
     "worker:materials:once": "tsx src/workers/material-processing.worker.ts --once"
   },

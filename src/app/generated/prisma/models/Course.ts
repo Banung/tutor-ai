@@ -30,8 +30,14 @@ export type CourseMinAggregateOutputType = {
   title: string | null
   description: string | null
   coverImage: string | null
+  coverStoragePath: string | null
   enrollmentKey: string | null
   isActive: boolean | null
+  studyProgramId: string | null
+  courseCode: string | null
+  learningOutcomes: string | null
+  hasArModule: boolean | null
+  catalogStatus: $Enums.CatalogStatus | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -42,8 +48,14 @@ export type CourseMaxAggregateOutputType = {
   title: string | null
   description: string | null
   coverImage: string | null
+  coverStoragePath: string | null
   enrollmentKey: string | null
   isActive: boolean | null
+  studyProgramId: string | null
+  courseCode: string | null
+  learningOutcomes: string | null
+  hasArModule: boolean | null
+  catalogStatus: $Enums.CatalogStatus | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -54,8 +66,14 @@ export type CourseCountAggregateOutputType = {
   title: number
   description: number
   coverImage: number
+  coverStoragePath: number
   enrollmentKey: number
   isActive: number
+  studyProgramId: number
+  courseCode: number
+  learningOutcomes: number
+  hasArModule: number
+  catalogStatus: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -68,8 +86,14 @@ export type CourseMinAggregateInputType = {
   title?: true
   description?: true
   coverImage?: true
+  coverStoragePath?: true
   enrollmentKey?: true
   isActive?: true
+  studyProgramId?: true
+  courseCode?: true
+  learningOutcomes?: true
+  hasArModule?: true
+  catalogStatus?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -80,8 +104,14 @@ export type CourseMaxAggregateInputType = {
   title?: true
   description?: true
   coverImage?: true
+  coverStoragePath?: true
   enrollmentKey?: true
   isActive?: true
+  studyProgramId?: true
+  courseCode?: true
+  learningOutcomes?: true
+  hasArModule?: true
+  catalogStatus?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -92,8 +122,14 @@ export type CourseCountAggregateInputType = {
   title?: true
   description?: true
   coverImage?: true
+  coverStoragePath?: true
   enrollmentKey?: true
   isActive?: true
+  studyProgramId?: true
+  courseCode?: true
+  learningOutcomes?: true
+  hasArModule?: true
+  catalogStatus?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -177,8 +213,14 @@ export type CourseGroupByOutputType = {
   title: string
   description: string | null
   coverImage: string | null
+  coverStoragePath: string | null
   enrollmentKey: string
   isActive: boolean
+  studyProgramId: string | null
+  courseCode: string | null
+  learningOutcomes: string | null
+  hasArModule: boolean
+  catalogStatus: $Enums.CatalogStatus
   createdAt: Date
   updatedAt: Date
   _count: CourseCountAggregateOutputType | null
@@ -210,11 +252,18 @@ export type CourseWhereInput = {
   title?: Prisma.StringFilter<"Course"> | string
   description?: Prisma.StringNullableFilter<"Course"> | string | null
   coverImage?: Prisma.StringNullableFilter<"Course"> | string | null
+  coverStoragePath?: Prisma.StringNullableFilter<"Course"> | string | null
   enrollmentKey?: Prisma.StringFilter<"Course"> | string
   isActive?: Prisma.BoolFilter<"Course"> | boolean
+  studyProgramId?: Prisma.StringNullableFilter<"Course"> | string | null
+  courseCode?: Prisma.StringNullableFilter<"Course"> | string | null
+  learningOutcomes?: Prisma.StringNullableFilter<"Course"> | string | null
+  hasArModule?: Prisma.BoolFilter<"Course"> | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFilter<"Course"> | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFilter<"Course"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Course"> | Date | string
   creator?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  studyProgram?: Prisma.XOR<Prisma.StudyProgramNullableScalarRelationFilter, Prisma.StudyProgramWhereInput> | null
   instructors?: Prisma.CourseInstructorListRelationFilter
   enrollments?: Prisma.EnrollmentListRelationFilter
   sessions?: Prisma.CourseSessionListRelationFilter
@@ -228,11 +277,18 @@ export type CourseOrderByWithRelationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   coverImage?: Prisma.SortOrderInput | Prisma.SortOrder
+  coverStoragePath?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  studyProgramId?: Prisma.SortOrderInput | Prisma.SortOrder
+  courseCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  learningOutcomes?: Prisma.SortOrderInput | Prisma.SortOrder
+  hasArModule?: Prisma.SortOrder
+  catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   creator?: Prisma.UserOrderByWithRelationInput
+  studyProgram?: Prisma.StudyProgramOrderByWithRelationInput
   instructors?: Prisma.CourseInstructorOrderByRelationAggregateInput
   enrollments?: Prisma.EnrollmentOrderByRelationAggregateInput
   sessions?: Prisma.CourseSessionOrderByRelationAggregateInput
@@ -243,6 +299,7 @@ export type CourseOrderByWithRelationInput = {
 export type CourseWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   enrollmentKey?: string
+  studyProgramId_courseCode?: Prisma.CourseStudyProgramIdCourseCodeCompoundUniqueInput
   AND?: Prisma.CourseWhereInput | Prisma.CourseWhereInput[]
   OR?: Prisma.CourseWhereInput[]
   NOT?: Prisma.CourseWhereInput | Prisma.CourseWhereInput[]
@@ -250,16 +307,23 @@ export type CourseWhereUniqueInput = Prisma.AtLeast<{
   title?: Prisma.StringFilter<"Course"> | string
   description?: Prisma.StringNullableFilter<"Course"> | string | null
   coverImage?: Prisma.StringNullableFilter<"Course"> | string | null
+  coverStoragePath?: Prisma.StringNullableFilter<"Course"> | string | null
   isActive?: Prisma.BoolFilter<"Course"> | boolean
+  studyProgramId?: Prisma.StringNullableFilter<"Course"> | string | null
+  courseCode?: Prisma.StringNullableFilter<"Course"> | string | null
+  learningOutcomes?: Prisma.StringNullableFilter<"Course"> | string | null
+  hasArModule?: Prisma.BoolFilter<"Course"> | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFilter<"Course"> | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFilter<"Course"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Course"> | Date | string
   creator?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  studyProgram?: Prisma.XOR<Prisma.StudyProgramNullableScalarRelationFilter, Prisma.StudyProgramWhereInput> | null
   instructors?: Prisma.CourseInstructorListRelationFilter
   enrollments?: Prisma.EnrollmentListRelationFilter
   sessions?: Prisma.CourseSessionListRelationFilter
   materialChunks?: Prisma.MaterialChunkListRelationFilter
   aiChatSessions?: Prisma.AiChatSessionListRelationFilter
-}, "id" | "enrollmentKey">
+}, "id" | "enrollmentKey" | "studyProgramId_courseCode">
 
 export type CourseOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -267,8 +331,14 @@ export type CourseOrderByWithAggregationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   coverImage?: Prisma.SortOrderInput | Prisma.SortOrder
+  coverStoragePath?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  studyProgramId?: Prisma.SortOrderInput | Prisma.SortOrder
+  courseCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  learningOutcomes?: Prisma.SortOrderInput | Prisma.SortOrder
+  hasArModule?: Prisma.SortOrder
+  catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.CourseCountOrderByAggregateInput
@@ -285,8 +355,14 @@ export type CourseScalarWhereWithAggregatesInput = {
   title?: Prisma.StringWithAggregatesFilter<"Course"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Course"> | string | null
   coverImage?: Prisma.StringNullableWithAggregatesFilter<"Course"> | string | null
+  coverStoragePath?: Prisma.StringNullableWithAggregatesFilter<"Course"> | string | null
   enrollmentKey?: Prisma.StringWithAggregatesFilter<"Course"> | string
   isActive?: Prisma.BoolWithAggregatesFilter<"Course"> | boolean
+  studyProgramId?: Prisma.StringNullableWithAggregatesFilter<"Course"> | string | null
+  courseCode?: Prisma.StringNullableWithAggregatesFilter<"Course"> | string | null
+  learningOutcomes?: Prisma.StringNullableWithAggregatesFilter<"Course"> | string | null
+  hasArModule?: Prisma.BoolWithAggregatesFilter<"Course"> | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusWithAggregatesFilter<"Course"> | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Course"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Course"> | Date | string
 }
@@ -296,11 +372,17 @@ export type CourseCreateInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
+  studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
@@ -314,8 +396,14 @@ export type CourseUncheckedCreateInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
@@ -330,11 +418,17 @@ export type CourseUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
+  studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
@@ -348,8 +442,14 @@ export type CourseUncheckedUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
@@ -365,8 +465,14 @@ export type CourseCreateManyInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -376,8 +482,13 @@ export type CourseUpdateManyMutationInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -388,8 +499,14 @@ export type CourseUncheckedUpdateManyInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -404,14 +521,25 @@ export type CourseOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type CourseStudyProgramIdCourseCodeCompoundUniqueInput = {
+  studyProgramId: string
+  courseCode: string
+}
+
 export type CourseCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   coverImage?: Prisma.SortOrder
+  coverStoragePath?: Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  studyProgramId?: Prisma.SortOrder
+  courseCode?: Prisma.SortOrder
+  learningOutcomes?: Prisma.SortOrder
+  hasArModule?: Prisma.SortOrder
+  catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -422,8 +550,14 @@ export type CourseMaxOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   coverImage?: Prisma.SortOrder
+  coverStoragePath?: Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  studyProgramId?: Prisma.SortOrder
+  courseCode?: Prisma.SortOrder
+  learningOutcomes?: Prisma.SortOrder
+  hasArModule?: Prisma.SortOrder
+  catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -434,8 +568,14 @@ export type CourseMinOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   coverImage?: Prisma.SortOrder
+  coverStoragePath?: Prisma.SortOrder
   enrollmentKey?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  studyProgramId?: Prisma.SortOrder
+  courseCode?: Prisma.SortOrder
+  learningOutcomes?: Prisma.SortOrder
+  hasArModule?: Prisma.SortOrder
+  catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -485,6 +625,52 @@ export type CourseUncheckedUpdateManyWithoutCreatorNestedInput = {
   update?: Prisma.CourseUpdateWithWhereUniqueWithoutCreatorInput | Prisma.CourseUpdateWithWhereUniqueWithoutCreatorInput[]
   updateMany?: Prisma.CourseUpdateManyWithWhereWithoutCreatorInput | Prisma.CourseUpdateManyWithWhereWithoutCreatorInput[]
   deleteMany?: Prisma.CourseScalarWhereInput | Prisma.CourseScalarWhereInput[]
+}
+
+export type CourseCreateNestedManyWithoutStudyProgramInput = {
+  create?: Prisma.XOR<Prisma.CourseCreateWithoutStudyProgramInput, Prisma.CourseUncheckedCreateWithoutStudyProgramInput> | Prisma.CourseCreateWithoutStudyProgramInput[] | Prisma.CourseUncheckedCreateWithoutStudyProgramInput[]
+  connectOrCreate?: Prisma.CourseCreateOrConnectWithoutStudyProgramInput | Prisma.CourseCreateOrConnectWithoutStudyProgramInput[]
+  createMany?: Prisma.CourseCreateManyStudyProgramInputEnvelope
+  connect?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+}
+
+export type CourseUncheckedCreateNestedManyWithoutStudyProgramInput = {
+  create?: Prisma.XOR<Prisma.CourseCreateWithoutStudyProgramInput, Prisma.CourseUncheckedCreateWithoutStudyProgramInput> | Prisma.CourseCreateWithoutStudyProgramInput[] | Prisma.CourseUncheckedCreateWithoutStudyProgramInput[]
+  connectOrCreate?: Prisma.CourseCreateOrConnectWithoutStudyProgramInput | Prisma.CourseCreateOrConnectWithoutStudyProgramInput[]
+  createMany?: Prisma.CourseCreateManyStudyProgramInputEnvelope
+  connect?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+}
+
+export type CourseUpdateManyWithoutStudyProgramNestedInput = {
+  create?: Prisma.XOR<Prisma.CourseCreateWithoutStudyProgramInput, Prisma.CourseUncheckedCreateWithoutStudyProgramInput> | Prisma.CourseCreateWithoutStudyProgramInput[] | Prisma.CourseUncheckedCreateWithoutStudyProgramInput[]
+  connectOrCreate?: Prisma.CourseCreateOrConnectWithoutStudyProgramInput | Prisma.CourseCreateOrConnectWithoutStudyProgramInput[]
+  upsert?: Prisma.CourseUpsertWithWhereUniqueWithoutStudyProgramInput | Prisma.CourseUpsertWithWhereUniqueWithoutStudyProgramInput[]
+  createMany?: Prisma.CourseCreateManyStudyProgramInputEnvelope
+  set?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+  disconnect?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+  delete?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+  connect?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+  update?: Prisma.CourseUpdateWithWhereUniqueWithoutStudyProgramInput | Prisma.CourseUpdateWithWhereUniqueWithoutStudyProgramInput[]
+  updateMany?: Prisma.CourseUpdateManyWithWhereWithoutStudyProgramInput | Prisma.CourseUpdateManyWithWhereWithoutStudyProgramInput[]
+  deleteMany?: Prisma.CourseScalarWhereInput | Prisma.CourseScalarWhereInput[]
+}
+
+export type CourseUncheckedUpdateManyWithoutStudyProgramNestedInput = {
+  create?: Prisma.XOR<Prisma.CourseCreateWithoutStudyProgramInput, Prisma.CourseUncheckedCreateWithoutStudyProgramInput> | Prisma.CourseCreateWithoutStudyProgramInput[] | Prisma.CourseUncheckedCreateWithoutStudyProgramInput[]
+  connectOrCreate?: Prisma.CourseCreateOrConnectWithoutStudyProgramInput | Prisma.CourseCreateOrConnectWithoutStudyProgramInput[]
+  upsert?: Prisma.CourseUpsertWithWhereUniqueWithoutStudyProgramInput | Prisma.CourseUpsertWithWhereUniqueWithoutStudyProgramInput[]
+  createMany?: Prisma.CourseCreateManyStudyProgramInputEnvelope
+  set?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+  disconnect?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+  delete?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+  connect?: Prisma.CourseWhereUniqueInput | Prisma.CourseWhereUniqueInput[]
+  update?: Prisma.CourseUpdateWithWhereUniqueWithoutStudyProgramInput | Prisma.CourseUpdateWithWhereUniqueWithoutStudyProgramInput[]
+  updateMany?: Prisma.CourseUpdateManyWithWhereWithoutStudyProgramInput | Prisma.CourseUpdateManyWithWhereWithoutStudyProgramInput[]
+  deleteMany?: Prisma.CourseScalarWhereInput | Prisma.CourseScalarWhereInput[]
+}
+
+export type EnumCatalogStatusFieldUpdateOperationsInput = {
+  set?: $Enums.CatalogStatus
 }
 
 export type CourseCreateNestedOneWithoutInstructorsInput = {
@@ -562,10 +748,16 @@ export type CourseCreateWithoutCreatorInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
@@ -578,8 +770,14 @@ export type CourseUncheckedCreateWithoutCreatorInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
@@ -624,10 +822,86 @@ export type CourseScalarWhereInput = {
   title?: Prisma.StringFilter<"Course"> | string
   description?: Prisma.StringNullableFilter<"Course"> | string | null
   coverImage?: Prisma.StringNullableFilter<"Course"> | string | null
+  coverStoragePath?: Prisma.StringNullableFilter<"Course"> | string | null
   enrollmentKey?: Prisma.StringFilter<"Course"> | string
   isActive?: Prisma.BoolFilter<"Course"> | boolean
+  studyProgramId?: Prisma.StringNullableFilter<"Course"> | string | null
+  courseCode?: Prisma.StringNullableFilter<"Course"> | string | null
+  learningOutcomes?: Prisma.StringNullableFilter<"Course"> | string | null
+  hasArModule?: Prisma.BoolFilter<"Course"> | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFilter<"Course"> | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFilter<"Course"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Course"> | Date | string
+}
+
+export type CourseCreateWithoutStudyProgramInput = {
+  id: string
+  title: string
+  description?: string | null
+  coverImage?: string | null
+  coverStoragePath?: string | null
+  enrollmentKey: string
+  isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
+  instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
+  enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
+  sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
+  materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
+  aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+}
+
+export type CourseUncheckedCreateWithoutStudyProgramInput = {
+  id: string
+  createdBy: string
+  title: string
+  description?: string | null
+  coverImage?: string | null
+  coverStoragePath?: string | null
+  enrollmentKey: string
+  isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
+  enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
+  sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
+  materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
+  aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+}
+
+export type CourseCreateOrConnectWithoutStudyProgramInput = {
+  where: Prisma.CourseWhereUniqueInput
+  create: Prisma.XOR<Prisma.CourseCreateWithoutStudyProgramInput, Prisma.CourseUncheckedCreateWithoutStudyProgramInput>
+}
+
+export type CourseCreateManyStudyProgramInputEnvelope = {
+  data: Prisma.CourseCreateManyStudyProgramInput | Prisma.CourseCreateManyStudyProgramInput[]
+  skipDuplicates?: boolean
+}
+
+export type CourseUpsertWithWhereUniqueWithoutStudyProgramInput = {
+  where: Prisma.CourseWhereUniqueInput
+  update: Prisma.XOR<Prisma.CourseUpdateWithoutStudyProgramInput, Prisma.CourseUncheckedUpdateWithoutStudyProgramInput>
+  create: Prisma.XOR<Prisma.CourseCreateWithoutStudyProgramInput, Prisma.CourseUncheckedCreateWithoutStudyProgramInput>
+}
+
+export type CourseUpdateWithWhereUniqueWithoutStudyProgramInput = {
+  where: Prisma.CourseWhereUniqueInput
+  data: Prisma.XOR<Prisma.CourseUpdateWithoutStudyProgramInput, Prisma.CourseUncheckedUpdateWithoutStudyProgramInput>
+}
+
+export type CourseUpdateManyWithWhereWithoutStudyProgramInput = {
+  where: Prisma.CourseScalarWhereInput
+  data: Prisma.XOR<Prisma.CourseUpdateManyMutationInput, Prisma.CourseUncheckedUpdateManyWithoutStudyProgramInput>
 }
 
 export type CourseCreateWithoutInstructorsInput = {
@@ -635,11 +909,17 @@ export type CourseCreateWithoutInstructorsInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
+  studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
@@ -652,8 +932,14 @@ export type CourseUncheckedCreateWithoutInstructorsInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
@@ -683,11 +969,17 @@ export type CourseUpdateWithoutInstructorsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
+  studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
@@ -700,8 +992,14 @@ export type CourseUncheckedUpdateWithoutInstructorsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
@@ -715,11 +1013,17 @@ export type CourseCreateWithoutEnrollmentsInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
+  studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
@@ -732,8 +1036,14 @@ export type CourseUncheckedCreateWithoutEnrollmentsInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
@@ -763,11 +1073,17 @@ export type CourseUpdateWithoutEnrollmentsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
+  studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
@@ -780,8 +1096,14 @@ export type CourseUncheckedUpdateWithoutEnrollmentsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
@@ -795,11 +1117,17 @@ export type CourseCreateWithoutSessionsInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
+  studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
@@ -812,8 +1140,14 @@ export type CourseUncheckedCreateWithoutSessionsInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
@@ -843,11 +1177,17 @@ export type CourseUpdateWithoutSessionsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
+  studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
@@ -860,8 +1200,14 @@ export type CourseUncheckedUpdateWithoutSessionsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
@@ -875,11 +1221,17 @@ export type CourseCreateWithoutMaterialChunksInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
+  studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
@@ -892,8 +1244,14 @@ export type CourseUncheckedCreateWithoutMaterialChunksInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
@@ -923,11 +1281,17 @@ export type CourseUpdateWithoutMaterialChunksInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
+  studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
@@ -940,8 +1304,14 @@ export type CourseUncheckedUpdateWithoutMaterialChunksInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
@@ -955,11 +1325,17 @@ export type CourseCreateWithoutAiChatSessionsInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
+  studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
@@ -972,8 +1348,14 @@ export type CourseUncheckedCreateWithoutAiChatSessionsInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
@@ -1003,11 +1385,17 @@ export type CourseUpdateWithoutAiChatSessionsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
+  studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
@@ -1020,8 +1408,14 @@ export type CourseUncheckedUpdateWithoutAiChatSessionsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
@@ -1035,8 +1429,14 @@ export type CourseCreateManyCreatorInput = {
   title: string
   description?: string | null
   coverImage?: string | null
+  coverStoragePath?: string | null
   enrollmentKey: string
   isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1046,10 +1446,16 @@ export type CourseUpdateWithoutCreatorInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
@@ -1062,8 +1468,14 @@ export type CourseUncheckedUpdateWithoutCreatorInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
@@ -1078,8 +1490,92 @@ export type CourseUncheckedUpdateManyWithoutCreatorInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type CourseCreateManyStudyProgramInput = {
+  id: string
+  createdBy: string
+  title: string
+  description?: string | null
+  coverImage?: string | null
+  coverStoragePath?: string | null
+  enrollmentKey: string
+  isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type CourseUpdateWithoutStudyProgramInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
+  instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
+  enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
+  sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
+  materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
+  aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+}
+
+export type CourseUncheckedUpdateWithoutStudyProgramInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
+  enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
+  sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
+  materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
+  aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+}
+
+export type CourseUncheckedUpdateManyWithoutStudyProgramInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1157,11 +1653,18 @@ export type CourseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   title?: boolean
   description?: boolean
   coverImage?: boolean
+  coverStoragePath?: boolean
   enrollmentKey?: boolean
   isActive?: boolean
+  studyProgramId?: boolean
+  courseCode?: boolean
+  learningOutcomes?: boolean
+  hasArModule?: boolean
+  catalogStatus?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
   instructors?: boolean | Prisma.Course$instructorsArgs<ExtArgs>
   enrollments?: boolean | Prisma.Course$enrollmentsArgs<ExtArgs>
   sessions?: boolean | Prisma.Course$sessionsArgs<ExtArgs>
@@ -1176,11 +1679,18 @@ export type CourseSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   title?: boolean
   description?: boolean
   coverImage?: boolean
+  coverStoragePath?: boolean
   enrollmentKey?: boolean
   isActive?: boolean
+  studyProgramId?: boolean
+  courseCode?: boolean
+  learningOutcomes?: boolean
+  hasArModule?: boolean
+  catalogStatus?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
 }, ExtArgs["result"]["course"]>
 
 export type CourseSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1189,11 +1699,18 @@ export type CourseSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   title?: boolean
   description?: boolean
   coverImage?: boolean
+  coverStoragePath?: boolean
   enrollmentKey?: boolean
   isActive?: boolean
+  studyProgramId?: boolean
+  courseCode?: boolean
+  learningOutcomes?: boolean
+  hasArModule?: boolean
+  catalogStatus?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
 }, ExtArgs["result"]["course"]>
 
 export type CourseSelectScalar = {
@@ -1202,15 +1719,22 @@ export type CourseSelectScalar = {
   title?: boolean
   description?: boolean
   coverImage?: boolean
+  coverStoragePath?: boolean
   enrollmentKey?: boolean
   isActive?: boolean
+  studyProgramId?: boolean
+  courseCode?: boolean
+  learningOutcomes?: boolean
+  hasArModule?: boolean
+  catalogStatus?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CourseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdBy" | "title" | "description" | "coverImage" | "enrollmentKey" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["course"]>
+export type CourseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdBy" | "title" | "description" | "coverImage" | "coverStoragePath" | "enrollmentKey" | "isActive" | "studyProgramId" | "courseCode" | "learningOutcomes" | "hasArModule" | "catalogStatus" | "createdAt" | "updatedAt", ExtArgs["result"]["course"]>
 export type CourseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
   instructors?: boolean | Prisma.Course$instructorsArgs<ExtArgs>
   enrollments?: boolean | Prisma.Course$enrollmentsArgs<ExtArgs>
   sessions?: boolean | Prisma.Course$sessionsArgs<ExtArgs>
@@ -1220,15 +1744,18 @@ export type CourseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 }
 export type CourseIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
 }
 export type CourseIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
 }
 
 export type $CoursePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Course"
   objects: {
     creator: Prisma.$UserPayload<ExtArgs>
+    studyProgram: Prisma.$StudyProgramPayload<ExtArgs> | null
     instructors: Prisma.$CourseInstructorPayload<ExtArgs>[]
     enrollments: Prisma.$EnrollmentPayload<ExtArgs>[]
     sessions: Prisma.$CourseSessionPayload<ExtArgs>[]
@@ -1241,8 +1768,14 @@ export type $CoursePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     title: string
     description: string | null
     coverImage: string | null
+    coverStoragePath: string | null
     enrollmentKey: string
     isActive: boolean
+    studyProgramId: string | null
+    courseCode: string | null
+    learningOutcomes: string | null
+    hasArModule: boolean
+    catalogStatus: $Enums.CatalogStatus
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["course"]>
@@ -1640,6 +2173,7 @@ readonly fields: CourseFieldRefs;
 export interface Prisma__CourseClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   creator<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  studyProgram<T extends Prisma.Course$studyProgramArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$studyProgramArgs<ExtArgs>>): Prisma.Prisma__StudyProgramClient<runtime.Types.Result.GetResult<Prisma.$StudyProgramPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   instructors<T extends Prisma.Course$instructorsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$instructorsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CourseInstructorPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   enrollments<T extends Prisma.Course$enrollmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$enrollmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EnrollmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sessions<T extends Prisma.Course$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CourseSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1679,8 +2213,14 @@ export interface CourseFieldRefs {
   readonly title: Prisma.FieldRef<"Course", 'String'>
   readonly description: Prisma.FieldRef<"Course", 'String'>
   readonly coverImage: Prisma.FieldRef<"Course", 'String'>
+  readonly coverStoragePath: Prisma.FieldRef<"Course", 'String'>
   readonly enrollmentKey: Prisma.FieldRef<"Course", 'String'>
   readonly isActive: Prisma.FieldRef<"Course", 'Boolean'>
+  readonly studyProgramId: Prisma.FieldRef<"Course", 'String'>
+  readonly courseCode: Prisma.FieldRef<"Course", 'String'>
+  readonly learningOutcomes: Prisma.FieldRef<"Course", 'String'>
+  readonly hasArModule: Prisma.FieldRef<"Course", 'Boolean'>
+  readonly catalogStatus: Prisma.FieldRef<"Course", 'CatalogStatus'>
   readonly createdAt: Prisma.FieldRef<"Course", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Course", 'DateTime'>
 }
@@ -2081,6 +2621,25 @@ export type CourseDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Limit how many Courses to delete.
    */
   limit?: number
+}
+
+/**
+ * Course.studyProgram
+ */
+export type Course$studyProgramArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StudyProgram
+   */
+  select?: Prisma.StudyProgramSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the StudyProgram
+   */
+  omit?: Prisma.StudyProgramOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StudyProgramInclude<ExtArgs> | null
+  where?: Prisma.StudyProgramWhereInput
 }
 
 /**

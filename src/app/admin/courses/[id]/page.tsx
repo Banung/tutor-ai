@@ -35,6 +35,9 @@ import {
   KeyRound,
   Users,
   GraduationCap,
+  Archive,
+  Boxes,
+  BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,9 +50,21 @@ interface Instructor {
 interface CourseDetail {
   id: string;
   title: string;
+  courseCode: string | null;
   description: string | null;
+  learningOutcomes: string | null;
+  coverImage: string | null;
+  coverStoragePath: string | null;
   enrollmentKey: string;
   isActive: boolean;
+  hasArModule: boolean;
+  catalogStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  studyProgramId: string | null;
+  studyProgram: {
+    id: string;
+    name: string;
+    faculty: { id: string; name: string };
+  } | null;
   createdAt: string;
   creator: { id: string; name: string };
   instructors: Instructor[];
@@ -120,11 +135,17 @@ export default function CourseDetailPage() {
   const [removeEnrollment, setRemoveEnrollment] = useState<Enrollment | null>(null);
   const [removingEnrollment, setRemovingEnrollment] = useState(false);
 
+  // Archive
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+
   const fetchCourse = useCallback(() => {
     setLoading(true);
     fetch(`/api/admin/courses/${courseId}`)
-      .then((r) => r.json())
-      .then(setCourse)
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        setCourse(r.ok && data && !data.error ? data : null);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [courseId]);
@@ -289,6 +310,29 @@ export default function CourseDetailPage() {
     toast.success("Enrollment key disalin");
   }
 
+  async function handleArchive() {
+    setArchiving(true);
+    try {
+      const res = await fetch(`/api/admin/courses/${courseId}/archive`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(
+          typeof data?.error === "string" ? data.error : "Gagal mengarsipkan course"
+        );
+      }
+      toast.success("Course berhasil diarsipkan");
+      setArchiveOpen(false);
+      fetchCourse();
+      fetchEnrollments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengarsipkan course");
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col gap-6">
@@ -314,14 +358,26 @@ export default function CourseDetailPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight truncate" title={course.title}>
               {course.title}
             </h1>
+            {course.courseCode && (
+              <span className="rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
+                {course.courseCode}
+              </span>
+            )}
+            <Badge variant={course.catalogStatus === "PUBLISHED" ? "default" : "secondary"} className="shrink-0">
+              {course.catalogStatus === "PUBLISHED"
+                ? "Dipublikasikan"
+                : course.catalogStatus === "ARCHIVED"
+                  ? "Diarsipkan"
+                  : "Draft"}
+            </Badge>
             <Badge variant={course.isActive ? "default" : "secondary"} className="shrink-0">
-              {course.isActive ? "Aktif" : "Nonaktif"}
+              {course.isActive ? "Akses aktif" : "Akses nonaktif"}
             </Badge>
           </div>
           {course.description && (
@@ -329,6 +385,71 @@ export default function CourseDetailPage() {
               {course.description}
             </p>
           )}
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setArchiveOpen(true)}
+          disabled={course.catalogStatus === "ARCHIVED"}
+          className="shrink-0 gap-2"
+        >
+          <Archive data-icon="inline-start" />
+          {course.catalogStatus === "ARCHIVED" ? "Sudah diarsipkan" : "Arsipkan"}
+        </Button>
+      </div>
+
+      {/* Academic profile */}
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <div
+          className="h-40 rounded-xl border bg-muted bg-cover bg-center"
+          style={
+            course.coverImage
+              ? { backgroundImage: `url("${course.coverImage}")` }
+              : undefined
+          }
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs font-semibold uppercase tracking-wider">
+                Program Studi
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="font-medium">
+                {course.studyProgram?.name ?? "Belum ditentukan"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {course.studyProgram?.faculty.name ?? "Referensi akademik belum diisi"}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs font-semibold uppercase tracking-wider">
+                Modul AR
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="flex items-center gap-2 font-medium">
+                <Boxes className="size-4 text-brand" />
+                {course.hasArModule ? "Tersedia" : "Belum tersedia"}
+              </p>
+              <p className="text-sm text-muted-foreground">Metadata katalog</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50 sm:col-span-2">
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+                <BookOpen className="size-3.5" />
+                Capaian Pembelajaran
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {course.learningOutcomes || "Belum diisi"}
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -637,6 +758,26 @@ export default function CourseDetailPage() {
             >
               {removingEnrollment && <Loader2 className="animate-spin" data-icon="inline-start" />}
               Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Archive Confirmation */}
+      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arsipkan Course</AlertDialogTitle>
+            <AlertDialogDescription>
+              Course <strong>{course.title}</strong> akan ditandai sebagai arsip dan hilang
+              dari pencarian mahasiswa. Course, enrollment, sesi, materi, serta riwayat
+              percakapan tetap tersimpan. Status akses kelas tidak berubah.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={archiving}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchive} disabled={archiving}>
+              {archiving && <Loader2 className="animate-spin" data-icon="inline-start" />}
+              Arsipkan
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

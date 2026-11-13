@@ -92,28 +92,72 @@ model Verification {
 }
 
 // ==========================================
+// ACADEMIC REFERENCES
+// ==========================================
+
+model Faculty {
+  id        String   @id
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  studyPrograms StudyProgram[]
+
+  @@map("faculty")
+}
+
+model StudyProgram {
+  id        String   @id
+  facultyId String
+  name      String
+  createdAt DateTime @default(now())
+
+  faculty Faculty  @relation(fields: [facultyId], references: [id], onDelete: Restrict)
+  courses Course[]
+
+  @@unique([facultyId, name])
+  @@index([facultyId])
+  @@map("study_program")
+}
+
+// ==========================================
 // COURSE MANAGEMENT
 // ==========================================
 
+enum CatalogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 model Course {
-  id            String   @id
-  createdBy     String
-  title         String
-  description   String?
-  coverImage    String?
-  enrollmentKey String   @unique // auto-generated 8 karakter, dipakai mahasiswa untuk join
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String        @id
+  createdBy        String
+  title            String
+  description      String?
+  coverImage       String?
+  coverStoragePath String?
+  enrollmentKey    String        @unique // auto-generated 8 karakter, dipakai mahasiswa untuk join
+  isActive         Boolean       @default(true)
+  studyProgramId   String?
+  courseCode       String? // dinormalisasi UPPERCASE, unik per program studi
+  learningOutcomes String?
+  hasArModule      Boolean       @default(false)
+  catalogStatus    CatalogStatus @default(DRAFT)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   creator        User               @relation("CourseCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  studyProgram   StudyProgram?      @relation(fields: [studyProgramId], references: [id], onDelete: Restrict)
   instructors    CourseInstructor[]
   enrollments    Enrollment[]
   sessions       CourseSession[]
   materialChunks MaterialChunk[]
   aiChatSessions AiChatSession[]
 
+  @@unique([studyProgramId, courseCode])
   @@index([enrollmentKey])
+  @@index([catalogStatus])
+  @@index([studyProgramId])
   @@map("course")
 }
 

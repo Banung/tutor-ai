@@ -1,14 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-utils";
-import { createCourseSchema } from "@/lib/schemas/course.schema";
+import { adminCreateCourseSchema, catalogStatusSchema } from "@/lib/schemas/course.schema";
 import * as courseService from "@/lib/services/course.service";
+import { AcademicReferenceError } from "@/lib/services/academic.service";
+
+function toErrorResponse(err: unknown, fallback: string) {
+  if (err instanceof courseService.CourseServiceError) {
+    return NextResponse.json({ error: err.message }, { status: err.status });
+  }
+  if (err instanceof AcademicReferenceError) {
+    return NextResponse.json({ error: err.message }, { status: err.status });
+  }
+  return NextResponse.json(
+    { error: err instanceof Error ? err.message : fallback },
+    { status: 500 }
+  );
+}
 
 export async function GET(request: NextRequest) {
   const { error } = await requireAdmin(request);
   if (error) return error;
 
-  const search = request.nextUrl.searchParams.get("search") || undefined;
-  const courses = await courseService.listCourses(search);
+  const params = request.nextUrl.searchParams;
+  const catalogStatusParam = params.get("catalogStatus");
+  const parsedStatus = catalogStatusParam
+    ? catalogStatusSchema.safeParse(catalogStatusParam)
+    : null;
+
+  if (parsedStatus && !parsedStatus.success) {
+    return NextResponse.json({ error: "Status katalog tidak valid" }, { status: 400 });
+  }
+
+  const courses = await courseService.listCourses({
+    search: params.get("search") || undefined,
+    facultyId: params.get("facultyId") || undefined,
+    studyProgramId: params.get("studyProgramId") || undefined,
+    catalogStatus: parsedStatus?.data,
+  });
   return NextResponse.json(courses);
 }
 
@@ -17,7 +45,7 @@ export async function POST(request: NextRequest) {
   if (error) return error;
 
   const body = await request.json();
-  const result = createCourseSchema.safeParse(body);
+  const result = adminCreateCourseSchema.safeParse(body);
 
   if (!result.success) {
     return NextResponse.json({ error: result.error.issues }, { status: 400 });
@@ -27,7 +55,6 @@ export async function POST(request: NextRequest) {
     const course = await courseService.createCourse(result.data, session!.user.id);
     return NextResponse.json(course, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Gagal membuat course";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return toErrorResponse(err, "Gagal membuat course");
   }
 }

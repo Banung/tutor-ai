@@ -9,7 +9,10 @@
 * 🟢 You can import this file directly.
 */
 
+export const CatalogStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  ARCHIVED: 'ARCHIVED'
+} as const
 
-
-// This file is empty because there are no enums in the schema.
-export {}
+export type CatalogStatus = (typeof CatalogStatus)[keyof typeof CatalogStatus]

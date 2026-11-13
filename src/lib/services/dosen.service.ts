@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import type { CreateCourseInput } from "@/lib/schemas/course.schema";
-import { generateCourseCover, isCurrentCourseCover } from "@/lib/course-cover";
+import { generateCourseCover, isCurrentCourseCover, isCustomCourseCover } from "@/lib/course-cover";
 import { deleteMaterialFilesFromSupabase } from "@/lib/supabase-storage";
 
 export class DosenServiceError extends Error {
@@ -66,7 +66,9 @@ const materialSelect = {
 } as const;
 
 async function ensureCourseCover<T extends CourseWithCover>(course: T): Promise<T> {
-  if (isCurrentCourseCover(course.coverImage)) return course;
+  if (isCurrentCourseCover(course.coverImage) || isCustomCourseCover(course.coverImage)) {
+    return course;
+  }
 
   const coverImage = generateCourseCover(course);
   await prisma.course.update({
@@ -154,6 +156,7 @@ export async function createDosenCourse(data: CreateCourseInput, dosenId: string
       title: data.title,
       description: data.description ?? null,
       isActive: data.isActive ?? true,
+      catalogStatus: "DRAFT",
       enrollmentKey,
       coverImage: generateCourseCover({
         id: courseId,
@@ -212,6 +215,7 @@ export async function updateDosenCourse(
       id: true,
       title: true,
       enrollmentKey: true,
+      coverImage: true,
     },
   });
 
@@ -227,10 +231,12 @@ export async function updateDosenCourse(
     data: {
       ...(data.title !== undefined && {
         title: data.title,
-        coverImage: generateCourseCover({
-          id: course.id,
-          title: nextTitle,
-          enrollmentKey: course.enrollmentKey,
+        ...(!isCustomCourseCover(course.coverImage) && {
+          coverImage: generateCourseCover({
+            id: course.id,
+            title: nextTitle,
+            enrollmentKey: course.enrollmentKey,
+          }),
         }),
       }),
       ...(data.description !== undefined && { description: data.description }),
