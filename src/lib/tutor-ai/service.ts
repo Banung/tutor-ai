@@ -205,6 +205,8 @@ async function listReadyMaterialsForCourse(courseId: string) {
       processingStatus: "ready",
       materialType: "file",
       chunkCount: { gt: 0 },
+      embeddingModel: MATERIAL_EMBEDDING_MODEL,
+      embeddingDimensions: MATERIAL_EMBEDDING_DIMENSIONS,
       courseSession: {
         courseId,
         isActive: true,

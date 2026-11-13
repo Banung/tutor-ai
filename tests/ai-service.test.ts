@@ -30,11 +30,12 @@ async function harness(t: TestContext, options: {
   const { askTutorStream } = await import("../src/lib/tutor-ai/service");
   const saved: Array<Record<string, unknown>> = [];
   const deleted: unknown[] = [];
+  const materialQueries: Array<{ where: Record<string, unknown> }> = [];
   const queries: Array<{ strings: string[]; values: unknown[] }> = [];
   const requests: Array<{ url: string; body: Record<string, unknown> }> = [];
   replace(prisma.user, "findUnique", async () => ({ id: "student", name: "Rani", role: "mahasiswa", academicLevel: "S1" }));
   replace(prisma.course, "findFirst", async () => options.denyAccess ? null : ({ id: "course", title: "Statistika Dasar", description: null, isActive: true }));
-  replace(prisma.material, "findMany", async () => [{ id: "material-1", title: "Penilaian", fileName: chunk.fileName, pageCount: 3, chunkCount: 4, createdAt: new Date(), courseSession: { id: "lesson-1", title: "Penilaian", orderNumber: 1 } }] );
+  replace(prisma.material, "findMany", async (args: { where: Record<string, unknown> }) => { materialQueries.push(args); return [{ id: "material-1", title: "Penilaian", fileName: chunk.fileName, pageCount: 3, chunkCount: 4, createdAt: new Date(), courseSession: { id: "lesson-1", title: "Penilaian", orderNumber: 1 } }]; } );
   replace(prisma.aiChatSession, "findFirst", async () => ({ id: "chat", messages: [] }));
   replace(prisma.aiChatSession, "update", async () => ({}));
   replace(prisma.aiChatMessage, "findFirst", async () => ({ content: JSON.stringify(options.selected ?? ["material-1"]) }));
@@ -58,7 +59,7 @@ async function harness(t: TestContext, options: {
     return Response.json({ candidates: [{ content: { role: "model", parts: [{ text: "Berapa nilai akhir Rani?" }] }, finishReason: "STOP" }] });
   });
   return {
-    saved, deleted, requests, queries,
+    saved, deleted, requests, queries, materialQueries,
     stream: (content: string, signal?: AbortSignal) => askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal }),
     ask: async (content: string, signal?: AbortSignal) => {
       const stream = await askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal });
@@ -216,4 +217,12 @@ test("cited source numbers retain their original context identity", async (t) =>
   assert.equal(sources.length, 1);
   assert.equal(sources[0].chunkId, "chunk-2");
   assert.equal(sources[0].sourceNumber, 2);
+});
+
+
+test("only materials embedded with the current model and dimensions are offered as ready", async (t) => {
+  const h = await harness(t);
+  await h.ask("Apa itu median?");
+  assert.equal(h.materialQueries[0].where.embeddingModel, "gemini-embedding-2");
+  assert.equal(h.materialQueries[0].where.embeddingDimensions, 768);
 });

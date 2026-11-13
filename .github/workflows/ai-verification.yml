@@ -11,12 +11,15 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: bash scripts/reproduce-ai-baseline.sh
       - run: pnpm test
       - run: pnpm test:pdf
       - run: pnpm typecheck
