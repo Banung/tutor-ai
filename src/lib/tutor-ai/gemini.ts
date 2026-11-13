@@ -111,7 +111,7 @@ export async function* streamTutorAnswer(input: AnswerInput): AsyncGenerator<str
     while (true) {
       const item = await deadline.run(iterator.next());
       if (item.done) break;
-      lastResponse = item.value;
+      if (item.value.candidates?.length) lastResponse = item.value;
       if (item.value.text) { hasText = true; yield item.value.text; }
     }
     if (!lastResponse || !hasText) throw new Error("Gemini mengembalikan stream kosong.");

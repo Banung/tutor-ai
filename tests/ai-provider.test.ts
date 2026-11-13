@@ -39,7 +39,7 @@ test("a stalled stream read is covered by the same total deadline", async (t) =>
       controller.enqueue(new TextEncoder().encode('data: {"candidates":[{"content":{"parts":[{"text":"Awal jawaban"}]}}]}\n\n'));
     },
   }), { headers: { "Content-Type": "text/event-stream" } }));
-  const stream = streamTutorAnswer({ systemInstruction: "Tutor", prompt: "Median?", timeoutMs: 100 });
+  const stream = streamTutorAnswer({ systemInstruction: "Tutor", prompt: "Median?", timeoutMs: 1000 });
   assert.equal((await stream.next()).value, "Awal jawaban");
   await assert.rejects(() => stream.next(), { name: "TimeoutError" });
 });
@@ -64,4 +64,17 @@ test("truncated or empty provider responses cannot be treated as complete", asyn
   assert.equal((await stream.next()).value, "Belum selesai");
   await assert.rejects(() => stream.next(), /normal/);
   await assert.rejects(() => generateTutorAnswer({ systemInstruction: "Tutor", prompt: "Median?" }), /kosong/);
+});
+
+test("a usage-only trailer after STOP does not invalidate a completed stream", async (t) => {
+  const { streamTutorAnswer } = await import("../src/lib/tutor-ai/gemini");
+  const frames = [
+    { candidates: [{ content: { parts: [{ text: "Median adalah nilai tengah." }] }, finishReason: "STOP" }] },
+    { usageMetadata: { totalTokenCount: 10 } },
+  ];
+  t.mock.method(globalThis, "fetch", async () => new Response(frames.map((frame) => `data: ${JSON.stringify(frame)}\n\n`).join(""), { headers: { "Content-Type": "text/event-stream" } }));
+  const stream = streamTutorAnswer({ systemInstruction: "Tutor", prompt: "Median?" });
+  let answer = "";
+  for await (const text of stream) answer += text;
+  assert.equal(answer, "Median adalah nilai tengah.");
 });

@@ -28,6 +28,8 @@ async function harness(t: TestContext, options: {
     t.after(() => { record[key] = original; });
   }
   const { askTutorStream } = await import("../src/lib/tutor-ai/service");
+  let markProviderStarted: () => void = () => {};
+  const providerStarted = new Promise<void>((resolve) => { markProviderStarted = resolve; });
   const saved: Array<Record<string, unknown>> = [];
   const deleted: unknown[] = [];
   const materialQueries: Array<{ where: Record<string, unknown> }> = [];
@@ -53,13 +55,14 @@ async function harness(t: TestContext, options: {
     }
     const response = { candidates: [{ content: { role: "model", parts: [{ text: options.answer ?? "Nilai Rani 78. [Sumber 1]" }] }, finishReason: options.finishReason ?? "STOP" }] };
     if (String(url).includes("streamGenerateContent")) {
+      markProviderStarted();
       if (options.streamHang) return new Promise<Response>(() => {});
       return new Response(`data: ${JSON.stringify(response)}\n\n`, { headers: { "Content-Type": "text/event-stream" } });
     }
     return Response.json({ candidates: [{ content: { role: "model", parts: [{ text: "Berapa nilai akhir Rani?" }] }, finishReason: "STOP" }] });
   });
   return {
-    saved, deleted, requests, queries, materialQueries,
+    saved, deleted, requests, queries, materialQueries, providerStarted,
     stream: (content: string, signal?: AbortSignal) => askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal }),
     ask: async (content: string, signal?: AbortSignal) => {
       const stream = await askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal });
@@ -180,12 +183,11 @@ test("request abort closes a stalled response and cleans up its pending turn", a
   const h = await harness(t, { streamHang: true });
   const controller = new AbortController();
   const pending = h.ask("Berapa nilai Rani?", controller.signal);
-  const timer = setTimeout(() => controller.abort(), 100);
-  try {
-    const events = await pending;
-    assert.doesNotMatch(events, /event: done/);
-    assert.equal(h.deleted.length, 1);
-  } finally { clearTimeout(timer); }
+  await h.providerStarted;
+  controller.abort();
+  const events = await pending;
+  assert.doesNotMatch(events, /event: done/);
+  assert.equal(h.deleted.length, 1);
 });
 
 test("reader cancellation also aborts a stalled provider and cleans up", async (t) => {
