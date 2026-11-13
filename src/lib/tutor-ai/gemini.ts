@@ -15,10 +15,6 @@ function getGeminiClient() {
     throw new Error("GEMINI_API_KEY belum diatur di .env.");
   }
 
-  if (!client) {
-    console.log(`[Gemini API] Client berhasil diinisialisasi. API Key: ${apiKey.slice(0, 8)}...${apiKey.slice(-4)}`);
-  }
-
   client ??= new GoogleGenAI({ apiKey });
   return client;
 }
@@ -50,14 +46,16 @@ export async function embedTutorQuestion(question: string) {
     outputDimensionality: MATERIAL_EMBEDDING_DIMENSIONS,
   };
 
-  if (MATERIAL_EMBEDDING_MODEL.includes("embedding")) {
+  if (!MATERIAL_EMBEDDING_MODEL.includes("embedding-2")) {
     config.taskType = "RETRIEVAL_QUERY";
   }
 
   const response = await withTimeout(
     ai.models.embedContent({
       model: MATERIAL_EMBEDDING_MODEL,
-      contents: question,
+      contents: MATERIAL_EMBEDDING_MODEL.includes("embedding-2")
+        ? `task: question answering | query: ${question}`
+        : question,
       config,
     }),
     45_000

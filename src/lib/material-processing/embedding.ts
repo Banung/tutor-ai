@@ -43,7 +43,7 @@ export async function embedMaterialChunk(title: string, content: string) {
     outputDimensionality: MATERIAL_EMBEDDING_DIMENSIONS,
   };
 
-  if (MATERIAL_EMBEDDING_MODEL.includes("embedding")) {
+  if (!MATERIAL_EMBEDDING_MODEL.includes("embedding-2")) {
     config.taskType = "RETRIEVAL_DOCUMENT";
   }
 
