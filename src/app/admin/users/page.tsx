@@ -57,6 +57,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
+import { parsePartialProvisioning } from "@/lib/user-provisioning";
 
 function errorMessage(data: unknown, fallback: string) {
   if (!data || typeof data !== "object") return fallback;
@@ -274,6 +275,7 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [partialNotice, setPartialNotice] = useState<string | null>(null);
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
 
@@ -303,12 +305,14 @@ export default function UsersPage() {
 
   function openCreate() {
     setEditingUser(null);
+    setPartialNotice(null);
     setForm({ role: "mahasiswa" });
     setDialogOpen(true);
   }
 
   function openEdit(user: User) {
     setEditingUser(user);
+    setPartialNotice(null);
     setForm({
       name: user.name,
       email: user.email,
@@ -340,6 +344,7 @@ export default function UsersPage() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(errorMessage(data, "Gagal update"));
+        setPartialNotice(null);
         toast.success("User berhasil diperbarui");
       } else {
         const res = await fetch("/api/admin/users", {
@@ -348,7 +353,34 @@ export default function UsersPage() {
           body: JSON.stringify(body),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(errorMessage(data, "Gagal membuat user"));
+        if (!res.ok) {
+          const partial = parsePartialProvisioning(data);
+          if (partial) {
+            // The account exists. Switch the open dialog to edit mode for that
+            // saved user instead of offering another signup.
+            setEditingUser({
+              id: partial.userId,
+              name: form.name || "",
+              email: form.email || "",
+              role: form.role || "mahasiswa",
+              academicLevel: form.academicLevel || null,
+              npm: form.npm || null,
+              nip: form.nip || null,
+              nidn: form.nidn || null,
+              major: form.major || null,
+              faculty: form.faculty || null,
+              bio: form.bio || null,
+              createdAt: "",
+            });
+            setPartialNotice(
+              [partial.message, ...partial.issues].filter(Boolean).join(" ")
+            );
+            fetchUsers();
+            toast.warning("Akun dibuat, tetapi finalisasi gagal");
+            return;
+          }
+          throw new Error(errorMessage(data, "Gagal membuat user"));
+        }
         toast.success("User berhasil dibuat");
       }
       setDialogOpen(false);
@@ -539,6 +571,21 @@ export default function UsersPage() {
               {editingUser ? "Ubah data pengguna di bawah ini." : "Isi data untuk membuat pengguna baru."}
             </DialogDescription>
           </DialogHeader>
+          {partialNotice && (
+            <div
+              role="alert"
+              className="border-b border-destructive/30 bg-destructive/10 px-6 py-3 text-sm text-destructive"
+            >
+              <p className="font-medium">
+                Akun sudah tersimpan, tetapi finalisasi profil/peran gagal.
+              </p>
+              <p>{partialNotice}</p>
+              <p className="text-xs">
+                Perbaiki data pada formulir ini lalu simpan. Jangan membuat akun baru
+                dengan email yang sama.
+              </p>
+            </div>
+          )}
           <div className="px-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
             <UserFormFields
               form={form}

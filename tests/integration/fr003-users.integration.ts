@@ -23,6 +23,12 @@ import prisma from "../../src/lib/prisma";
 import * as academicService from "../../src/lib/services/academic.service";
 import * as courseService from "../../src/lib/services/course.service";
 import * as userService from "../../src/lib/services/user.service";
+import {
+  cleanupFailureMessage,
+  settle,
+  validateWaiters,
+  withTimeout,
+} from "./fr003-validation";
 
 const BASE_URL = process.env.FR003_BASE_URL || "http://localhost:3000";
 const PREFIX = "T6";
@@ -130,6 +136,7 @@ async function request(
       ...(init.body !== undefined ? { "content-type": "application/json" } : {}),
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+    signal: AbortSignal.timeout(15000),
   });
   const text = await res.text();
   let data: Json = null;
@@ -146,6 +153,7 @@ async function login(emailAddress: string, password = PASSWORD): Promise<string>
     method: "POST",
     headers: { "content-type": "application/json", origin: BASE_URL },
     body: JSON.stringify({ email: emailAddress, password }),
+    signal: AbortSignal.timeout(15000),
   });
   const cookie = res.headers
     .getSetCookie()
@@ -229,13 +237,16 @@ async function main() {
     const deadline = Date.now() + 10000;
     let pids = await chainWaiters(blockerPid);
     while (pids.length < expected && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 20));
       pids = await chainWaiters(blockerPid);
     }
-    if (pids.length < expected) {
+    if (pids.length !== expected) {
       throw new Error(
-        `${label}: only ${pids.length} fixture lock waiter(s), expected ${expected}`
+        `${label}: saw ${pids.length} fixture lock waiter(s), expected exactly ${expected}`
       );
+    }
+    if (new Set(pids).size !== pids.length) {
+      throw new Error(`${label}: duplicate waiter PIDs ${JSON.stringify(pids)}`);
     }
     return pids;
   }
@@ -257,32 +268,37 @@ async function main() {
     try {
       await blocker.query(lockSql, params);
 
-      const firstSettled = first();
+      const firstSettled = settle(first());
       started.push(firstSettled);
-      // The first operation must be queued in this fixture's blocking chain
-      // before the second one starts. The queue position then fixes the order.
       const firstWaiters = await waitForWaiters(blockerPid, 1, "first operation");
 
-      const secondSettled = second();
+      const secondSettled = settle(second());
       started.push(secondSettled);
-      const overlapWaiters = await chainWaiters(blockerPid);
+      const secondWaiters = await waitForWaiters(blockerPid, 2, "second operation");
+      validateWaiters(firstWaiters, secondWaiters);
 
       await blocker.query("COMMIT");
-      const [r1, r2] = await Promise.allSettled([firstSettled, secondSettled]);
+      const [r1, r2] = await withTimeout(
+        Promise.all([firstSettled, secondSettled]),
+        15000,
+        "locked pair settle"
+      );
       return {
         first: observed(r1),
         second: observed(r2),
-        waiters: { baseline, firstWaiters, overlapWaiters },
+        waiters: { baseline, firstWaiters, secondWaiters },
       };
     } catch (error) {
       await blocker.query("ROLLBACK").catch(() => undefined);
-      await Promise.allSettled(started);
+      await withTimeout(
+        Promise.allSettled(started),
+        15000,
+        "locked pair drain"
+      ).catch(() => undefined);
       throw error;
     }
   }
 
-  let triggerCreated = false;
-  const triggerSuffix = `t6_fail_audit_${stamp}`;
 
   try {
     const seededAdmin = await prisma.user.findFirst({
@@ -406,6 +422,21 @@ async function main() {
       nip: "0012345678",
     });
     check("duplicate NIP is a controlled 409", duplicateNip.status === 409, duplicateNip.status);
+    const duplicateBody = duplicateNip.data as Record<string, unknown>;
+    check(
+      "duplicate NIP is a pre-creation failure, not partial",
+      duplicateBody.partial !== true && duplicateBody.userId === undefined,
+      duplicateBody
+    );
+    const duplicateAccount = await prisma.user.findUnique({
+      where: { email: email("duplicate-nip") },
+      select: { id: true },
+    });
+    check(
+      "duplicate NIP created no account",
+      duplicateAccount === null,
+      duplicateAccount
+    );
 
     const adminWithNip = await asBootstrap.post("/api/admin/users", {
       name: `${PREFIX} admin-with-nip`,
@@ -719,57 +750,68 @@ async function main() {
     check("reciprocal admin race writes one audit row", remainingAuditDelta === 1, remainingAuditDelta);
     check("demoted admin is recorded", Boolean(demotedAdminId));
 
-    // --- Real transactional audit rollback (temporary harness-owned trigger) ---
-    const rollbackTarget = await createFixtureUser({
-      label: "rollback-target",
-      role: "mahasiswa",
-      npm: "0011667788",
-      academicLevel: "S1",
+    // --- Creation finalization revalidates the actor inside the transaction ---
+    const createActor = await createFixtureUser({
+      label: "create-actor",
+      role: "admin",
     });
-    const rollbackAuditsBefore = await auditCount(rollbackTarget.user.id);
-    await admin.query(`
-      CREATE OR REPLACE FUNCTION public.${triggerSuffix}() RETURNS trigger
-      LANGUAGE plpgsql AS $$
-      BEGIN
-        IF NEW."userId" = '${rollbackTarget.user.id}' THEN
-          RAISE EXCEPTION 't6 forced audit failure';
-        END IF;
-        RETURN NEW;
-      END;
-      $$;
-    `);
-    await admin.query(`
-      CREATE TRIGGER ${triggerSuffix}
-      BEFORE INSERT ON public.user_role_audit
-      FOR EACH ROW EXECUTE FUNCTION public.${triggerSuffix}();
-    `);
-    triggerCreated = true;
-
-    let rollbackRejected = false;
-    try {
-      await userService.updateUser(
-        rollbackTarget.user.id,
-        { role: "dosen", nip: "44668800" },
-        seededAdmin!.id
-      );
-    } catch {
-      rollbackRejected = true;
-    } finally {
-      await admin.query(`DROP TRIGGER IF EXISTS ${triggerSuffix} ON public.user_role_audit`);
-      await admin.query(`DROP FUNCTION IF EXISTS public.${triggerSuffix}()`);
-      triggerCreated = false;
-    }
-
-    check("audit failure aborts the role change", rollbackRejected);
-    const rollbackRow = await prisma.user.findUnique({
-      where: { id: rollbackTarget.user.id },
-      select: { role: true },
+    const demoter = await createFixtureUser({
+      label: "create-demoter",
+      role: "admin",
     });
-    check("audit failure leaves the previous role", rollbackRow?.role === "mahasiswa", rollbackRow);
-    check(
-      "audit failure leaves no audit row",
-      (await auditCount(rollbackTarget.user.id)) === rollbackAuditsBefore
+    const orphanEmail = email("orphan-target");
+    const actorRevalidation = await runLockedPair(
+      'SELECT "id" FROM "user" WHERE "id" = $1 FOR UPDATE',
+      [createActor.user.id],
+      () =>
+        userService.updateUser(
+          createActor.user.id,
+          { role: "mahasiswa", npm: "0011334455", academicLevel: "S1" },
+          demoter.user.id
+        ),
+      () =>
+        userService.createUser(
+          {
+            name: `${PREFIX} Orphan Target`,
+            email: orphanEmail,
+            password: PASSWORD,
+            role: "dosen",
+            nip: "55667788",
+          },
+          createActor.user.id
+        )
     );
+    check(
+      "creation actor revalidation: demotion commits first",
+      actorRevalidation.first.ok,
+      actorRevalidation.first
+    );
+    check(
+      "creation actor revalidation: revoked actor is rejected with 403",
+      !actorRevalidation.second.ok && actorRevalidation.second.status === 403,
+      actorRevalidation.second
+    );
+    const orphan = await prisma.user.findUnique({
+      where: { email: orphanEmail },
+      select: { id: true, role: true, nip: true, nidn: true },
+    });
+    if (orphan) createdUserIds.push(orphan.id);
+    check(
+      "revoked actor leaves the retained account in the default mahasiswa state",
+      orphan?.role === "mahasiswa" && orphan?.nip === null && orphan?.nidn === null,
+      orphan
+    );
+    check(
+      "revoked actor finalizes no elevated role and no audit row",
+      orphan
+        ? (await prisma.userRoleAudit.count({ where: { userId: orphan.id } })) === 0
+        : false
+    );
+    results.actorRevalidation = actorRevalidation.waiters;
+
+    // Live audit fault injection is intentionally omitted: this revision does
+    // not authorize trigger/function DDL. The DB-free tests cover rollback.
+    results.liveFaultInjection = "NOT RUN (no trigger/function DDL authorized)";
 
     results.fixtures = {
       userIds: createdUserIds,
@@ -778,14 +820,6 @@ async function main() {
       facultyIds: createdFacultyIds,
     };
   } finally {
-    if (triggerCreated) {
-      await admin
-        .query(`DROP TRIGGER IF EXISTS ${triggerSuffix} ON public.user_role_audit`)
-        .catch(() => undefined);
-      await admin
-        .query(`DROP FUNCTION IF EXISTS public.${triggerSuffix}()`)
-        .catch(() => undefined);
-    }
 
     let cleanupError: string | undefined;
     try {
@@ -820,12 +854,12 @@ async function main() {
       })),
     };
     results.preservedUsers = { baseline: baselineUsers, after: usersAfterCleanup };
-    if (remainingFixtures !== 0 || cleanupError) {
-      cleanupFailure = `cleanup failed: ${JSON.stringify(results.cleanup)}`;
-    }
-    if (baselineUsers >= 0 && usersAfterCleanup !== baselineUsers) {
-      cleanupFailure = `existing user count changed: ${baselineUsers} -> ${usersAfterCleanup}`;
-    }
+    cleanupFailure = cleanupFailureMessage({
+      remainingFixtures,
+      error: cleanupError ?? null,
+      baselineUsers,
+      usersAfterCleanup,
+    });
 
     await blocker.end().catch(() => undefined);
     await monitor.end().catch(() => undefined);

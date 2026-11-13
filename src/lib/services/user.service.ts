@@ -21,6 +21,24 @@ export class UserServiceError extends Error {
   }
 }
 
+/**
+ * The Better Auth account exists but role/profile finalization did not commit.
+ * The account is retained in its default mahasiswa state and can be repaired
+ * through a normal edit. Never thrown to a revoked actor.
+ */
+export class UserProvisioningError extends UserServiceError {
+  constructor(
+    message: string,
+    status: number,
+    readonly userId: string,
+    readonly accountState: "default_mahasiswa" = "default_mahasiswa",
+    issues: string[] = []
+  ) {
+    super(message, status, issues);
+    this.name = "UserProvisioningError";
+  }
+}
+
 const userSelect = {
   id: true,
   name: true,
@@ -95,12 +113,42 @@ export async function getUserById(id: string) {
 }
 
 export async function createUser(data: CreateUserInput, actorId: string) {
+  const role = data.role;
+  const profile = {
+    npm: role === "mahasiswa" ? (data.npm ?? null) : null,
+    academicLevel: role === "mahasiswa" ? (data.academicLevel ?? null) : null,
+    nip: role === "dosen" ? (data.nip ?? null) : null,
+    nidn: role === "dosen" ? (data.nidn ?? null) : null,
+  };
+
+  // Preflight known conflicts before the account exists, so an ordinary
+  // duplicate is a plain 4xx. Unique constraints still cover the race window.
+  const email = data.email.toLowerCase();
+  const knownEmail = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+  if (knownEmail) {
+    throw new UserServiceError("Email sudah digunakan.", 409);
+  }
+  for (const field of ["npm", "nip", "nidn"] as const) {
+    const value = profile[field];
+    if (!value) continue;
+    const conflict = await prisma.user.findFirst({
+      where: { [field]: value },
+      select: { id: true },
+    });
+    if (conflict) {
+      throw new UserServiceError(`${field.toUpperCase()} sudah digunakan.`, 409);
+    }
+  }
+
   let createdId: string;
 
   try {
     const response = await auth.api.signUpEmail({
       body: {
-        email: data.email.toLowerCase(),
+        email,
         password: data.password,
         name: data.name,
       },
@@ -123,27 +171,37 @@ export async function createUser(data: CreateUserInput, actorId: string) {
     throw new UserServiceError("Gagal membuat akun pengguna.", 500);
   }
 
-  const role = data.role;
-  const profile = {
-    npm: role === "mahasiswa" ? (data.npm ?? null) : null,
-    academicLevel: role === "mahasiswa" ? (data.academicLevel ?? null) : null,
-    nip: role === "dosen" ? (data.nip ?? null) : null,
-    nidn: role === "dosen" ? (data.nidn ?? null) : null,
-  };
-
   try {
     // The Better Auth account already exists at this point. Finalization is one
     // transaction, so an elevated role is never left without its audit row. The
     // account is never deleted as compensation: a failure leaves the default
-    // mahasiswa account for an admin to inspect.
+    // mahasiswa account for an admin to repair through edit.
     return await prisma.$transaction(async (tx) => {
-      await lockUsers(tx, [createdId]);
-      const current = await tx.user.findUnique({
-        where: { id: createdId },
-        select: { id: true, role: true },
-      });
+      // Same deterministic order as updateUser: user rows, ascending by id.
+      await lockUsers(tx, [actorId, createdId]);
+
+      const [actor, current] = await Promise.all([
+        tx.user.findUnique({
+          where: { id: actorId },
+          select: { id: true, role: true },
+        }),
+        tx.user.findUnique({
+          where: { id: createdId },
+          select: { id: true, role: true },
+        }),
+      ]);
+
       if (!current) {
-        throw new UserServiceError("Akun tidak ditemukan setelah pendaftaran.", 500);
+        throw new UserProvisioningError(
+          "Akun dibuat tetapi data akun tidak ditemukan saat finalisasi.",
+          500,
+          createdId
+        );
+      }
+      // Authoritative recheck: an actor demoted during signup must not finalize
+      // an elevated role. Revoked actors receive no recovery details.
+      if (!actor || actor.role !== "admin") {
+        throw new UserServiceError("Akses admin diperlukan.", 403);
       }
 
       const updated = await tx.user.update({
@@ -176,11 +234,21 @@ export async function createUser(data: CreateUserInput, actorId: string) {
   } catch (error) {
     if (error instanceof UserServiceError) throw error;
     if (isUniqueConstraintError(error)) {
-      throw new UserServiceError(uniqueMessage(error), 409);
+      const issue = uniqueMessage(error);
+      throw new UserProvisioningError(
+        `Akun dibuat tetapi finalisasi gagal: ${issue}`,
+        409,
+        createdId,
+        "default_mahasiswa",
+        [issue]
+      );
     }
-    throw new UserServiceError(
-      "Akun dibuat tetapi finalisasi profil gagal. Periksa pengguna ini sebelum mengulang.",
-      500
+    throw new UserProvisioningError(
+      "Akun dibuat tetapi finalisasi profil/peran gagal. Perbaiki akun ini melalui edit pengguna.",
+      500,
+      createdId,
+      "default_mahasiswa",
+      ["Finalisasi profil/peran gagal; akun tetap berperan mahasiswa."]
     );
   }
 }

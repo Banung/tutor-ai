@@ -9,6 +9,18 @@ import { createUserSchema, userFilterSchema } from "@/lib/schemas/user.schema";
 import * as userService from "@/lib/services/user.service";
 
 function toErrorResponse(scope: string, err: unknown) {
+  if (err instanceof userService.UserProvisioningError) {
+    return NextResponse.json(
+      {
+        partial: true,
+        userId: err.userId,
+        accountState: err.accountState,
+        error: err.message,
+        issues: err.issues ?? [],
+      },
+      { status: err.status }
+    );
+  }
   if (err instanceof userService.UserServiceError) {
     return NextResponse.json(
       {

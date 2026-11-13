@@ -7,6 +7,13 @@ import {
   updateUserSchema,
   validateUserProfile,
 } from "../src/lib/schemas/user.schema";
+import { parsePartialProvisioning } from "../src/lib/user-provisioning";
+import {
+  cleanupFailureMessage,
+  settle,
+  validateWaiters,
+  withTimeout,
+} from "./integration/fr003-validation";
 
 process.env.DATABASE_URL ??= "postgresql://user:pass@localhost:5432/tutor_ai_test";
 
@@ -570,6 +577,335 @@ test("non-admin mutation is rejected before touching the service", async () => {
   } finally {
     restoreSession();
   }
+});
+
+function creationTx(options: {
+  actor?: { id: string; role: string } | null;
+  updateError?: Error;
+  auditError?: Error;
+} = {}) {
+  const actor =
+    options.actor === undefined ? { id: "admin-1", role: "admin" } : options.actor;
+  let state: Record<string, unknown> = { id: "created-1", role: "mahasiswa" };
+  const audits: Array<Record<string, unknown>> = [];
+  const updates: Array<Record<string, unknown>> = [];
+
+  const tx = {
+    $queryRaw: async () => [{ id: "locked" }],
+    user: {
+      findUnique: async ({ where }: { where: { id: string } }) =>
+        where.id === actor?.id ? actor : state,
+      update: async ({ data }: { data: Record<string, unknown> }) => {
+        updates.push(data);
+        if (options.updateError) throw options.updateError;
+        state = { ...state, ...data };
+        return state;
+      },
+    },
+    userRoleAudit: {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        if (options.auditError) throw options.auditError;
+        audits.push(data);
+        return data;
+      },
+    },
+  };
+
+  return {
+    tx,
+    audits,
+    updates,
+    state: () => state,
+    setState: (next: Record<string, unknown>) => {
+      state = next;
+    },
+  };
+}
+
+async function creationStubs(
+  options: {
+    emailConflict?: boolean;
+    identifierConflict?: boolean;
+    tx?: Parameters<typeof creationTx>[0];
+  } = {}
+) {
+  const { default: prisma } = await import("../src/lib/prisma");
+  const { auth } = await import("../src/lib/auth");
+  const fixture = creationTx(options.tx);
+  const signupCalls: string[] = [];
+  const restores: Array<() => void> = [];
+
+  restores.push(
+    replaceMethod(prisma.user, "findUnique", async () =>
+      options.emailConflict ? { id: "existing" } : null
+    )
+  );
+  restores.push(
+    replaceMethod(prisma.user, "findFirst", async () =>
+      options.identifierConflict ? { id: "existing" } : null
+    )
+  );
+  restores.push(
+    replaceMethod(auth.api, "signUpEmail", async () => {
+      signupCalls.push("created-1");
+      return { user: { id: "created-1" } };
+    })
+  );
+  const before = fixture.state();
+  restores.push(
+    replaceMethod(prisma, "$transaction", async (callback: unknown) => {
+      try {
+        return await (callback as (client: unknown) => Promise<unknown>)(
+          fixture.tx
+        );
+      } catch (error) {
+        // Simulate the real transaction rollback that DB-free stubs lack.
+        fixture.setState(before);
+        throw error;
+      }
+    })
+  );
+
+  return {
+    fixture,
+    signupCalls,
+    restore: () => restores.reverse().forEach((restore) => restore()),
+  };
+}
+
+const CREATE_DOSEN = {
+  name: "Dosen Baru",
+  email: "dosen.baru@example.com",
+  password: "rahasia123",
+  role: "dosen" as const,
+  nip: "55667788",
+};
+
+test("creation finalization rejects a demoted or deleted actor before elevating", async () => {
+  const { userService } = await loadUserService();
+
+  for (const actor of [
+    { id: "admin-1", role: "mahasiswa" },
+    null,
+  ]) {
+    const stubs = await creationStubs({ tx: { actor } });
+    try {
+      await assert.rejects(
+        () => userService.createUser(CREATE_DOSEN, "admin-1"),
+        (error: unknown) =>
+          error instanceof userService.UserServiceError &&
+          error.status === 403 &&
+          !(error instanceof userService.UserProvisioningError)
+      );
+      assert.equal(stubs.signupCalls.length, 1, "the account still exists");
+      assert.equal(stubs.fixture.updates.length, 0, "no role/profile update");
+      assert.equal(stubs.fixture.audits.length, 0, "no audit row");
+      assert.equal(stubs.fixture.state().role, "mahasiswa");
+    } finally {
+      stubs.restore();
+    }
+  }
+});
+
+test("elevated creation commits one correct audit transition", async () => {
+  const { userService } = await loadUserService();
+  const stubs = await creationStubs();
+  try {
+    await userService.createUser(CREATE_DOSEN, "admin-1");
+    assert.equal(stubs.fixture.audits.length, 1);
+    assert.deepEqual(stubs.fixture.audits[0], {
+      id: stubs.fixture.audits[0].id,
+      userId: "created-1",
+      actorId: "admin-1",
+      fromRole: "mahasiswa",
+      toRole: "dosen",
+    });
+    assert.equal(stubs.fixture.updates[0].role, "dosen");
+    assert.equal(stubs.fixture.updates[0].nip, "55667788");
+  } finally {
+    stubs.restore();
+  }
+});
+
+test("known identifier and email conflicts fail before signup", async () => {
+  const { userService } = await loadUserService();
+
+  for (const [conflict, message] of [
+    [{ identifierConflict: true }, "NIP sudah digunakan."],
+    [{ emailConflict: true }, "Email sudah digunakan."],
+  ] as const) {
+    const stubs = await creationStubs(conflict);
+    try {
+      await assert.rejects(
+        () => userService.createUser(CREATE_DOSEN, "admin-1"),
+        (error: unknown) =>
+          error instanceof userService.UserServiceError &&
+          error.status === 409 &&
+          !(error instanceof userService.UserProvisioningError) &&
+          error.message === message
+      );
+      assert.equal(stubs.signupCalls.length, 0, "no account may be created");
+    } finally {
+      stubs.restore();
+    }
+  }
+});
+
+test("a raced identifier conflict reports explicit partial provisioning", async () => {
+  const { userService } = await loadUserService();
+  const stubs = await creationStubs({
+    tx: {
+      updateError: Object.assign(new Error("unique"), {
+        code: "P2002",
+        meta: { target: ["nip"] },
+      }),
+    },
+  });
+  try {
+    await assert.rejects(
+      () => userService.createUser(CREATE_DOSEN, "admin-1"),
+      (error: unknown) =>
+        error instanceof userService.UserProvisioningError &&
+        error.status === 409 &&
+        error.userId === "created-1" &&
+        error.accountState === "default_mahasiswa" &&
+        error.issues?.[0] === "NIP sudah digunakan." &&
+        /NIP sudah digunakan\./.test(error.message)
+    );
+    assert.equal(stubs.signupCalls.length, 1);
+    assert.equal(stubs.fixture.state().role, "mahasiswa");
+    assert.equal(stubs.fixture.audits.length, 0);
+  } finally {
+    stubs.restore();
+  }
+});
+
+test("audit failure leaves no elevated role on creation", async () => {
+  const { userService } = await loadUserService();
+  const stubs = await creationStubs({
+    tx: { auditError: new Error("AUDIT_WRITE_FAILED") },
+  });
+  try {
+    await assert.rejects(
+      () => userService.createUser(CREATE_DOSEN, "admin-1"),
+      (error: unknown) =>
+        error instanceof userService.UserProvisioningError &&
+        error.status === 500 &&
+        error.userId === "created-1" &&
+        error.accountState === "default_mahasiswa"
+    );
+    assert.equal(stubs.fixture.state().role, "mahasiswa", "role rolled back");
+    assert.equal(stubs.fixture.audits.length, 0);
+  } finally {
+    stubs.restore();
+  }
+});
+
+test("create route emits machine-readable partial provisioning", async () => {
+  const stubs = await creationStubs({
+    tx: {
+      updateError: Object.assign(new Error("unique"), {
+        code: "P2002",
+        meta: { target: ["nip"] },
+      }),
+    },
+  });
+  const restoreSession = await withAdminSession();
+  const { POST } = await import("../src/app/api/admin/users/route");
+
+  try {
+    const request = new NextRequest("http://localhost/api/admin/users", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(CREATE_DOSEN),
+    });
+    const response = await POST(request as never);
+    assert.equal(response.status, 409);
+    const body = (await response.json()) as {
+      partial?: boolean;
+      userId?: string;
+      accountState?: string;
+      issues?: string[];
+    };
+    assert.equal(body.partial, true);
+    assert.equal(body.userId, "created-1");
+    assert.equal(body.accountState, "default_mahasiswa");
+    assert.deepEqual(body.issues, ["NIP sudah digunakan."]);
+  } finally {
+    restoreSession();
+    stubs.restore();
+  }
+});
+
+test("partial provisioning is recognized and targets the saved user", () => {
+  const partial = parsePartialProvisioning({
+    partial: true,
+    userId: "saved-user",
+    accountState: "default_mahasiswa",
+    error: "Akun dibuat tetapi finalisasi gagal: NIP sudah digunakan.",
+    issues: ["NIP sudah digunakan."],
+  });
+  assert.equal(partial?.userId, "saved-user");
+  assert.equal(partial?.accountState, "default_mahasiswa");
+  assert.deepEqual(partial?.issues, ["NIP sudah digunakan."]);
+
+  assert.equal(parsePartialProvisioning({ error: "Email sudah digunakan." }), null);
+  assert.equal(parsePartialProvisioning({ partial: true }), null);
+  assert.equal(parsePartialProvisioning("partial"), null);
+});
+
+test("harness validators reject missing waiters, timeouts, and cleanup failures", async () => {
+  assert.doesNotThrow(() => validateWaiters([11], [11, 12]));
+  assert.throws(() => validateWaiters([11], [11]), /exactly two/);
+  assert.throws(() => validateWaiters([11], [12, 13]), /not retained/);
+  assert.throws(() => validateWaiters([11], [11, 11]), /duplicate/);
+  assert.throws(() => validateWaiters([11, 12], [11, 12, 13]), /exactly one first/);
+
+  const settled = await settle(Promise.reject(new Error("rejected-early")));
+  assert.equal(settled.status, "rejected");
+
+  await assert.rejects(
+    () => withTimeout(new Promise(() => undefined), 20, "harness probe"),
+    /harness probe timed out/
+  );
+  assert.equal(await withTimeout(Promise.resolve("ok"), 100, "fast"), "ok");
+
+  assert.equal(
+    cleanupFailureMessage({
+      remainingFixtures: 0,
+      error: null,
+      baselineUsers: 5,
+      usersAfterCleanup: 5,
+    }),
+    null
+  );
+  assert.match(
+    cleanupFailureMessage({
+      remainingFixtures: 1,
+      error: null,
+      baselineUsers: 5,
+      usersAfterCleanup: 6,
+    }) ?? "",
+    /cleanup failed/
+  );
+  assert.match(
+    cleanupFailureMessage({
+      remainingFixtures: 0,
+      error: "delete failed",
+      baselineUsers: 5,
+      usersAfterCleanup: 5,
+    }) ?? "",
+    /cleanup failed/
+  );
+  assert.match(
+    cleanupFailureMessage({
+      remainingFixtures: 0,
+      error: null,
+      baselineUsers: 5,
+      usersAfterCleanup: 4,
+    }) ?? "",
+    /existing user count changed/
+  );
 });
 
 test("assignInstructor locks the user row before checking the role", async () => {
