@@ -114,10 +114,24 @@ ELEVENLABS_API_KEY="sk_..."
 ```
 
 ### 5. Setup dan Migrasi Database
-Selaraskan skema Prisma dengan struktur database Anda:
+Prisma CLI membaca `DIRECT_URL` (lihat `prisma.config.ts`), sedangkan aplikasi dan Better Auth membaca `DATABASE_URL`. Isi keduanya di `.env`: gunakan koneksi langsung ke database untuk `DIRECT_URL` dan koneksi pooler untuk `DATABASE_URL`.
+
+Inisialisasi database dari riwayat migrasi, lalu buat Prisma Client dan isi data development:
 ```bash
-pnpm dlx prisma db push
+pnpm exec prisma migrate deploy
+pnpm exec prisma generate
+pnpm exec prisma db seed
+pnpm exec tsx prisma/seed-prompts.ts
 ```
+
+`prisma db seed` membuat lima akun development (admin, dosen, mahasiswa S1/S2/S3). `prisma/seed-prompts.ts` mengisi enam konfigurasi prompt tutor. Password seed hanya untuk development dan tidak boleh dipakai di production.
+
+Gunakan `prisma migrate deploy`, bukan `prisma db push`, sebagai mekanisme setup. Skema dan riwayat migrasi harus berasal dari `prisma/migrations`.
+
+#### Reset database development (destruktif)
+Hanya untuk database development yang memang disposable dan tidak menyimpan data yang dibutuhkan. Hentikan server Next.js dan worker material, hapus hanya tabel aplikasi yang diketahui (jangan memakai `CASCADE` untuk melewati dependensi tak terduga), lalu jalankan ulang seluruh rantai migrasi dan seed di atas. Jangan pernah menjalankan langkah ini pada database bersama atau production.
+
+Untuk deployment berikutnya, cukup jalankan `pnpm exec prisma migrate deploy` setelah backup; jangan reset, jangan `db push`, dan jangan mengubah migrasi yang sudah diterapkan.
 
 ### 6. Menjalankan Server (Development Mode)
 Aplikasi ini dikonfigurasi menggunakan `concurrently` untuk mengeksekusi server web dan background worker secara beriringan:

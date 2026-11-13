@@ -40,8 +40,9 @@ async function main() {
   ];
 
   for (const user of users) {
+    // Better Auth stores emails lowercased, so look up the normalized form to stay idempotent.
     const existingUser = await prisma.user.findUnique({
-      where: { email: user.email },
+      where: { email: user.email.toLowerCase() },
     });
 
     if (!existingUser) {
