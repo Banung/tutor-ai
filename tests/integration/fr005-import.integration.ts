@@ -45,8 +45,10 @@ if (process.argv.includes("--print-target")) {
   console.log(JSON.stringify({ ...target, cliAndRuntimeSameTarget: target.sameTarget }, null, 1));
   process.exit(0);
 }
-if (process.env.FR005_INTEGRATION !== "1" || !process.argv.includes("--confirm")) {
-  console.error("Refusing to write fixtures. Set FR005_INTEGRATION=1 and pass --confirm.");
+if (process.env.FR005_INTEGRATION !== "1" || (!process.argv.includes("--confirm") && !process.argv.includes("--mixed-source"))) {
+  console.error(
+    "Refusing to write fixtures. Set FR005_INTEGRATION=1 and pass --confirm or --mixed-source."
+  );
   process.exit(2);
 }
 if (process.env.FR005_TARGET_FINGERPRINT !== target.fingerprint || !target.sameTarget) {
@@ -791,11 +793,16 @@ async function main() {
   const blockerReady = new Promise<void>((resolve) => {
     announceLocked = resolve;
   });
+  let blockerXid = "";
   const blocker = prisma.$transaction(
     async (tx) => {
       await tx.$queryRaw`
         SELECT "id" FROM "academic_course_reference" WHERE "id" = ${crossTarget!.id} FOR UPDATE
       `;
+      const [xid] = await tx.$queryRaw<Array<{ xid: string }>>`
+        SELECT txid_current()::text AS xid
+      `;
+      blockerXid = xid.xid;
       announceLocked();
       await blockerRelease;
     },
@@ -812,7 +819,6 @@ async function main() {
     confirmB.catch(() => undefined);
 
     let maxWaiters = 0;
-    let maxRelationWaiters = 0;
     for (let attempt = 0; attempt < 200; attempt += 1) {
       const claimed = await prisma.academicImportBatch.findMany({
         where: { id: { in: [crossA.id, crossB.id] } },
@@ -824,34 +830,21 @@ async function main() {
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
     for (let attempt = 0; attempt < 120; attempt += 1) {
-      const [waiter] = await prisma.$queryRaw<
-        Array<{ relation_waiters: number; activity_waiters: number }>
-      >`
-        SELECT
-          (
-            SELECT count(*)::int
-            FROM pg_locks l
-            JOIN pg_class c ON c.oid = l.relation
-            WHERE NOT l.granted AND c.relname = 'academic_course_reference'
-          ) AS relation_waiters,
-          (
-            SELECT count(*)::int
-            FROM pg_stat_activity
-            WHERE wait_event_type = 'Lock'
-              AND state = 'active'
-              AND query ILIKE '%academic_course_reference%'
-          ) AS activity_waiters
+      const [waiter] = await prisma.$queryRaw<Array<{ count: number }>>`
+        SELECT count(*)::int AS count
+        FROM pg_locks
+        WHERE NOT granted
+          AND locktype = 'transactionid'
+          AND transactionid::text = ${blockerXid}
       `;
-      maxRelationWaiters = Math.max(maxRelationWaiters, Number(waiter.relation_waiters));
-      maxWaiters = Math.max(maxWaiters, Number(waiter.activity_waiters));
+      maxWaiters = Math.max(maxWaiters, Number(waiter.count));
       if (maxWaiters >= 2) break;
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
     liveEvidence.crossActorTargetLockWaiters = maxWaiters;
-    liveEvidence.crossActorRelationLockWaiters = maxRelationWaiters;
     liveEvidence.crossActorActorsDistinct = adminA.id !== adminB.id;
     check(
-      "two distinct actors wait on the same PostgreSQL target lock",
+      "two distinct actors wait on the fixture blocker transaction",
       maxWaiters >= 2,
       maxWaiters
     );
@@ -1009,7 +1002,482 @@ async function main() {
 }
 }
 
-main().catch((error) => {
+/**
+ * Focused mixed-source concurrency evidence. Uses one PIPP-owned fixture
+ * reference, one SIAT batch and one PIPP batch, each confirmed by a distinct
+ * fixture admin. Synchronization evidence is scoped to the fixture blocker's
+ * transaction id, never a database-wide table/query count.
+ */
+async function runMixedSource() {
+  const fixtureUserIds: string[] = [];
+  const batchIds: string[] = [];
+  const facultyIds: string[] = [];
+  const programIds: string[] = [];
+  const courseRefIds: string[] = [];
+  const liveEvidence: Record<string, unknown> = {};
+  const headers = "faculty_code,study_program_code,course_code,course_name,is_active";
+  const mixedFacultyCode = `MF${stamp}`;
+  const mixedProgramCode = `MP${stamp}`;
+  const mixedCourseCode = `MC${stamp}`;
+  const safety: PairSafety = {
+    blockerReleased: true,
+    releaseUncertain: false,
+    operationsSettled: false,
+    failures: [],
+    cleanupSafe: false,
+  };
+
+  try {
+    const bootstrap = await prisma.user.findFirst({
+      where: { role: "admin" },
+      orderBy: { createdAt: "asc" },
+      select: { email: true },
+    });
+    check("mixed bootstrap admin exists", Boolean(bootstrap));
+    const adminCookie = await login(bootstrap!.email, seedPasswordFor(bootstrap!.email));
+
+    async function createFixtureAdmin(label: string, email: string) {
+      const response = await request("/api/admin/users", {
+        method: "POST",
+        cookie: adminCookie,
+        body: { name: `${PREFIX} ${label}`, email, password: PASSWORD, role: "admin" },
+      });
+      check(`${label} created`, response.status === 201, response);
+      const id = (response.data as { id: string }).id;
+      fixtureUserIds.push(id);
+      return { id, cookie: await login(email) };
+    }
+
+    const siatAdmin = await createFixtureAdmin(
+      "mixed siat actor",
+      `h7.mixed.siat.${stamp.toLowerCase()}@harness.test`
+    );
+    const pippAdmin = await createFixtureAdmin(
+      "mixed pipp actor",
+      `h7.mixed.pipp.${stamp.toLowerCase()}@harness.test`
+    );
+    check("mixed actors are distinct", siatAdmin.id !== pippAdmin.id);
+
+    const mixedFaculty = await prisma.faculty.create({
+      data: {
+        id: crypto.randomUUID(),
+        name: `${PREFIX} Mixed Faculty`,
+        code: mixedFacultyCode,
+        source: "PIPP",
+      },
+    });
+    facultyIds.push(mixedFaculty.id);
+    const mixedProgram = await prisma.studyProgram.create({
+      data: {
+        id: crypto.randomUUID(),
+        facultyId: mixedFaculty.id,
+        name: `${PREFIX} Mixed Program`,
+        code: mixedProgramCode,
+        source: "PIPP",
+      },
+    });
+    programIds.push(mixedProgram.id);
+    const mixedCourse = await prisma.academicCourseReference.create({
+      data: {
+        id: crypto.randomUUID(),
+        studyProgramId: mixedProgram.id,
+        courseCode: mixedCourseCode,
+        name: `${PREFIX} Mixed Base`,
+        isActive: true,
+        source: "PIPP",
+      },
+    });
+    courseRefIds.push(mixedCourse.id);
+
+    async function resetMixedCourse(name: string) {
+      await prisma.academicCourseReference.update({
+        where: { id: mixedCourse.id },
+        data: { name, source: "PIPP" },
+      });
+    }
+
+    async function mixedPreview(
+      actor: { cookie: string },
+      source: "SIAT" | "PIPP",
+      fileName: string,
+      name: string
+    ) {
+      const batch = await preview(actor.cookie, source, "COURSES", fileName, headers, [
+        [mixedFacultyCode, mixedProgramCode, mixedCourseCode, name, "true"],
+      ]);
+      batchIds.push(batch.id);
+      return batch;
+    }
+
+    const currentCourse = async () =>
+      prisma.academicCourseReference.findUnique({
+        where: { id: mixedCourse.id },
+        select: { name: true, source: true },
+      });
+
+    // --- Deterministic SIAT-first: committed SIAT cannot be overwritten by PIPP ---
+    await resetMixedCourse(`${PREFIX} Mixed Base`);
+    const siatFirst = await mixedPreview(
+      siatAdmin,
+      "SIAT",
+      "h7-mixed-siat-first.csv",
+      `${PREFIX} Mixed SIAT First`
+    );
+    const pippStale = await mixedPreview(
+      pippAdmin,
+      "PIPP",
+      "h7-mixed-pipp-stale.csv",
+      `${PREFIX} Mixed PIPP Stale`
+    );
+    const siatFirstConfirm = await confirm(siatAdmin.cookie, siatFirst.id);
+    check(
+      "mixed SIAT-first SIAT confirm",
+      (siatFirstConfirm.data as BatchDto).status === "CONFIRMED",
+      siatFirstConfirm
+    );
+    const pippStaleConfirm = await confirm(pippAdmin.cookie, pippStale.id);
+    const pippStaleBatch = pippStaleConfirm.data as BatchDto;
+    const pippStaleRejected =
+      pippStaleBatch.resultCounts?.failed === 1 ||
+      pippStaleBatch.resultCounts?.conflict === 1;
+    check(
+      "mixed PIPP cannot overwrite committed SIAT",
+      pippStaleConfirm.status === 200 &&
+        pippStaleBatch.status === "PARTIAL" &&
+        pippStaleRejected,
+      pippStaleBatch.resultCounts
+    );
+    check(
+      "mixed SIAT-first final value retained",
+      JSON.stringify(await currentCourse()) ===
+        JSON.stringify({ name: `${PREFIX} Mixed SIAT First`, source: "SIAT" }),
+      await currentCourse()
+    );
+    liveEvidence.siatFirstPippOutcome = pippStaleBatch.outcomes?.[0]?.action ?? null;
+
+    // Fresh preview after the SIAT commit still cannot be confirmed by PIPP.
+    const pippRepreview = await mixedPreview(
+      pippAdmin,
+      "PIPP",
+      "h7-mixed-pipp-repreview.csv",
+      `${PREFIX} Mixed PIPP Repreview`
+    );
+    const pippRepreviewConfirm = await confirm(pippAdmin.cookie, pippRepreview.id);
+    const pippRepreviewBatch = pippRepreviewConfirm.data as BatchDto;
+    check(
+      "mixed PIPP re-preview stays a controlled conflict",
+      pippRepreviewConfirm.status === 200 &&
+        pippRepreviewBatch.status === "PARTIAL" &&
+        pippRepreviewBatch.resultCounts?.conflict === 1,
+      pippRepreviewBatch.resultCounts
+    );
+    check(
+      "mixed re-preview did not overwrite SIAT",
+      (await currentCourse())?.name === `${PREFIX} Mixed SIAT First`,
+      await currentCourse()
+    );
+
+    // --- Deterministic PIPP-first: SIAT precedence still promotes, no FIFO claim ---
+    await resetMixedCourse(`${PREFIX} Mixed PIPP Base`);
+    const pippFirst = await mixedPreview(
+      pippAdmin,
+      "PIPP",
+      "h7-mixed-pipp-first.csv",
+      `${PREFIX} Mixed PIPP First`
+    );
+    const siatSecond = await mixedPreview(
+      siatAdmin,
+      "SIAT",
+      "h7-mixed-siat-second.csv",
+      `${PREFIX} Mixed SIAT Second`
+    );
+    const pippFirstConfirm = await confirm(pippAdmin.cookie, pippFirst.id);
+    check(
+      "mixed PIPP-first PIPP confirm",
+      (pippFirstConfirm.data as BatchDto).status === "CONFIRMED",
+      pippFirstConfirm
+    );
+    const siatSecondConfirm = await confirm(siatAdmin.cookie, siatSecond.id);
+    const siatSecondBatch = siatSecondConfirm.data as BatchDto;
+    check(
+      "mixed PIPP-first SIAT stale requires re-preview",
+      siatSecondConfirm.status === 200 &&
+        siatSecondBatch.status === "PARTIAL" &&
+        siatSecondBatch.resultCounts?.failed === 1,
+      siatSecondBatch.resultCounts
+    );
+    check(
+      "mixed PIPP-first stale SIAT applied no write",
+      (await currentCourse())?.name === `${PREFIX} Mixed PIPP First`,
+      await currentCourse()
+    );
+    const siatRepreview = await mixedPreview(
+      siatAdmin,
+      "SIAT",
+      "h7-mixed-siat-repreview.csv",
+      `${PREFIX} Mixed SIAT Repreview`
+    );
+    const siatRepreviewConfirm = await confirm(siatAdmin.cookie, siatRepreview.id);
+    check(
+      "mixed SIAT re-preview promotes over PIPP",
+      (siatRepreviewConfirm.data as BatchDto).status === "CONFIRMED" &&
+        (siatRepreviewConfirm.data as BatchDto).resultCounts?.updated === 1,
+      siatRepreviewConfirm.data
+    );
+    check(
+      "mixed PIPP-first final value is SIAT",
+      JSON.stringify(await currentCourse()) ===
+        JSON.stringify({ name: `${PREFIX} Mixed SIAT Repreview`, source: "SIAT" }),
+      await currentCourse()
+    );
+    liveEvidence.pippFirstFinal = await currentCourse();
+
+    // --- Concurrent SIAT/PIPP with fixture-scoped PostgreSQL contention ---
+    await resetMixedCourse(`${PREFIX} Mixed Concurrent Base`);
+    const siatConcurrent = await mixedPreview(
+      siatAdmin,
+      "SIAT",
+      "h7-mixed-siat-concurrent.csv",
+      `${PREFIX} Mixed SIAT Concurrent`
+    );
+    const pippConcurrent = await mixedPreview(
+      pippAdmin,
+      "PIPP",
+      "h7-mixed-pipp-concurrent.csv",
+      `${PREFIX} Mixed PIPP Concurrent`
+    );
+
+    let releaseBlocker!: () => void;
+    const blockerRelease = new Promise<void>((resolve) => {
+      releaseBlocker = resolve;
+    });
+    let announceLocked!: () => void;
+    const blockerReady = new Promise<void>((resolve) => {
+      announceLocked = resolve;
+    });
+    let blockerXid = "";
+    let blockerPid = 0;
+    safety.blockerReleased = false;
+    const blocker = prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`
+          SELECT "id" FROM "academic_course_reference" WHERE "id" = ${mixedCourse.id} FOR UPDATE
+        `;
+        const [info] = await tx.$queryRaw<Array<{ pid: number; xid: string }>>`
+          SELECT pg_backend_pid()::int AS pid, txid_current()::text AS xid
+        `;
+        blockerPid = Number(info.pid);
+        blockerXid = info.xid;
+        announceLocked();
+        await blockerRelease;
+      },
+      { timeout: 60000, maxWait: 10000 }
+    );
+
+    let confirmSiat: Promise<Api> | undefined;
+    let confirmPipp: Promise<Api> | undefined;
+    try {
+      await blockerReady;
+      confirmSiat = confirm(siatAdmin.cookie, siatConcurrent.id, 60000);
+      confirmPipp = confirm(pippAdmin.cookie, pippConcurrent.id, 60000);
+      confirmSiat.catch(() => undefined);
+      confirmPipp.catch(() => undefined);
+
+      const deadline = Date.now() + 25000;
+      let bothConfirming = false;
+      let maxWaiters = 0;
+      while (Date.now() < deadline) {
+        const claimed = await prisma.academicImportBatch.findMany({
+          where: { id: { in: [siatConcurrent.id, pippConcurrent.id] } },
+          select: { status: true },
+        });
+        bothConfirming =
+          claimed.length === 2 && claimed.every((batch) => batch.status === "CONFIRMING");
+        if (bothConfirming) {
+          // Walk the fixture blocker's lock-wait chain: later waiters queue
+          // behind earlier waiters, not directly behind the blocker.
+          const waiters = await prisma.$queryRaw<
+            Array<{ pid: number; blockers: number[] }>
+          >`
+            SELECT pid, pg_blocking_pids(pid) AS blockers
+            FROM pg_stat_activity
+            WHERE cardinality(pg_blocking_pids(pid)) > 0
+          `;
+          const byPid = new Map<number, number[]>();
+          for (const row of waiters) {
+            byPid.set(Number(row.pid), (row.blockers ?? []).map(Number));
+          }
+          const visited = new Set<number>([blockerPid]);
+          let frontier = [blockerPid];
+          let chain = 0;
+          while (frontier.length > 0) {
+            const next: number[] = [];
+            for (const [pid, blockers] of byPid) {
+              if (visited.has(pid)) continue;
+              if (blockers.some((blocker) => frontier.includes(blocker))) {
+                visited.add(pid);
+                next.push(pid);
+                chain += 1;
+              }
+            }
+            frontier = next;
+          }
+          maxWaiters = Math.max(maxWaiters, chain);
+        }
+        if (bothConfirming && maxWaiters >= 2) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      liveEvidence.mixedLockWaiters = maxWaiters;
+      liveEvidence.mixedBlockerXid = blockerXid;
+      check(
+        "both mixed actors wait on the fixture blocker transaction",
+        maxWaiters >= 2,
+        { maxWaiters, bothConfirming }
+      );
+
+      releaseBlocker();
+      await blocker;
+      safety.blockerReleased = true;
+      const [siatResponse, pippResponse] = await Promise.all([confirmSiat, confirmPipp]);
+      const statuses = [
+        (siatResponse.data as BatchDto).status,
+        (pippResponse.data as BatchDto).status,
+      ];
+      check(
+        "mixed concurrent confirmations controlled",
+        siatResponse.status === 200 &&
+          pippResponse.status === 200 &&
+          statuses.every((status) => status === "CONFIRMED" || status === "PARTIAL"),
+        statuses
+      );
+      const concurrentFinal = await currentCourse();
+      const concurrentWinner =
+        concurrentFinal?.name === `${PREFIX} Mixed SIAT Concurrent` ||
+        concurrentFinal?.name === `${PREFIX} Mixed PIPP Concurrent`;
+      check(
+        "mixed concurrent final state has one controlled winner",
+        concurrentWinner &&
+          statuses.includes("CONFIRMED") &&
+          statuses.includes("PARTIAL"),
+        { concurrentFinal, statuses }
+      );
+      liveEvidence.mixedStatuses = statuses;
+      liveEvidence.mixedFinal = concurrentFinal;
+    } finally {
+      releaseBlocker();
+      try {
+        await blocker;
+        safety.blockerReleased = true;
+      } catch (error) {
+        safety.releaseUncertain = true;
+        safety.failures.push(`blocker release uncertain: ${String(error)}`);
+      }
+      if (confirmSiat && confirmPipp) {
+        const drained = await Promise.allSettled([confirmSiat, confirmPipp]);
+        const rejected = drained.filter((entry) => entry.status === "rejected");
+        if (rejected.length > 0) {
+          safety.failures.push(`operation drain failed: ${String(rejected[0])}`);
+        }
+      }
+    }
+  } finally {
+    safety.operationsSettled = uncertainRequests.length === 0 && safety.failures.length === 0;
+    safety.cleanupSafe =
+      safety.blockerReleased && safety.operationsSettled && !safety.releaseUncertain;
+    const ownershipManifest = {
+      fixtureUserIds: [...fixtureUserIds],
+      facultyIds: [...facultyIds],
+      programIds: [...programIds],
+      courseRefIds: [...courseRefIds],
+      retainedBatchIds: [...batchIds],
+    };
+    const cleanupErrors: string[] = [];
+
+    const cleanup = async () => {
+      const [facultyRows, programRows, courseRows] = await Promise.all([
+        prisma.faculty.findMany({
+          where: { OR: [{ id: { in: facultyIds } }, { code: mixedFacultyCode }] },
+          select: { id: true },
+        }),
+        prisma.studyProgram.findMany({
+          where: { OR: [{ id: { in: programIds } }, { code: mixedProgramCode }] },
+          select: { id: true },
+        }),
+        prisma.academicCourseReference.findMany({
+          where: { OR: [{ id: { in: courseRefIds } }, { courseCode: mixedCourseCode }] },
+          select: { id: true },
+        }),
+      ]);
+      const ids = (recorded: string[], found: Array<{ id: string }>) =>
+        [...new Set([...recorded, ...found.map((row) => row.id)])];
+      const allCourseIds = ids(courseRefIds, courseRows);
+      const allProgramIds = ids(programIds, programRows);
+      const allFacultyIds = ids(facultyIds, facultyRows);
+
+      try {
+        if (allCourseIds.length > 0) {
+          await prisma.academicCourseReference.deleteMany({ where: { id: { in: allCourseIds } } });
+        }
+      } catch (error) {
+        cleanupErrors.push(`course refs: ${String(error)}`);
+      }
+      try {
+        if (allProgramIds.length > 0) {
+          await prisma.studyProgram.deleteMany({ where: { id: { in: allProgramIds } } });
+        }
+      } catch (error) {
+        cleanupErrors.push(`programs: ${String(error)}`);
+      }
+      try {
+        if (allFacultyIds.length > 0) {
+          await prisma.faculty.deleteMany({ where: { id: { in: allFacultyIds } } });
+        }
+      } catch (error) {
+        cleanupErrors.push(`faculty: ${String(error)}`);
+      }
+      try {
+        if (fixtureUserIds.length > 0) {
+          await prisma.user.deleteMany({ where: { id: { in: fixtureUserIds } } });
+        }
+      } catch (error) {
+        cleanupErrors.push(`fixture users: ${String(error)}`);
+      }
+    };
+
+    const outcome = await runSafeCleanup([safety], cleanup);
+    if (!outcome.decision.allowed) {
+      console.error(
+        JSON.stringify({
+          deferredCleanup: true,
+          reason: outcome.decision.reason,
+          ownershipManifest,
+        })
+      );
+      process.exitCode = 1;
+    } else if (cleanupErrors.length > 0) {
+      console.error(JSON.stringify({ cleanupErrors, ownershipManifest }));
+      process.exitCode = 1;
+    } else {
+      console.log(
+        JSON.stringify(
+          {
+            mode: "mixed-source",
+            target,
+            checks: checks.length,
+            batches: batchIds,
+            liveEvidence,
+            retainedEvidence: "academic_import_batch + academic_import_row_outcome rows retained",
+          },
+          null,
+          1
+        )
+      );
+    }
+  }
+}
+
+const run = process.argv.includes("--mixed-source") ? runMixedSource : main;
+run().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });

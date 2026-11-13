@@ -424,6 +424,14 @@ type TxStubOptions = {
   facultyState?: Record<string, unknown> | null;
   /** When defined, enables mutable program fixtures keyed by program code. */
   programsState?: Record<string, Record<string, unknown>>;
+  /** Runs before each stubbed transaction callback (claim, then row transactions). */
+  onTransaction?: (
+    index: number,
+    state: {
+      faculty: Record<string, unknown> | null;
+      programs: Record<string, Record<string, unknown>>;
+    }
+  ) => void;
 };
 
 async function withConfirmStubs<T>(
@@ -459,6 +467,7 @@ async function withConfirmStubs<T>(
   const programsState = { ...(options.programsState ?? {}) };
   const baseTime = Date.parse("2026-01-01T00:00:00Z");
   let tick = 0;
+  let transactionCount = 0;
   const nextTimestamp = () => new Date(baseTime + (++tick + 1) * 1000);
   const findProgramById = (id: unknown) =>
     Object.values(programsState).find((program) => program.id === id) ?? null;
@@ -597,9 +606,12 @@ async function withConfirmStubs<T>(
   };
 
   const restores = [
-    replaceMethod(prisma, "$transaction", async (callback: unknown) =>
-      (callback as (client: unknown) => Promise<unknown>)(tx)
-    ),
+    replaceMethod(prisma, "$transaction", async (callback: unknown) => {
+      const index = transactionCount;
+      transactionCount += 1;
+      options.onTransaction?.(index, { faculty: facultyState, programs: programsState });
+      return (callback as (client: unknown) => Promise<unknown>)(tx);
+    }),
     replaceMethod(prisma.academicImportBatch, "findUnique", async () => ({
       ...batch,
       outcomes,
@@ -1482,6 +1494,45 @@ test("adopting an existing uncoded faculty remains usable by a second program ro
       assert.equal(dto.resultCounts?.created, 2);
       assert.equal(createdFaculties.length, 0);
       assert.equal(createdPrograms.length, 2);
+    }
+  );
+});
+
+test("externally changed batch-created parent fails the later row before writes", async () => {
+  const { service } = await loadModule();
+  const result = await preview({}, "STUDY_PROGRAMS", [
+    ["NEWF", "New Faculty", "P1X", "Program One"],
+    ["NEWF", "New Faculty", "P2X", "Program Two"],
+  ]);
+  assert.equal(result.rows.every((row) => row.action === "CREATED"), true);
+
+  const outcomes: Record<string, unknown>[] = [];
+  await withConfirmStubs(
+    {
+      batch: studyBatch(result.rows),
+      outcomes,
+      facultyState: null,
+      programsState: {},
+      onTransaction: (index, state) => {
+        // Claim=0, row 1=1, row 2=2. Simulate an external edit after row 1 commits.
+        if (index === 2) {
+          assert.ok(state.faculty);
+          state.faculty.name = "External Rename";
+          state.faculty.updatedAt = new Date("2026-02-01T00:00:00Z");
+        }
+      },
+    },
+    async ({ createdFaculties, createdPrograms, facultyUpdates }) => {
+      const dto = await service.confirmImport("batch-1", "admin-1");
+      assert.deepEqual(outcomes.map((outcome) => outcome.action), ["CREATED", "FAILED"]);
+      assert.match(String(outcomes[1].message), /Target baru muncul sejak pratinjau/);
+      assert.equal(dto.status, "PARTIAL");
+      assert.equal(dto.resultCounts?.created, 1);
+      assert.equal(dto.resultCounts?.failed, 1);
+      assert.equal(createdFaculties.length, 1);
+      assert.equal(createdPrograms.length, 1);
+      assert.equal(createdPrograms[0].code, "P1X");
+      assert.equal(facultyUpdates.length, 0);
     }
   );
 });

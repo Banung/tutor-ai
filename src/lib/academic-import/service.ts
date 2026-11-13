@@ -580,7 +580,8 @@ function unconfirmedTargets(
     const target = current[kind];
     if (!target) return false;
     if (preview[kind]?.id === target.id) return false;
-    return !confirmedTargets.has(targetKey(kind, target.id));
+    // Absent at preview: reuse only the exact batch-committed version.
+    return confirmedTargets.get(targetKey(kind, target.id)) !== target.updatedAt;
   });
 }
 
@@ -1315,7 +1316,7 @@ export async function confirmImport(batchId: string, actorId: string) {
             batchId,
             row,
             "FAILED",
-            "Target baru muncul sejak pratinjau dan tidak berasal dari batch ini. Buat pratinjau baru."
+            "Target baru muncul sejak pratinjau atau berubah eksternal di luar batch ini. Buat pratinjau baru."
           );
           return { revoked: false as const };
         }
