@@ -1,6 +1,8 @@
+import { createHash } from "node:crypto";
 import { Prisma } from "@/app/generated/prisma/client";
 import prisma from "@/lib/prisma";
-import { embedTutorQuestion, streamTutorAnswer, toPgVector, resolveRetrievalQuestion } from "@/lib/tutor-ai/gemini";
+import { embedTutorQuestion, streamTutorAnswer, toPgVector, resolveRetrievalQuestion, TUTOR_AI_CHAT_MODEL } from "@/lib/tutor-ai/gemini";
+import { MATERIAL_EMBEDDING_MODEL, MATERIAL_EMBEDDING_DIMENSIONS } from "@/lib/material-processing/config";
 import { getPromptContent } from "@/lib/services/tutor-prompt.service";
 
 import { getSocialAnswer, selectCitedSources } from "@/lib/tutor-ai/grounding";
@@ -62,6 +64,7 @@ type RagSource = {
 const CONTEXT_MESSAGE_TYPE = "context";
 const VISIBLE_SENDER_TYPES = ["user", "ai"];
 const MAX_CONTEXT_CHUNKS = 8;
+const MIN_CONTEXT_SIMILARITY = 0.5;
 const MAX_HISTORY_MESSAGES = 8;
 const AVATAR_RESPONSE_MAX_WORDS = 45;
 
@@ -649,13 +652,15 @@ async function retrieveRelevantChunks(input: {
       AND m."isProcessed" = true
       AND m."processingStatus" = 'ready'
       AND m."materialType" = 'file'
+      AND m."embeddingModel" = ${MATERIAL_EMBEDDING_MODEL}
+      AND m."embeddingDimensions" = ${MATERIAL_EMBEDDING_DIMENSIONS}
       AND m."id" IN (${Prisma.join(input.selectedMaterialIds)})
       AND s."isActive" = true
     ORDER BY c."embedding" <=> ${queryVector}::vector
     LIMIT ${MAX_CONTEXT_CHUNKS}
   `;
 
-  return rows.filter((row) => Number(row.similarity) >= 0.5);
+  return rows.filter((row) => Number(row.similarity) >= MIN_CONTEXT_SIMILARITY);
 }
 
 export async function getTutorOverview(courseId: string, userId: string) {
@@ -920,8 +925,18 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
         signal.throwIfAborted();
         const citedChunks = selectCitedSources(fullAnswer, turn.chunks);
         const avatarExpression = chooseAvatarExpression({ question, responseMode });
-        const ragSources = buildAvatarRagSources(citedChunks, avatarExpression, responseMode, turn.reason,
-          responseMode === "avatar" ? fullAnswer : undefined);
+        const ragSources = {
+          ...buildAvatarRagSources(citedChunks, avatarExpression, responseMode, turn.reason,
+            responseMode === "avatar" ? fullAnswer : undefined),
+          generationModel: turn.fixedAnswer ? null : TUTOR_AI_CHAT_MODEL,
+          embeddingModel: MATERIAL_EMBEDDING_MODEL,
+          embeddingDimensions: MATERIAL_EMBEDDING_DIMENSIONS,
+          retrievalSimilarityThreshold: MIN_CONTEXT_SIMILARITY,
+          promptHash: turn.fixedAnswer ? null : createHash("sha256").update(turn.systemInstruction).digest("hex"),
+          sources: citedChunks.map((chunk) => ({
+            ...toRagSource(chunk), sourceNumber: turn.chunks.indexOf(chunk) + 1,
+          })),
+        };
         const responseTimeMs = Date.now() - startTime;
         await prisma.$transaction(async (tx) => {
           signal.throwIfAborted();

@@ -17,7 +17,7 @@ Selipkan kalimat apresiasi atau motivasi ringan untuk menyemangati proses belaja
   "S2:chat": `Gunakan gaya bahasa profesional, analitis, logis, dan berorientasi pada pemecahan masalah.
 Asumsikan pengguna sudah memahami definisi teori dasar sehingga penjelasan harfiah tidak perlu diulang terlalu panjang.
 Fokuskan pembahasan pada bagaimana konsep tersebut diimplementasikan secara praktis.
-Berikan contoh studi kasus nyata di dunia industri untuk memperjelas penerapan metode tersebut.
+Jika relevan, gunakan contoh dari konteks atau contoh hipotetis yang dilabeli dengan jelas; jangan mengarang studi kasus nyata.
 Lakukan komparasi atau perbandingan mendalam dengan metode alternatif yang relevan.
 Jabarkan dengan jelas kelebihan, kekurangan, trade-offs, serta efisiensi dari pendekatan yang dibahas.
 Gunakan jargon ilmiah dan terminologi industri secara tepat untuk menjaga standar profesional.`,
@@ -26,7 +26,7 @@ Gunakan jargon ilmiah dan terminologi industri secara tepat untuk menjaga standa
 Lakukan evaluasi secara kritis terhadap teori, model, atau metodologi yang sedang didiskusikan.
 Pertanyakan asumsi-asumsi dasar di balik teori tersebut serta batas-batas validitasnya.
 Arahkan jawaban untuk mengidentifikasi celah riset atau research gap dari topik yang dibahas.
-Sajikan sintesis literatur yang komprehensif dengan menghubungkannya ke mazhab pemikiran besar lainnya.
+Sajikan sintesis literatur hanya jika literatur tersebut tersedia dalam konteks; jangan mengarang referensi atau research gap.
 Susun argumen dengan struktur yang sangat sistematis, objektif, deduktif, dan berbasis pada bukti kuat.
 Gunakan terminologi akademis tingkat lanjut dan dorong pemikiran independen level Doktoral.`,
 

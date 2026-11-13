@@ -3,7 +3,7 @@ import { MATERIAL_EMBEDDING_DIMENSIONS, MATERIAL_EMBEDDING_MODEL } from "@/lib/m
 import { createDeadline } from "@/lib/tutor-ai/deadline";
 import type { ConversationMessage } from "@/lib/tutor-ai/grounding";
 
-const TUTOR_AI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || "gemini-3.5-flash";
+export const TUTOR_AI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || "gemini-3.5-flash";
 let client: GoogleGenAI | null = null;
 
 function getGeminiClient() {
