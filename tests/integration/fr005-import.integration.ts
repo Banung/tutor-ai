@@ -104,7 +104,13 @@ const uncertainRequests: string[] = [];
 
 async function request(
   path: string,
-  init: { method?: string; cookie?: string; body?: unknown; form?: FormData } = {}
+  init: {
+    method?: string;
+    cookie?: string;
+    body?: unknown;
+    form?: FormData;
+    timeoutMs?: number;
+  } = {}
 ): Promise<Api> {
   const label = `${init.method ?? "GET"} ${path}`;
   try {
@@ -116,7 +122,7 @@ async function request(
         ...(init.body !== undefined ? { "content-type": "application/json" } : {}),
       },
       body: init.form ?? (init.body !== undefined ? JSON.stringify(init.body) : undefined),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(init.timeoutMs ?? 20000),
     });
     const text = await res.text();
     let data: Json = null;
@@ -184,8 +190,12 @@ async function preview(
   return res.data as BatchDto;
 }
 
-async function confirm(cookie: string, id: string) {
-  return request(`/api/admin/academic-import/${id}/confirm`, { method: "POST", cookie });
+async function confirm(cookie: string, id: string, timeoutMs?: number) {
+  return request(`/api/admin/academic-import/${id}/confirm`, {
+    method: "POST",
+    cookie,
+    timeoutMs,
+  });
 }
 
 async function main() {
@@ -195,6 +205,7 @@ async function main() {
   const programIds: string[] = [];
   const courseRefIds: string[] = [];
   const lecturerIds: string[] = [];
+  const liveEvidence: Record<string, unknown> = {};
 
   try {
   const adminRow = await prisma.user.findFirst({
@@ -703,10 +714,15 @@ async function main() {
       adoptPreview.rows.every((row) => row.changes?.facultyAdopted?.to === true),
     adoptPreview.previewCounts
   );
-  await confirm(adminCookie, adoptPreview.id);
+  const adoptConfirm = await confirm(adminCookie, adoptPreview.id);
+  const adoptedFacultyRow = await prisma.faculty.findUnique({
+    where: { id: adoptFaculty.id },
+    select: { code: true, source: true },
+  });
   check(
     "faculty adoption persisted",
-    (await prisma.faculty.findUnique({ where: { id: adoptFaculty.id } }))?.code === adoptFacultyCode
+    adoptedFacultyRow?.code === adoptFacultyCode,
+    { adoptedFacultyRow, adoptBatch: adoptConfirm.data }
   );
   const adoptedPrograms = await prisma.studyProgram.findMany({
     where: { code: { in: [adoptProgramA, adoptProgramB] } },
@@ -715,12 +731,174 @@ async function main() {
   for (const program of adoptedPrograms) programIds.push(program.id);
   check("adopted faculty has two programs", adoptedPrograms.length === 2);
 
+  // --- Cross-actor target lock with real PostgreSQL synchronization ---
+  async function createFixtureAdmin(label: string, email: string) {
+    const response = await request("/api/admin/users", {
+      method: "POST",
+      cookie: adminCookie,
+      body: {
+        name: `${PREFIX} ${label}`,
+        email,
+        password: PASSWORD,
+        role: "admin",
+      },
+    });
+    check(`${label} created`, response.status === 201, response);
+    const id = (response.data as { id: string }).id;
+    fixtureUserIds.push(id);
+    return { id, cookie: await login(email) };
+  }
+
+  const adminA = await createFixtureAdmin(
+    "cross actor A",
+    `h7.actor.a.${stamp.toLowerCase()}@harness.test`
+  );
+  const adminB = await createFixtureAdmin(
+    "cross actor B",
+    `h7.actor.b.${stamp.toLowerCase()}@harness.test`
+  );
+
+  await resetCourseA(`${PREFIX} Cross Actor Base`);
+  const crossTarget = await prisma.academicCourseReference.findFirst({
+    where: { courseCode: courseA },
+    select: { id: true },
+  });
+  check("cross-actor target exists", Boolean(crossTarget));
+
+  const crossA = await preview(
+    adminA.cookie,
+    "SIAT",
+    "COURSES",
+    "h7-cross-actor-a.csv",
+    courseHeaders,
+    [[facultyCode, programA, courseA, `${PREFIX} Cross Actor A`, "true"]]
+  );
+  const crossB = await preview(
+    adminB.cookie,
+    "SIAT",
+    "COURSES",
+    "h7-cross-actor-b.csv",
+    courseHeaders,
+    [[facultyCode, programA, courseA, `${PREFIX} Cross Actor B`, "true"]]
+  );
+  batchIds.push(crossA.id, crossB.id);
+
+  let releaseBlocker!: () => void;
+  const blockerRelease = new Promise<void>((resolve) => {
+    releaseBlocker = resolve;
+  });
+  let announceLocked!: () => void;
+  const blockerReady = new Promise<void>((resolve) => {
+    announceLocked = resolve;
+  });
+  const blocker = prisma.$transaction(
+    async (tx) => {
+      await tx.$queryRaw`
+        SELECT "id" FROM "academic_course_reference" WHERE "id" = ${crossTarget!.id} FOR UPDATE
+      `;
+      announceLocked();
+      await blockerRelease;
+    },
+    { timeout: 30000, maxWait: 10000 }
+  );
+
+  let confirmA: Promise<Api> | undefined;
+  let confirmB: Promise<Api> | undefined;
+  try {
+    await blockerReady;
+    confirmA = confirm(adminA.cookie, crossA.id, 60000);
+    confirmB = confirm(adminB.cookie, crossB.id, 60000);
+    confirmA.catch(() => undefined);
+    confirmB.catch(() => undefined);
+
+    let maxWaiters = 0;
+    let maxRelationWaiters = 0;
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const claimed = await prisma.academicImportBatch.findMany({
+        where: { id: { in: [crossA.id, crossB.id] } },
+        select: { status: true },
+      });
+      if (claimed.length === 2 && claimed.every((batch) => batch.status === "CONFIRMING")) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const [waiter] = await prisma.$queryRaw<
+        Array<{ relation_waiters: number; activity_waiters: number }>
+      >`
+        SELECT
+          (
+            SELECT count(*)::int
+            FROM pg_locks l
+            JOIN pg_class c ON c.oid = l.relation
+            WHERE NOT l.granted AND c.relname = 'academic_course_reference'
+          ) AS relation_waiters,
+          (
+            SELECT count(*)::int
+            FROM pg_stat_activity
+            WHERE wait_event_type = 'Lock'
+              AND state = 'active'
+              AND query ILIKE '%academic_course_reference%'
+          ) AS activity_waiters
+      `;
+      maxRelationWaiters = Math.max(maxRelationWaiters, Number(waiter.relation_waiters));
+      maxWaiters = Math.max(maxWaiters, Number(waiter.activity_waiters));
+      if (maxWaiters >= 2) break;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    liveEvidence.crossActorTargetLockWaiters = maxWaiters;
+    liveEvidence.crossActorRelationLockWaiters = maxRelationWaiters;
+    liveEvidence.crossActorActorsDistinct = adminA.id !== adminB.id;
+    check(
+      "two distinct actors wait on the same PostgreSQL target lock",
+      maxWaiters >= 2,
+      maxWaiters
+    );
+
+    releaseBlocker();
+    await blocker;
+    const [crossResponseA, crossResponseB] = await Promise.all([confirmA, confirmB]);
+    check(
+      "cross-actor confirmations both controlled",
+      crossResponseA.status === 200 && crossResponseB.status === 200,
+      [crossResponseA.status, crossResponseB.status]
+    );
+    const crossStatuses = [
+      (crossResponseA.data as BatchDto).status,
+      (crossResponseB.data as BatchDto).status,
+    ].sort();
+    check(
+      "cross-actor confirmations serialize to one committed write",
+      crossStatuses.join(",") === "CONFIRMED,PARTIAL",
+      crossStatuses
+    );
+    const crossWinner = (
+      await prisma.academicCourseReference.findFirst({ where: { courseCode: courseA } })
+    )?.name;
+    check(
+      "cross-actor final state has one winner",
+      crossWinner === `${PREFIX} Cross Actor A` ||
+        crossWinner === `${PREFIX} Cross Actor B`,
+      crossWinner
+    );
+    liveEvidence.crossActorStatuses = crossStatuses;
+    liveEvidence.crossActorWinner = crossWinner;
+  } finally {
+    releaseBlocker();
+    await blocker.catch(() => undefined);
+    if (confirmA && confirmB) {
+      await Promise.allSettled([confirmA, confirmB]);
+    }
+  }
+
   console.log(
     JSON.stringify(
       {
         target,
         checks: checks.length,
         batches: batchIds,
+        liveEvidence,
         retainedEvidence: "academic_import_batch + academic_import_row_outcome rows retained",
       },
       null,

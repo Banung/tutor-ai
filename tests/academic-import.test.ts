@@ -49,6 +49,7 @@ type PreviewStubs = {
   facultyByCode?: unknown;
   facultyByName?: unknown[];
   programByCode?: unknown;
+  programsByCode?: Record<string, unknown>;
   programByName?: unknown[];
   courseByCode?: unknown;
   lecturers?: unknown[];
@@ -71,7 +72,11 @@ async function preview(
     replaceMethod(prisma.faculty, "findUnique", async () => stubs.facultyByCode ?? null),
     replaceMethod(prisma.faculty, "findFirst", async () => null),
     replaceMethod(prisma.faculty, "findMany", async () => stubs.facultyByName ?? []),
-    replaceMethod(prisma.studyProgram, "findFirst", async () => stubs.programByCode ?? null),
+    replaceMethod(prisma.studyProgram, "findFirst", async (args: unknown) => {
+      const code = (args as { where?: { code?: string } } | undefined)?.where?.code;
+      if (stubs.programsByCode && code) return stubs.programsByCode[code] ?? null;
+      return stubs.programByCode ?? null;
+    }),
     replaceMethod(prisma.studyProgram, "findMany", async () => stubs.programByName ?? []),
     replaceMethod(
       prisma.academicCourseReference,
@@ -415,6 +420,10 @@ type TxStubOptions = {
   courseExisting?: unknown;
   lecturerExisting?: unknown[];
   onCreate?: () => void;
+  /** When defined, enables a mutable faculty fixture for program imports. */
+  facultyState?: Record<string, unknown> | null;
+  /** When defined, enables mutable program fixtures keyed by program code. */
+  programsState?: Record<string, Record<string, unknown>>;
 };
 
 async function withConfirmStubs<T>(
@@ -422,17 +431,37 @@ async function withConfirmStubs<T>(
   run: (state: {
     batchUpdates: Record<string, unknown>[];
     createdCourses: Record<string, unknown>[];
+    createdLecturers: Record<string, unknown>[];
     lecturerUpdates: Record<string, unknown>[];
+    facultyUpdates: Record<string, unknown>[];
+    programUpdates: Record<string, unknown>[];
+    createdFaculties: Record<string, unknown>[];
+    createdPrograms: Record<string, unknown>[];
+    lockQueries: string[];
     storedBatch: () => Record<string, unknown>;
   }) => Promise<T>
 ): Promise<T> {
   const { prisma } = await loadModule();
   const batchUpdates: Record<string, unknown>[] = [];
   const createdCourses: Record<string, unknown>[] = [];
+  const createdLecturers: Record<string, unknown>[] = [];
   const lecturerUpdates: Record<string, unknown>[] = [];
+  const facultyUpdates: Record<string, unknown>[] = [];
+  const programUpdates: Record<string, unknown>[] = [];
+  const createdFaculties: Record<string, unknown>[] = [];
+  const createdPrograms: Record<string, unknown>[] = [];
+  const lockQueries: string[] = [];
   const outcomes = options.outcomes;
   let batch = { ...options.batch };
   let actorChecks = 0;
+  const stateful = options.facultyState !== undefined || options.programsState !== undefined;
+  let facultyState = options.facultyState ?? null;
+  const programsState = { ...(options.programsState ?? {}) };
+  const baseTime = Date.parse("2026-01-01T00:00:00Z");
+  let tick = 0;
+  const nextTimestamp = () => new Date(baseTime + (++tick + 1) * 1000);
+  const findProgramById = (id: unknown) =>
+    Object.values(programsState).find((program) => program.id === id) ?? null;
 
   const tx = {
     $queryRaw: async (strings: unknown) => {
@@ -446,6 +475,7 @@ async function withConfirmStubs<T>(
         return [{ id: "admin-1", role }];
       }
       if (sql.includes("academic_import_batch")) return [{ id: batch.id }];
+      lockQueries.push(sql);
       return [{ id: "locked" }];
     },
     academicImportBatch: {
@@ -457,22 +487,83 @@ async function withConfirmStubs<T>(
       },
     },
     faculty: {
-      findUnique: async () => ({ id: "f1", updatedAt: new Date("2026-01-01T00:00:00Z") }),
-      create: async ({ data }: { data: Record<string, unknown> }) => ({
-        id: "f1",
-        ...data,
-      }),
-      update: async ({ data }: { data: Record<string, unknown> }) => data,
+      findUnique: async (args: unknown) => {
+        if (!stateful) return { id: "f1", updatedAt: new Date(baseTime) };
+        if (!facultyState) return null;
+        const where = (args as { where?: Record<string, unknown> } | undefined)?.where ?? {};
+        if (where.id !== undefined && where.id !== facultyState.id) return null;
+        if (where.code !== undefined && where.code !== facultyState.code) return null;
+        return facultyState;
+      },
+      findFirst: async () => null,
+      findMany: async (args: unknown) => {
+        if (!stateful) return [];
+        if (!facultyState) return [];
+        const where = (args as { where?: { name?: { equals?: string } } } | undefined)?.where;
+        const expected = where?.name?.equals;
+        if (
+          expected &&
+          String(facultyState.name).toLowerCase() !== expected.toLowerCase()
+        ) {
+          return [];
+        }
+        return [facultyState];
+      },
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        if (!stateful) return { id: "f1", ...data };
+        const created = {
+          id: "f1",
+          ...data,
+          updatedAt: nextTimestamp(),
+        };
+        facultyState = created;
+        createdFaculties.push(created);
+        return created;
+      },
+      update: async ({ data }: { data: Record<string, unknown> }) => {
+        if (stateful && facultyState) {
+          Object.assign(facultyState, data, { updatedAt: nextTimestamp() });
+          facultyUpdates.push(data);
+          return facultyState;
+        }
+        return data;
+      },
     },
     studyProgram: {
-      findFirst: async () => ({ id: "p1" }),
+      findFirst: async (args: unknown) => {
+        if (options.programsState === undefined) return { id: "p1" };
+        const code = (args as { where?: { code?: string } } | undefined)?.where?.code;
+        return code ? programsState[code] ?? null : null;
+      },
       findMany: async () => [],
-      findUnique: async () => ({ updatedAt: new Date("2026-01-01T00:00:00Z") }),
-      create: async ({ data }: { data: Record<string, unknown> }) => ({
-        id: "p1",
-        ...data,
-      }),
-      update: async ({ data }: { data: Record<string, unknown> }) => data,
+      findUnique: async (args: unknown) => {
+        if (options.programsState === undefined) {
+          return { updatedAt: new Date(baseTime) };
+        }
+        const id = (args as { where?: { id?: string } } | undefined)?.where?.id;
+        return findProgramById(id);
+      },
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        if (options.programsState === undefined) return { id: "p1", ...data };
+        const created = {
+          id: `p-${String(data.code)}`,
+          ...data,
+          updatedAt: nextTimestamp(),
+        };
+        programsState[String(data.code)] = created;
+        createdPrograms.push(created);
+        return created;
+      },
+      update: async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+        if (options.programsState === undefined) return data;
+        const program = findProgramById(where.id);
+        if (program) {
+          Object.assign(program, data, { updatedAt: nextTimestamp() });
+          programUpdates.push(data);
+          return program;
+        }
+        return data;
+      },
     },
     academicCourseReference: {
       findFirst: async () => options.courseExisting ?? null,
@@ -486,8 +577,12 @@ async function withConfirmStubs<T>(
     },
     lecturerReference: {
       findMany: async () => options.lecturerExisting ?? [],
-      findUnique: async () => ({ updatedAt: new Date("2026-01-01T00:00:00Z") }),
-      create: async ({ data }: { data: Record<string, unknown> }) => ({ id: "l1", ...data }),
+      findUnique: async () => ({ updatedAt: new Date(baseTime) }),
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        const created = { id: "l1", ...data };
+        createdLecturers.push(created);
+        return created;
+      },
       update: async ({ data }: { data: Record<string, unknown> }) => {
         lecturerUpdates.push(data);
         return data;
@@ -538,7 +633,13 @@ async function withConfirmStubs<T>(
     return await run({
       batchUpdates,
       createdCourses,
+      createdLecturers,
       lecturerUpdates,
+      facultyUpdates,
+      programUpdates,
+      createdFaculties,
+      createdPrograms,
+      lockQueries,
       storedBatch: () => batch,
     });
   } finally {
@@ -1092,4 +1193,295 @@ test("cleanup is withheld after an uncertain HTTP completion", async () => {
   assert.equal(result.ran, false);
   assert.equal(ran, false);
   assert.equal(result.decision.allowed, false);
+});
+
+function studyBatch(rows: PreviewRow[], status = "PREVIEWED") {
+  return { ...courseBatch(rows, status), type: "STUDY_PROGRAMS" };
+}
+
+test("complementary lecturer identifiers merge before classification in both orders", async () => {
+  const { service } = await loadModule();
+  const now = new Date("2026-01-01T00:00:00Z");
+  const existing = {
+    id: "l1",
+    nip: null,
+    nidn: "22222222",
+    name: "Dosen",
+    email: null,
+    isActive: true,
+    source: "SIAT",
+    updatedAt: now,
+  };
+  const rowA = ["11111111", "", "Dosen", "", "true"];
+  const rowB = ["11111111", "22222222", "Dosen", "", "true"];
+
+  for (const order of ["a-first", "b-first"] as const) {
+    const result = await preview(
+      { lecturers: [existing] },
+      "LECTURERS",
+      order === "a-first" ? [rowA, rowB] : [rowB, rowA]
+    );
+    assert.equal(result.rows.filter((row) => row.action === "UPDATED").length, 1);
+    assert.equal(result.rows.filter((row) => row.action === "UNCHANGED").length, 1);
+    assert.equal(result.rows.some((row) => row.action === "CREATED"), false);
+    assert.deepEqual(
+      result.rows.map((row) => row.values.nidn),
+      ["22222222", "22222222"]
+    );
+
+    const updated = result.rows.find((row) => row.action === "UPDATED");
+    assert.ok(updated);
+    const outcomes: Record<string, unknown>[] = [];
+    await withConfirmStubs(
+      {
+        batch: { ...courseBatch([updated]), type: "LECTURERS" },
+        outcomes,
+        lecturerExisting: [existing],
+      },
+      async ({ lecturerUpdates, createdLecturers }) => {
+        const dto = await service.confirmImport("batch-1", "admin-1");
+        assert.deepEqual(outcomes.map((outcome) => outcome.action), ["UPDATED"]);
+        assert.equal(lecturerUpdates.length, 1);
+        assert.equal(lecturerUpdates[0].nip, "11111111");
+        assert.equal(lecturerUpdates[0].nidn, "22222222");
+        assert.equal(createdLecturers.length, 0);
+        assert.equal(dto.resultCounts?.updated, 1);
+        assert.equal(dto.resultCounts?.created, 0);
+      }
+    );
+  }
+});
+
+test("shared faculty rename over two existing programs does not fail the second row", async () => {
+  const { service } = await loadModule();
+  const now = new Date("2026-01-01T00:00:00Z");
+  const faculty = {
+    id: "f1",
+    name: "Fakultas Lama",
+    code: "FTIP",
+    source: "SIAT",
+    updatedAt: now,
+  };
+  const programs = {
+    TIP: {
+      id: "p1",
+      facultyId: "f1",
+      name: "Program A",
+      code: "TIP",
+      source: "SIAT",
+      updatedAt: now,
+    },
+    TIP2: {
+      id: "p2",
+      facultyId: "f1",
+      name: "Program B",
+      code: "TIP2",
+      source: "SIAT",
+      updatedAt: now,
+    },
+  };
+  const result = await preview(
+    { facultyByCode: faculty, programsByCode: programs },
+    "STUDY_PROGRAMS",
+    [
+      ["FTIP", "Fakultas Baru", "TIP", "Program A"],
+      ["FTIP", "Fakultas Baru", "TIP2", "Program B"],
+    ]
+  );
+  assert.equal(result.rows.every((row) => row.action === "UPDATED"), true);
+
+  const outcomes: Record<string, unknown>[] = [];
+  await withConfirmStubs(
+    {
+      batch: studyBatch(result.rows),
+      outcomes,
+      facultyState: { ...faculty },
+      programsState: {
+        TIP: { ...programs.TIP },
+        TIP2: { ...programs.TIP2 },
+      },
+    },
+    async ({ facultyUpdates, programUpdates }) => {
+      const dto = await service.confirmImport("batch-1", "admin-1");
+      assert.deepEqual(outcomes.map((outcome) => outcome.action), ["UPDATED", "UNCHANGED"]);
+      assert.equal(dto.status, "CONFIRMED");
+      assert.equal(dto.resultCounts?.updated, 1);
+      assert.equal(dto.resultCounts?.unchanged, 1);
+      assert.equal(dto.resultCounts?.failed, 0);
+      assert.equal(facultyUpdates.length, 1);
+      assert.equal(programUpdates.length, 0);
+    }
+  );
+});
+
+test("shared-parent source promotion records only the writes actually applied", async () => {
+  const { service } = await loadModule();
+  const now = new Date("2026-01-01T00:00:00Z");
+  const faculty = {
+    id: "f1",
+    name: "Fakultas",
+    code: "FTIP",
+    source: "PIPP",
+    updatedAt: now,
+  };
+  const programs = {
+    TIP: {
+      id: "p1",
+      facultyId: "f1",
+      name: "Program A",
+      code: "TIP",
+      source: "PIPP",
+      updatedAt: now,
+    },
+    TIP2: {
+      id: "p2",
+      facultyId: "f1",
+      name: "Program B",
+      code: "TIP2",
+      source: "SIAT",
+      updatedAt: now,
+    },
+  };
+  const result = await preview(
+    { facultyByCode: faculty, programsByCode: programs },
+    "STUDY_PROGRAMS",
+    [
+      ["FTIP", "Fakultas", "TIP", "Program A"],
+      ["FTIP", "Fakultas", "TIP2", "Program B"],
+    ],
+    "SIAT"
+  );
+  assert.equal(result.rows.every((row) => row.action === "UPDATED"), true);
+
+  const outcomes: Record<string, unknown>[] = [];
+  await withConfirmStubs(
+    {
+      batch: studyBatch(result.rows),
+      outcomes,
+      facultyState: { ...faculty },
+      programsState: {
+        TIP: { ...programs.TIP },
+        TIP2: { ...programs.TIP2 },
+      },
+    },
+    async ({ facultyUpdates, programUpdates }) => {
+      const dto = await service.confirmImport("batch-1", "admin-1");
+      assert.deepEqual(outcomes.map((outcome) => outcome.action), ["UPDATED", "UNCHANGED"]);
+      assert.equal(dto.status, "CONFIRMED");
+      assert.equal(dto.resultCounts?.updated, 1);
+      assert.equal(dto.resultCounts?.unchanged, 1);
+      assert.equal(dto.resultCounts?.failed, 0);
+      assert.equal(facultyUpdates.length, 1);
+      assert.equal(programUpdates.length, 1);
+    }
+  );
+});
+
+test("externally appearing faculty is rejected before any unpreviewed update", async () => {
+  const { service } = await loadModule();
+  const result = await preview({}, "STUDY_PROGRAMS", [
+    ["NEWF", "External Faculty", "NEWP", "Program"],
+  ]);
+  assert.equal(result.rows[0].action, "CREATED");
+  assert.deepEqual(result.rows[0].targets, {});
+
+  const external = {
+    id: "f-ext",
+    name: "External Renamed",
+    code: "NEWF",
+    source: "PIPP",
+    updatedAt: new Date("2026-02-01T00:00:00Z"),
+  };
+  const outcomes: Record<string, unknown>[] = [];
+  await withConfirmStubs(
+    {
+      batch: studyBatch(result.rows),
+      outcomes,
+      facultyState: { ...external },
+      programsState: {},
+    },
+    async ({ facultyUpdates, createdFaculties, lockQueries }) => {
+      const dto = await service.confirmImport("batch-1", "admin-1");
+      assert.deepEqual(outcomes.map((outcome) => outcome.action), ["FAILED"]);
+      assert.match(String(outcomes[0].message), /Target baru muncul sejak pratinjau/);
+      assert.equal(dto.status, "PARTIAL");
+      assert.equal(dto.resultCounts?.failed, 1);
+      assert.equal(facultyUpdates.length, 0);
+      assert.equal(createdFaculties.length, 0);
+      assert.equal(
+        lockQueries.some((sql) => sql.includes('"faculty"')),
+        true
+      );
+    }
+  );
+  assert.equal(external.name, "External Renamed");
+  assert.equal(external.source, "PIPP");
+});
+
+test("a parent created by this batch remains usable by later compatible rows", async () => {
+  const { service } = await loadModule();
+  const result = await preview({}, "STUDY_PROGRAMS", [
+    ["NEWF", "New Faculty", "P1X", "Program One"],
+    ["NEWF", "New Faculty", "P2X", "Program Two"],
+  ]);
+  assert.equal(result.rows.every((row) => row.action === "CREATED"), true);
+
+  const outcomes: Record<string, unknown>[] = [];
+  await withConfirmStubs(
+    {
+      batch: studyBatch(result.rows),
+      outcomes,
+      facultyState: null,
+      programsState: {},
+    },
+    async ({ createdFaculties, createdPrograms, facultyUpdates }) => {
+      const dto = await service.confirmImport("batch-1", "admin-1");
+      assert.deepEqual(outcomes.map((outcome) => outcome.action), ["CREATED", "CREATED"]);
+      assert.equal(dto.status, "CONFIRMED");
+      assert.equal(dto.resultCounts?.created, 2);
+      assert.equal(createdFaculties.length, 1);
+      assert.equal(createdPrograms.length, 2);
+      assert.equal(facultyUpdates.length, 0);
+    }
+  );
+});
+
+test("adopting an existing uncoded faculty remains usable by a second program row", async () => {
+  const { service } = await loadModule();
+  const adoptFaculty = {
+    id: "f-adopt",
+    name: "Adopt Faculty",
+    code: null,
+    source: "PIPP",
+    updatedAt: new Date("2026-01-01T00:00:00Z"),
+  };
+  const result = await preview(
+    { facultyByName: [adoptFaculty], programsByCode: {} },
+    "STUDY_PROGRAMS",
+    [
+      ["ADPT", "Adopt Faculty", "P1A", "Adopt One"],
+      ["ADPT", "Adopt Faculty", "P2A", "Adopt Two"],
+    ],
+    "SIAT"
+  );
+  assert.equal(result.rows.every((row) => row.action === "CREATED"), true);
+  assert.deepEqual(result.rows[0].changes?.facultyAdopted, { from: false, to: true });
+
+  const outcomes: Record<string, unknown>[] = [];
+  await withConfirmStubs(
+    {
+      batch: studyBatch(result.rows),
+      outcomes,
+      facultyState: { ...adoptFaculty },
+      programsState: {},
+    },
+    async ({ createdFaculties, createdPrograms }) => {
+      const dto = await service.confirmImport("batch-1", "admin-1");
+      assert.deepEqual(outcomes.map((outcome) => outcome.action), ["CREATED", "CREATED"]);
+      assert.equal(dto.status, "CONFIRMED");
+      assert.equal(dto.resultCounts?.created, 2);
+      assert.equal(createdFaculties.length, 0);
+      assert.equal(createdPrograms.length, 2);
+    }
+  );
 });

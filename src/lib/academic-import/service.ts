@@ -36,6 +36,12 @@ type Values = Record<string, Value>;
 type TargetKind = "faculty" | "studyProgram" | "courseReference" | "lecturerReference";
 type Target = { id: string; updatedAt: string };
 type Targets = Partial<Record<TargetKind, Target>>;
+const TARGET_ORDER: TargetKind[] = [
+  "faculty",
+  "studyProgram",
+  "courseReference",
+  "lecturerReference",
+];
 
 export type PreviewRow = {
   rowNumber: number;
@@ -557,21 +563,49 @@ function targetsMatch(
   });
 }
 
-async function lockPreviewTargets(
+function targetsCovered(locked: Targets[], candidate: Targets): boolean {
+  return TARGET_ORDER.every((kind) => {
+    const target = candidate[kind];
+    if (!target) return true;
+    return locked.some((entry) => entry[kind]?.id === target.id);
+  });
+}
+
+function unconfirmedTargets(
+  preview: Targets,
+  current: Targets,
+  confirmedTargets: Map<string, string>
+): TargetKind[] {
+  return TARGET_ORDER.filter((kind) => {
+    const target = current[kind];
+    if (!target) return false;
+    if (preview[kind]?.id === target.id) return false;
+    return !confirmedTargets.has(targetKey(kind, target.id));
+  });
+}
+
+/** Locks every known target in one fixed order before authoritative classification. */
+async function lockTargets(
   tx: Prisma.TransactionClient,
-  targets: Targets
+  targetsList: Targets[]
 ): Promise<void> {
-  if (targets.faculty) {
-    await tx.$queryRaw`SELECT "id" FROM "faculty" WHERE "id" = ${targets.faculty.id} FOR UPDATE`;
-  }
-  if (targets.studyProgram) {
-    await tx.$queryRaw`SELECT "id" FROM "study_program" WHERE "id" = ${targets.studyProgram.id} FOR UPDATE`;
-  }
-  if (targets.courseReference) {
-    await tx.$queryRaw`SELECT "id" FROM "academic_course_reference" WHERE "id" = ${targets.courseReference.id} FOR UPDATE`;
-  }
-  if (targets.lecturerReference) {
-    await tx.$queryRaw`SELECT "id" FROM "lecturer_reference" WHERE "id" = ${targets.lecturerReference.id} FOR UPDATE`;
+  for (const kind of TARGET_ORDER) {
+    const ids = [
+      ...new Set(
+        targetsList.flatMap((targets) => (targets[kind] ? [targets[kind]!.id] : []))
+      ),
+    ].sort();
+    for (const id of ids) {
+      if (kind === "faculty") {
+        await tx.$queryRaw`SELECT "id" FROM "faculty" WHERE "id" = ${id} FOR UPDATE`;
+      } else if (kind === "studyProgram") {
+        await tx.$queryRaw`SELECT "id" FROM "study_program" WHERE "id" = ${id} FOR UPDATE`;
+      } else if (kind === "courseReference") {
+        await tx.$queryRaw`SELECT "id" FROM "academic_course_reference" WHERE "id" = ${id} FOR UPDATE`;
+      } else {
+        await tx.$queryRaw`SELECT "id" FROM "lecturer_reference" WHERE "id" = ${id} FOR UPDATE`;
+      }
+    }
   }
 }
 
@@ -728,6 +762,28 @@ function validateLecturerIdentities(rows: PreviewRow[]): void {
         "Baris dosen dengan identitas sama memiliki nama/email/status berbeda; perbaiki file."
       );
     }
+  }
+}
+
+/** Reclassifies rows after in-file identity merging so stored state matches final input. */
+async function reclassifyRows(
+  rows: PreviewRow[],
+  type: ImportType,
+  source: AcademicSourceValue
+): Promise<void> {
+  for (const row of rows) {
+    if (row.errors.length > 0) continue;
+    const classified = await classifyRow(
+      prisma as unknown as Prisma.TransactionClient,
+      type,
+      source,
+      row.values
+    );
+    row.action = classified.action;
+    row.errors = classified.errors;
+    row.note = classified.note;
+    row.targets = classified.targets;
+    row.changes = classified.changes;
   }
 }
 
@@ -937,7 +993,10 @@ export async function previewImport(input: {
   }
 
   if (input.type === "STUDY_PROGRAMS") validateSharedFaculty(rows);
-  if (input.type === "LECTURERS") validateLecturerIdentities(rows);
+  if (input.type === "LECTURERS") {
+    validateLecturerIdentities(rows);
+    await reclassifyRows(rows, input.type, input.source);
+  }
   groupDuplicates(rows);
   const summary = { ...countActions(rows), columns: [...headers] };
 
@@ -1219,13 +1278,47 @@ export async function confirmImport(batchId: string, actorId: string) {
           return { revoked: false as const };
         }
 
-        await lockPreviewTargets(tx, row.targets);
-        const classified = await classifyRow(
+        const lockedTargets: Targets[] = [row.targets];
+        await lockTargets(tx, lockedTargets);
+        let classified = await classifyRow(
           tx,
           batch.type as ImportType,
           batch.source as AcademicSourceValue,
           row.values
         );
+        let locksCovered = targetsCovered(lockedTargets, classified.targets);
+        for (let attempt = 0; attempt < 3 && !locksCovered; attempt += 1) {
+          lockedTargets.push(classified.targets);
+          await lockTargets(tx, [classified.targets]);
+          classified = await classifyRow(
+            tx,
+            batch.type as ImportType,
+            batch.source as AcademicSourceValue,
+            row.values
+          );
+          locksCovered = targetsCovered(lockedTargets, classified.targets);
+        }
+        if (!locksCovered) {
+          await recordOutcome(
+            tx,
+            batchId,
+            row,
+            "FAILED",
+            "Target terus berubah saat konfirmasi. Buat pratinjau baru."
+          );
+          return { revoked: false as const };
+        }
+
+        if (unconfirmedTargets(row.targets, classified.targets, confirmedTargets).length > 0) {
+          await recordOutcome(
+            tx,
+            batchId,
+            row,
+            "FAILED",
+            "Target baru muncul sejak pratinjau dan tidak berasal dari batch ini. Buat pratinjau baru."
+          );
+          return { revoked: false as const };
+        }
         if (!targetsMatch(row.targets, classified.targets, confirmedTargets)) {
           await recordOutcome(
             tx,
@@ -1249,6 +1342,16 @@ export async function confirmImport(batchId: string, actorId: string) {
             row,
             "FAILED",
             "Identitas sudah berubah sejak pratinjau. Buat pratinjau baru."
+          );
+          return { revoked: false as const };
+        }
+        if (row.action === "UPDATED" && classified.action === "UNCHANGED") {
+          await recordOutcome(
+            tx,
+            batchId,
+            row,
+            "UNCHANGED",
+            "Perubahan sudah dipenuhi baris sebelumnya dalam batch ini; tidak ada penulisan tambahan."
           );
           return { revoked: false as const };
         }
@@ -1277,7 +1380,7 @@ export async function confirmImport(batchId: string, actorId: string) {
         const snapshot = await snapshotAppliedTargets(tx, applied);
         await recordOutcome(tx, batchId, row, row.action, null);
         return { revoked: false as const, snapshot };
-      });
+      }, { timeout: 30000, maxWait: 10000 });
 
       if (result.revoked) {
         authorityRevoked = true;
@@ -1353,7 +1456,7 @@ async function bestEffortOutcome(
   try {
     await prisma.$transaction(async (tx) => {
       await recordOutcome(tx, batchId, row, action, message);
-    });
+    }, { timeout: 15000 });
   } catch (error) {
     if ((error as { code?: string }).code === "P2002") return;
     throw error;
