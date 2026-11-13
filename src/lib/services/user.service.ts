@@ -112,7 +112,11 @@ export async function getUserById(id: string) {
   });
 }
 
-export async function createUser(data: CreateUserInput, actorId: string) {
+export async function createUser(
+  data: CreateUserInput,
+  actorId: string,
+  txTimeoutMs?: number
+) {
   const role = data.role;
   const profile = {
     npm: role === "mahasiswa" ? (data.npm ?? null) : null,
@@ -230,7 +234,7 @@ export async function createUser(data: CreateUserInput, actorId: string) {
       }
 
       return updated;
-    });
+    }, txTimeoutMs ? { timeout: txTimeoutMs } : undefined);
   } catch (error) {
     if (error instanceof UserServiceError) throw error;
     if (isUniqueConstraintError(error)) {
@@ -256,7 +260,8 @@ export async function createUser(data: CreateUserInput, actorId: string) {
 export async function updateUser(
   id: string,
   data: UpdateUserInput,
-  actorId: string
+  actorId: string,
+  txTimeoutMs?: number
 ) {
   try {
     return await prisma.$transaction(async (tx) => {
@@ -384,7 +389,7 @@ export async function updateUser(
       }
 
       return updated;
-    });
+    }, txTimeoutMs ? { timeout: txTimeoutMs } : undefined);
   } catch (error) {
     if (error instanceof UserServiceError) throw error;
     if (isUniqueConstraintError(error)) {

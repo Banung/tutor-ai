@@ -590,7 +590,11 @@ export async function deleteCourse(id: string) {
   return { success: true };
 }
 
-export async function assignInstructor(courseId: string, userId: string) {
+export async function assignInstructor(
+  courseId: string,
+  userId: string,
+  txTimeoutMs?: number
+) {
   // Lock order: the target user row first, then read/insert the assignment.
   // Role changes take the same user-row lock, so a demotion and an assignment
   // cannot interleave. No course row lock is taken here, so this cannot cycle
@@ -649,7 +653,7 @@ export async function assignInstructor(courseId: string, userId: string) {
       }
       throw error;
     }
-  });
+  }, txTimeoutMs ? { timeout: txTimeoutMs } : undefined);
 }
 
 export async function removeInstructor(courseId: string, userId: string) {

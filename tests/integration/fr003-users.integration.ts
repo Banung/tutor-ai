@@ -33,6 +33,9 @@ import {
 const BASE_URL = process.env.FR003_BASE_URL || "http://localhost:3000";
 const PREFIX = "T6";
 const PASSWORD = "T6HarnessPass!2026";
+// Lock-observation operations block behind an external fixture transaction, so
+// Prisma's 5s interactive default is too short for the harness measurement.
+const TX_TIMEOUT_MS = 15000;
 
 function parseTarget() {
   const direct = process.env.DIRECT_URL;
@@ -661,12 +664,18 @@ async function main() {
     const assignmentFirst = await runLockedPair(
       'SELECT "id" FROM "user" WHERE "id" = $1 FOR UPDATE',
       [assignDosen.user.id],
-      () => courseService.assignInstructor(assignCourse.id, assignDosen.user.id),
+      () =>
+        courseService.assignInstructor(
+          assignCourse.id,
+          assignDosen.user.id,
+          TX_TIMEOUT_MS
+        ),
       () =>
         userService.updateUser(
           assignDosen.user.id,
           { role: "mahasiswa", npm: "0011998877", academicLevel: "S1" },
-          seededAdmin!.id
+          seededAdmin!.id,
+          TX_TIMEOUT_MS
         )
     );
     check("assignment-first: assignment succeeds", assignmentFirst.first.ok, assignmentFirst.first);
@@ -697,9 +706,15 @@ async function main() {
         userService.updateUser(
           demoteDosen.user.id,
           { role: "mahasiswa", npm: "0011887766", academicLevel: "S1" },
-          seededAdmin!.id
+          seededAdmin!.id,
+          TX_TIMEOUT_MS
         ),
-      () => courseService.assignInstructor(demoteCourse.id, demoteDosen.user.id)
+      () =>
+        courseService.assignInstructor(
+          demoteCourse.id,
+          demoteDosen.user.id,
+          TX_TIMEOUT_MS
+        )
     );
     check("demotion-first: demotion succeeds", demotionFirst.first.ok, demotionFirst.first);
     check(
@@ -767,7 +782,8 @@ async function main() {
         userService.updateUser(
           createActor.user.id,
           { role: "mahasiswa", npm: "0011334455", academicLevel: "S1" },
-          demoter.user.id
+          demoter.user.id,
+          TX_TIMEOUT_MS
         ),
       () =>
         userService.createUser(
@@ -778,7 +794,8 @@ async function main() {
             role: "dosen",
             nip: "55667788",
           },
-          createActor.user.id
+          createActor.user.id,
+          TX_TIMEOUT_MS
         )
     );
     check(

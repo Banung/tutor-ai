@@ -337,6 +337,9 @@ export default function UsersPage() {
       }
 
       if (editingUser) {
+        // Password is create-only; a partial-provisioning recovery keeps it in
+        // form state but must not send it to the strict PATCH schema.
+        delete body.password;
         const res = await fetch(`/api/admin/users/${editingUser.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
