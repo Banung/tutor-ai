@@ -57,6 +57,27 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "@/lib/auth-client";
+
+function errorMessage(data: unknown, fallback: string) {
+  if (!data || typeof data !== "object") return fallback;
+  const record = data as { error?: unknown; issues?: unknown };
+  if (typeof record.error === "string") return record.error;
+  const candidates = Array.isArray(record.issues)
+    ? record.issues
+    : Array.isArray(record.error)
+      ? record.error
+      : null;
+  if (!candidates) return fallback;
+  const messages = candidates
+    .map((issue) =>
+      issue && typeof issue === "object" && "message" in issue
+        ? String((issue as { message: unknown }).message)
+        : String(issue)
+    )
+    .filter(Boolean);
+  return messages.length > 0 ? [...new Set(messages)].join("; ") : fallback;
+}
 
 interface User {
   id: string;
@@ -65,6 +86,8 @@ interface User {
   role: string;
   academicLevel: string | null;
   npm: string | null;
+  nip: string | null;
+  nidn: string | null;
   major: string | null;
   faculty: string | null;
   bio: string | null;
@@ -81,12 +104,15 @@ function UserFormFields({
   form,
   setForm,
   isCreate,
+  lockRole,
 }: {
   form: Record<string, string>;
   setForm: (f: Record<string, string>) => void;
   isCreate: boolean;
+  lockRole: boolean;
 }) {
   const isMahasiswa = form.role === "mahasiswa";
+  const isDosen = form.role === "dosen";
 
   return (
     <div className="grid gap-5 py-2">
@@ -125,11 +151,16 @@ function UserFormFields({
         <Label htmlFor="role">Role</Label>
         <Select
           value={form.role || "mahasiswa"}
+          disabled={lockRole}
           onValueChange={(v) => {
             const updates: Record<string, string> = { ...form, role: v };
             if (v !== "mahasiswa") {
               updates.npm = "";
               updates.academicLevel = "";
+            }
+            if (v !== "dosen") {
+              updates.nip = "";
+              updates.nidn = "";
             }
             setForm(updates);
           }}
@@ -145,6 +176,11 @@ function UserFormFields({
             </SelectGroup>
           </SelectContent>
         </Select>
+        {lockRole && (
+          <p className="text-xs text-muted-foreground">
+            Peran akun sendiri tidak dapat diubah.
+          </p>
+        )}
       </div>
       {isMahasiswa && (
         <>
@@ -152,9 +188,10 @@ function UserFormFields({
             <Label htmlFor="npm">NPM</Label>
             <Input
               id="npm"
+              inputMode="numeric"
               value={form.npm || ""}
               onChange={(e) => setForm({ ...form, npm: e.target.value })}
-              placeholder="Nomor Pokok Mahasiswa"
+              placeholder="8–18 digit angka"
             />
           </div>
           <div className="grid gap-2">
@@ -174,6 +211,34 @@ function UserFormFields({
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </div>
+        </>
+      )}
+      {isDosen && (
+        <>
+          <div className="grid gap-2">
+            <Label htmlFor="nip">
+              NIP <span className="text-muted-foreground font-normal text-xs">(opsional)</span>
+            </Label>
+            <Input
+              id="nip"
+              inputMode="numeric"
+              value={form.nip || ""}
+              onChange={(e) => setForm({ ...form, nip: e.target.value })}
+              placeholder="8–18 digit angka"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="nidn">
+              NIDN <span className="text-muted-foreground font-normal text-xs">(opsional)</span>
+            </Label>
+            <Input
+              id="nidn"
+              inputMode="numeric"
+              value={form.nidn || ""}
+              onChange={(e) => setForm({ ...form, nidn: e.target.value })}
+              placeholder="8–18 digit angka"
+            />
           </div>
         </>
       )}
@@ -216,6 +281,8 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
 
   // Delete dialog
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
@@ -254,6 +321,8 @@ export default function UsersPage() {
       email: user.email,
       role: user.role,
       npm: user.npm || "",
+      nip: user.nip || "",
+      nidn: user.nidn || "",
       academicLevel: user.academicLevel || "",
       major: user.major || "",
       faculty: user.faculty || "",
@@ -266,7 +335,7 @@ export default function UsersPage() {
     try {
       const body: Record<string, unknown> = { ...form };
       // Clean empty strings to null for optional fields
-      for (const key of ["npm", "academicLevel", "major", "faculty", "bio"]) {
+      for (const key of ["npm", "nip", "nidn", "academicLevel", "major", "faculty", "bio"]) {
         if (body[key] === "") body[key] = null;
       }
 
@@ -277,7 +346,7 @@ export default function UsersPage() {
           body: JSON.stringify(body),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.toString() || "Gagal update");
+        if (!res.ok) throw new Error(errorMessage(data, "Gagal update"));
         toast.success("User berhasil diperbarui");
       } else {
         const res = await fetch("/api/admin/users", {
@@ -286,7 +355,7 @@ export default function UsersPage() {
           body: JSON.stringify(body),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.toString() || "Gagal membuat user");
+        if (!res.ok) throw new Error(errorMessage(data, "Gagal membuat user"));
         toast.success("User berhasil dibuat");
       }
       setDialogOpen(false);
@@ -305,7 +374,7 @@ export default function UsersPage() {
       const res = await fetch(`/api/admin/users/${deleteUser.id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Gagal menghapus");
+        throw new Error(errorMessage(data, "Gagal menghapus"));
       }
       toast.success("User berhasil dihapus");
       setDeleteUser(null);
@@ -335,7 +404,7 @@ export default function UsersPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Cari nama atau email..."
+            placeholder="Cari nama, email, NPM, NIP, atau NIDN..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => {
@@ -392,7 +461,7 @@ export default function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-6">NPM</TableHead>
+              <TableHead className="pl-6">NPM / NIP / NIDN</TableHead>
               <TableHead>Nama</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
@@ -422,7 +491,7 @@ export default function UsersPage() {
               users.map((user) => (
                 <TableRow key={user.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell className="pl-6 font-mono text-xs">
-                    {user.npm ?? "—"}
+                    {user.npm ?? user.nip ?? user.nidn ?? "—"}
                   </TableCell>
                   <TableCell className="font-medium max-w-[150px] truncate" title={user.name}>
                     {user.name}
@@ -448,13 +517,15 @@ export default function UsersPage() {
                             <Pencil data-icon="inline-start" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeleteUser(user)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 data-icon="inline-start" />
-                            Hapus
-                          </DropdownMenuItem>
+                          {user.id !== currentUserId && (
+                            <DropdownMenuItem
+                              onClick={() => setDeleteUser(user)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 data-icon="inline-start" />
+                              Hapus
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuGroup>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -476,7 +547,12 @@ export default function UsersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="px-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
-            <UserFormFields form={form} setForm={setForm} isCreate={!editingUser} />
+            <UserFormFields
+              form={form}
+              setForm={setForm}
+              isCreate={!editingUser}
+              lockRole={!!editingUser && editingUser.id === currentUserId}
+            />
           </div>
           <DialogFooter className="m-0 px-6 py-4 border-t bg-muted/10">
             <Button variant="outline" onClick={() => setDialogOpen(false)}>

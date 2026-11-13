@@ -385,6 +385,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
+  UserRoleAudit: 'UserRoleAudit',
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
@@ -417,7 +418,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "course" | "courseCatalogStatusLog" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
+    modelProps: "user" | "userRoleAudit" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "course" | "courseCatalogStatusLog" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -492,6 +493,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    UserRoleAudit: {
+      payload: Prisma.$UserRoleAuditPayload<ExtArgs>
+      fields: Prisma.UserRoleAuditFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserRoleAuditFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserRoleAuditFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload>
+        }
+        findFirst: {
+          args: Prisma.UserRoleAuditFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserRoleAuditFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload>
+        }
+        findMany: {
+          args: Prisma.UserRoleAuditFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload>[]
+        }
+        create: {
+          args: Prisma.UserRoleAuditCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload>
+        }
+        createMany: {
+          args: Prisma.UserRoleAuditCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserRoleAuditCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload>[]
+        }
+        delete: {
+          args: Prisma.UserRoleAuditDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload>
+        }
+        update: {
+          args: Prisma.UserRoleAuditUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserRoleAuditDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserRoleAuditUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserRoleAuditUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserRoleAuditUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserRoleAuditPayload>
+        }
+        aggregate: {
+          args: Prisma.UserRoleAuditAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserRoleAudit>
+        }
+        groupBy: {
+          args: Prisma.UserRoleAuditGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserRoleAuditGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserRoleAuditCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserRoleAuditCountAggregateOutputType> | number
         }
       }
     }
@@ -1801,6 +1876,8 @@ export const UserScalarFieldEnum = {
   role: 'role',
   academicLevel: 'academicLevel',
   npm: 'npm',
+  nip: 'nip',
+  nidn: 'nidn',
   major: 'major',
   faculty: 'faculty',
   bio: 'bio',
@@ -1809,6 +1886,18 @@ export const UserScalarFieldEnum = {
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const UserRoleAuditScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  actorId: 'actorId',
+  fromRole: 'fromRole',
+  toRole: 'toRole',
+  createdAt: 'createdAt'
+} as const
+
+export type UserRoleAuditScalarFieldEnum = (typeof UserRoleAuditScalarFieldEnum)[keyof typeof UserRoleAuditScalarFieldEnum]
 
 
 export const SessionScalarFieldEnum = {
@@ -2327,6 +2416,7 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
+  userRoleAudit?: Prisma.UserRoleAuditOmit
   session?: Prisma.SessionOmit
   account?: Prisma.AccountOmit
   verification?: Prisma.VerificationOmit

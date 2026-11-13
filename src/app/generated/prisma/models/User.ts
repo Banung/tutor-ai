@@ -33,6 +33,8 @@ export type UserMinAggregateOutputType = {
   role: string | null
   academicLevel: string | null
   npm: string | null
+  nip: string | null
+  nidn: string | null
   major: string | null
   faculty: string | null
   bio: string | null
@@ -49,6 +51,8 @@ export type UserMaxAggregateOutputType = {
   role: string | null
   academicLevel: string | null
   npm: string | null
+  nip: string | null
+  nidn: string | null
   major: string | null
   faculty: string | null
   bio: string | null
@@ -65,6 +69,8 @@ export type UserCountAggregateOutputType = {
   role: number
   academicLevel: number
   npm: number
+  nip: number
+  nidn: number
   major: number
   faculty: number
   bio: number
@@ -83,6 +89,8 @@ export type UserMinAggregateInputType = {
   role?: true
   academicLevel?: true
   npm?: true
+  nip?: true
+  nidn?: true
   major?: true
   faculty?: true
   bio?: true
@@ -99,6 +107,8 @@ export type UserMaxAggregateInputType = {
   role?: true
   academicLevel?: true
   npm?: true
+  nip?: true
+  nidn?: true
   major?: true
   faculty?: true
   bio?: true
@@ -115,6 +125,8 @@ export type UserCountAggregateInputType = {
   role?: true
   academicLevel?: true
   npm?: true
+  nip?: true
+  nidn?: true
   major?: true
   faculty?: true
   bio?: true
@@ -204,6 +216,8 @@ export type UserGroupByOutputType = {
   role: string
   academicLevel: string | null
   npm: string | null
+  nip: string | null
+  nidn: string | null
   major: string | null
   faculty: string | null
   bio: string | null
@@ -241,6 +255,8 @@ export type UserWhereInput = {
   role?: Prisma.StringFilter<"User"> | string
   academicLevel?: Prisma.StringNullableFilter<"User"> | string | null
   npm?: Prisma.StringNullableFilter<"User"> | string | null
+  nip?: Prisma.StringNullableFilter<"User"> | string | null
+  nidn?: Prisma.StringNullableFilter<"User"> | string | null
   major?: Prisma.StringNullableFilter<"User"> | string | null
   faculty?: Prisma.StringNullableFilter<"User"> | string | null
   bio?: Prisma.StringNullableFilter<"User"> | string | null
@@ -265,6 +281,8 @@ export type UserOrderByWithRelationInput = {
   role?: Prisma.SortOrder
   academicLevel?: Prisma.SortOrderInput | Prisma.SortOrder
   npm?: Prisma.SortOrderInput | Prisma.SortOrder
+  nip?: Prisma.SortOrderInput | Prisma.SortOrder
+  nidn?: Prisma.SortOrderInput | Prisma.SortOrder
   major?: Prisma.SortOrderInput | Prisma.SortOrder
   faculty?: Prisma.SortOrderInput | Prisma.SortOrder
   bio?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -284,6 +302,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   email?: string
   npm?: string
+  nip?: string
+  nidn?: string
   AND?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
@@ -305,7 +325,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   courseSessionsMade?: Prisma.CourseSessionListRelationFilter
   materialsUploaded?: Prisma.MaterialListRelationFilter
   aiChatSessions?: Prisma.AiChatSessionListRelationFilter
-}, "id" | "email" | "npm">
+}, "id" | "email" | "npm" | "nip" | "nidn">
 
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -316,6 +336,8 @@ export type UserOrderByWithAggregationInput = {
   role?: Prisma.SortOrder
   academicLevel?: Prisma.SortOrderInput | Prisma.SortOrder
   npm?: Prisma.SortOrderInput | Prisma.SortOrder
+  nip?: Prisma.SortOrderInput | Prisma.SortOrder
+  nidn?: Prisma.SortOrderInput | Prisma.SortOrder
   major?: Prisma.SortOrderInput | Prisma.SortOrder
   faculty?: Prisma.SortOrderInput | Prisma.SortOrder
   bio?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -338,6 +360,8 @@ export type UserScalarWhereWithAggregatesInput = {
   role?: Prisma.StringWithAggregatesFilter<"User"> | string
   academicLevel?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   npm?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  nip?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  nidn?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   major?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   faculty?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   bio?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
@@ -354,6 +378,8 @@ export type UserCreateInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -378,6 +404,8 @@ export type UserUncheckedCreateInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -402,6 +430,8 @@ export type UserUpdateInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -426,6 +456,8 @@ export type UserUncheckedUpdateInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -450,6 +482,8 @@ export type UserCreateManyInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -466,6 +500,8 @@ export type UserUpdateManyMutationInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -482,6 +518,8 @@ export type UserUncheckedUpdateManyInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -498,6 +536,8 @@ export type UserCountOrderByAggregateInput = {
   role?: Prisma.SortOrder
   academicLevel?: Prisma.SortOrder
   npm?: Prisma.SortOrder
+  nip?: Prisma.SortOrder
+  nidn?: Prisma.SortOrder
   major?: Prisma.SortOrder
   faculty?: Prisma.SortOrder
   bio?: Prisma.SortOrder
@@ -514,6 +554,8 @@ export type UserMaxOrderByAggregateInput = {
   role?: Prisma.SortOrder
   academicLevel?: Prisma.SortOrder
   npm?: Prisma.SortOrder
+  nip?: Prisma.SortOrder
+  nidn?: Prisma.SortOrder
   major?: Prisma.SortOrder
   faculty?: Prisma.SortOrder
   bio?: Prisma.SortOrder
@@ -530,6 +572,8 @@ export type UserMinOrderByAggregateInput = {
   role?: Prisma.SortOrder
   academicLevel?: Prisma.SortOrder
   npm?: Prisma.SortOrder
+  nip?: Prisma.SortOrder
+  nidn?: Prisma.SortOrder
   major?: Prisma.SortOrder
   faculty?: Prisma.SortOrder
   bio?: Prisma.SortOrder
@@ -679,6 +723,8 @@ export type UserCreateWithoutSessionsInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -702,6 +748,8 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -741,6 +789,8 @@ export type UserUpdateWithoutSessionsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -764,6 +814,8 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -787,6 +839,8 @@ export type UserCreateWithoutAccountsInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -810,6 +864,8 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -849,6 +905,8 @@ export type UserUpdateWithoutAccountsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -872,6 +930,8 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -895,6 +955,8 @@ export type UserCreateWithoutCoursesCreatedInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -918,6 +980,8 @@ export type UserUncheckedCreateWithoutCoursesCreatedInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -957,6 +1021,8 @@ export type UserUpdateWithoutCoursesCreatedInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -980,6 +1046,8 @@ export type UserUncheckedUpdateWithoutCoursesCreatedInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1003,6 +1071,8 @@ export type UserCreateWithoutCourseInstructorInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1026,6 +1096,8 @@ export type UserUncheckedCreateWithoutCourseInstructorInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1065,6 +1137,8 @@ export type UserUpdateWithoutCourseInstructorInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1088,6 +1162,8 @@ export type UserUncheckedUpdateWithoutCourseInstructorInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1111,6 +1187,8 @@ export type UserCreateWithoutEnrollmentsInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1134,6 +1212,8 @@ export type UserUncheckedCreateWithoutEnrollmentsInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1173,6 +1253,8 @@ export type UserUpdateWithoutEnrollmentsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1196,6 +1278,8 @@ export type UserUncheckedUpdateWithoutEnrollmentsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1219,6 +1303,8 @@ export type UserCreateWithoutCourseSessionsMadeInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1242,6 +1328,8 @@ export type UserUncheckedCreateWithoutCourseSessionsMadeInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1281,6 +1369,8 @@ export type UserUpdateWithoutCourseSessionsMadeInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1304,6 +1394,8 @@ export type UserUncheckedUpdateWithoutCourseSessionsMadeInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1327,6 +1419,8 @@ export type UserCreateWithoutMaterialsUploadedInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1350,6 +1444,8 @@ export type UserUncheckedCreateWithoutMaterialsUploadedInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1389,6 +1485,8 @@ export type UserUpdateWithoutMaterialsUploadedInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1412,6 +1510,8 @@ export type UserUncheckedUpdateWithoutMaterialsUploadedInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1435,6 +1535,8 @@ export type UserCreateWithoutAiChatSessionsInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1458,6 +1560,8 @@ export type UserUncheckedCreateWithoutAiChatSessionsInput = {
   role?: string
   academicLevel?: string | null
   npm?: string | null
+  nip?: string | null
+  nidn?: string | null
   major?: string | null
   faculty?: string | null
   bio?: string | null
@@ -1497,6 +1601,8 @@ export type UserUpdateWithoutAiChatSessionsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1520,6 +1626,8 @@ export type UserUncheckedUpdateWithoutAiChatSessionsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1637,6 +1745,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   role?: boolean
   academicLevel?: boolean
   npm?: boolean
+  nip?: boolean
+  nidn?: boolean
   major?: boolean
   faculty?: boolean
   bio?: boolean
@@ -1662,6 +1772,8 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   role?: boolean
   academicLevel?: boolean
   npm?: boolean
+  nip?: boolean
+  nidn?: boolean
   major?: boolean
   faculty?: boolean
   bio?: boolean
@@ -1678,6 +1790,8 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   role?: boolean
   academicLevel?: boolean
   npm?: boolean
+  nip?: boolean
+  nidn?: boolean
   major?: boolean
   faculty?: boolean
   bio?: boolean
@@ -1694,6 +1808,8 @@ export type UserSelectScalar = {
   role?: boolean
   academicLevel?: boolean
   npm?: boolean
+  nip?: boolean
+  nidn?: boolean
   major?: boolean
   faculty?: boolean
   bio?: boolean
@@ -1701,7 +1817,7 @@ export type UserSelectScalar = {
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "role" | "academicLevel" | "npm" | "major" | "faculty" | "bio" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "role" | "academicLevel" | "npm" | "nip" | "nidn" | "major" | "faculty" | "bio" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
@@ -1737,6 +1853,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     role: string
     academicLevel: string | null
     npm: string | null
+    nip: string | null
+    nidn: string | null
     major: string | null
     faculty: string | null
     bio: string | null
@@ -2181,6 +2299,8 @@ export interface UserFieldRefs {
   readonly role: Prisma.FieldRef<"User", 'String'>
   readonly academicLevel: Prisma.FieldRef<"User", 'String'>
   readonly npm: Prisma.FieldRef<"User", 'String'>
+  readonly nip: Prisma.FieldRef<"User", 'String'>
+  readonly nidn: Prisma.FieldRef<"User", 'String'>
   readonly major: Prisma.FieldRef<"User", 'String'>
   readonly faculty: Prisma.FieldRef<"User", 'String'>
   readonly bio: Prisma.FieldRef<"User", 'String'>

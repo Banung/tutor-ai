@@ -22,6 +22,8 @@ model User {
   role          String  @default("mahasiswa") // admin | dosen | mahasiswa
   academicLevel String? // S1 | S2 | S3 — hanya untuk mahasiswa
   npm           String? @unique // Nomor Pokok Mahasiswa — hanya untuk mahasiswa
+  nip           String? @unique // Nomor Induk Pegawai — hanya untuk dosen
+  nidn          String? @unique // Nomor Induk Dosen Nasional — hanya untuk dosen
   major         String? // jurusan
   faculty       String? // fakultas
   bio           String?
@@ -42,6 +44,19 @@ model User {
   aiChatSessions     AiChatSession[]
 
   @@map("user")
+}
+
+// Role transition audit. No foreign keys: history survives account deletion.
+model UserRoleAudit {
+  id        String   @id
+  userId    String
+  actorId   String
+  fromRole  String
+  toRole    String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("user_role_audit")
 }
 
 model Session {

@@ -591,51 +591,65 @@ export async function deleteCourse(id: string) {
 }
 
 export async function assignInstructor(courseId: string, userId: string) {
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    select: { id: true },
-  });
-  if (!course) {
-    throw new CourseServiceError("Course tidak ditemukan", 404);
-  }
+  // Lock order: the target user row first, then read/insert the assignment.
+  // Role changes take the same user-row lock, so a demotion and an assignment
+  // cannot interleave. No course row lock is taken here, so this cannot cycle
+  // with the course -> user order used by instructor removal/publication.
+  return prisma.$transaction(async (tx) => {
+    const lockedUser = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "user" WHERE "id" = ${userId} FOR UPDATE
+    `;
+    if (lockedUser.length === 0) {
+      throw new CourseServiceError("User tidak ditemukan", 404);
+    }
 
-  // Verify user is a dosen
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    throw new CourseServiceError("User tidak ditemukan", 404);
-  }
-  if (user.role !== "dosen") {
-    throw new CourseServiceError(
-      "Hanya user dengan role dosen yang dapat ditugaskan sebagai pengajar",
-      400
-    );
-  }
-
-  // Check not already assigned
-  const existing = await prisma.courseInstructor.findFirst({
-    where: { courseId, userId },
-  });
-  if (existing) {
-    throw new CourseServiceError("Dosen sudah ditugaskan ke course ini", 409);
-  }
-
-  try {
-    return await prisma.courseInstructor.create({
-      data: {
-        id: crypto.randomUUID(),
-        courseId,
-        userId,
-      },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-      },
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
     });
-  } catch (error) {
-    if (isUniqueConstraintError(error)) {
+    if (!user) {
+      throw new CourseServiceError("User tidak ditemukan", 404);
+    }
+    if (user.role !== "dosen") {
+      throw new CourseServiceError(
+        "Hanya user dengan role dosen yang dapat ditugaskan sebagai pengajar",
+        400
+      );
+    }
+
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: { id: true },
+    });
+    if (!course) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    const existing = await tx.courseInstructor.findFirst({
+      where: { courseId, userId },
+    });
+    if (existing) {
       throw new CourseServiceError("Dosen sudah ditugaskan ke course ini", 409);
     }
-    throw error;
-  }
+
+    try {
+      return await tx.courseInstructor.create({
+        data: {
+          id: crypto.randomUUID(),
+          courseId,
+          userId,
+        },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new CourseServiceError("Dosen sudah ditugaskan ke course ini", 409);
+      }
+      throw error;
+    }
+  });
 }
 
 export async function removeInstructor(courseId: string, userId: string) {

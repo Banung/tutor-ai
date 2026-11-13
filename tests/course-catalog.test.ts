@@ -699,14 +699,22 @@ test("serialized concurrent removals cannot leave a published course with zero i
 
 test("assignInstructor keeps known business errors typed", async () => {
   const { prisma, courseService } = await loadServices();
-  const restoreCourse = replaceMethod(prisma.course, "findUnique", async () => ({ id: "course-1" }));
-  const restoreUser = replaceMethod(prisma.user, "findUnique", async () => ({
-    id: "dosen-1",
-    role: "dosen",
-  }));
-  const restoreAssignment = replaceMethod(prisma.courseInstructor, "findFirst", async () => ({
-    id: "assignment-1",
-  }));
+  const tx = {
+    $queryRaw: async () => [{ id: "dosen-1" }],
+    user: {
+      findUnique: async () => ({ id: "dosen-1", role: "dosen" }),
+    },
+    course: {
+      findUnique: async () => ({ id: "course-1" }),
+    },
+    courseInstructor: {
+      findFirst: async () => ({ id: "assignment-1" }),
+      create: async () => {
+        throw new Error("must not create a duplicate assignment");
+      },
+    },
+  };
+  const restoreTransaction = stubTransaction(prisma, tx);
 
   try {
     await assert.rejects(
@@ -717,9 +725,7 @@ test("assignInstructor keeps known business errors typed", async () => {
         error.message === "Dosen sudah ditugaskan ke course ini"
     );
   } finally {
-    restoreCourse();
-    restoreUser();
-    restoreAssignment();
+    restoreTransaction();
   }
 });
 

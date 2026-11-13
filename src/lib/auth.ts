@@ -25,6 +25,9 @@ export const auth = betterAuth({
                 type: "string",
                 required: false,
                 defaultValue: "mahasiswa", // admin | dosen | mahasiswa
+                // Client-supplied role is ignored on signup and rejected on
+                // profile update. Elevated roles are only set by audited admin flows.
+                input: false,
             },
             academicLevel: {
                 type: "string",
