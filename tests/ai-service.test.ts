@@ -37,6 +37,7 @@ async function harness(t: TestContext, options: {
   replace(prisma.aiChatMessage, "create", async ({ data }: { data: Record<string, unknown> }) => { saved.push(data); return data; });
   replace(prisma.aiChatMessage, "delete", async (args: unknown) => { deleted.push(args); return {}; });
   replace(prisma.tutorPromptConfig, "findUnique", async () => null);
+  replace(prisma, "$transaction", async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma));
   replace(prisma, "$queryRaw", async () => options.chunks ?? [chunk]);
   t.mock.method(globalThis, "fetch", async (url: string | URL | Request, init: RequestInit) => {
     const body = JSON.parse(String(init.body));
@@ -66,4 +67,44 @@ test("answer generation receives evidence after character 1400 of a retrieved ch
   assert.ok(request);
   assert.match(JSON.stringify(request.body), /KODE-AKHIR: MERANTI-42/);
   assert.match(events, /event: done/);
+});
+
+test("a greeting works without selected PDFs and makes no provider calls", async (t) => {
+  const h = await harness(t, { selected: [] });
+  const events = await h.ask("Halo!");
+  assert.match(events, /Halo/);
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.saved.filter((m) => m.senderType === "ai").length, 1);
+});
+
+test("empty retrieval abstains without asking the generator to invent an answer", async (t) => {
+  const h = await harness(t, { chunks: [] });
+  const events = await h.ask("Siapa nama dosennya?");
+  assert.match(events, /belum cukup/);
+  assert.equal(h.requests.length, 1, "only the query embedding is needed");
+});
+
+test("follow-up retrieval uses conversation context before embedding", async (t) => {
+  const h = await harness(t, { history: [{ senderType: "user", content: "Berapa nilai akhir Rani?" }, { senderType: "ai", content: "Nilai akhir Rani 78." }] });
+  await h.ask("Kenapa begitu?");
+  const embedding = h.requests.find((r) => r.url.toLowerCase().includes("embedcontent"));
+  assert.ok(embedding);
+  assert.match(JSON.stringify(embedding.body), /query: Berapa nilai akhir Rani/);
+  assert.ok(h.requests[0].url.includes("generateContent"), "rewrite happens before embedding");
+});
+
+test("source metadata includes only references actually cited by the answer", async (t) => {
+  const h = await harness(t, { answer: "Pertanyaan ini perlu diperjelas." });
+  await h.ask("Apa maksudnya?");
+  const ai = h.saved.find((m) => m.senderType === "ai");
+  assert.deepEqual((ai?.ragSources as { sources: unknown[] }).sources, []);
+});
+
+test("out-of-range citations are rejected and never persisted as successful answers", async (t) => {
+  const h = await harness(t, { answer: "Rani mendapat 78. [Sumber 99]" });
+  const events = await h.ask("Berapa nilai Rani?");
+  assert.match(events, /event: error/);
+  assert.doesNotMatch(events, /event: done/);
+  assert.equal(h.saved.filter((m) => m.senderType === "ai").length, 0);
+  assert.equal(h.deleted.length, 1);
 });
