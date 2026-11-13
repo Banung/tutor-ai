@@ -15,7 +15,9 @@
     "worker:materials": "tsx src/workers/material-processing.worker.ts",
     "worker:materials:once": "tsx src/workers/material-processing.worker.ts --once",
     "test": "tsx --test tests/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval:ai": "tsx scripts/evaluate-ai.ts",
+    "test:pdf": "tsx --test tests/integration/pdf.integration.ts"
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.49.1",

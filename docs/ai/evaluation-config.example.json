@@ -1,0 +1,10 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "courseId": "REPLACE_WITH_DEVELOPMENT_COURSE_ID",
+  "responseMode": "chat",
+  "materials": {
+    "01-statistika-digital.pdf": "REPLACE_WITH_READY_MATERIAL_ID",
+    "02-praktikum-scan.pdf": "REPLACE_WITH_READY_MATERIAL_ID",
+    "04-untrusted-document.pdf": "REPLACE_WITH_READY_MATERIAL_ID"
+  }
+}
