@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
 import { parseImportFile, ImportFileError } from "../src/lib/academic-import/file-parser";
 import {
+  MAX_CELL_CHARS,
   MAX_FILE_BYTES,
   TEMPLATE_HEADERS,
   normalizeIdentifier,
   toCsvValue,
 } from "../src/lib/academic-import/constants";
+import { runSafeCleanup, type PairSafety } from "./integration/fr003-validation";
 import {
   AcademicImportError,
   failedRowsCsv,
@@ -59,9 +61,15 @@ async function preview(
   source: "SIAT" | "PIPP" = "SIAT"
 ) {
   const { prisma } = await loadModule();
-  const created: { id: string; rows: PreviewRow[]; summary: Record<string, number> }[] = [];
+  const created: {
+    id: string;
+    rows: PreviewRow[];
+    previewCounts: Record<string, number>;
+    dto: Record<string, unknown>;
+  }[] = [];
   const restores = [
     replaceMethod(prisma.faculty, "findUnique", async () => stubs.facultyByCode ?? null),
+    replaceMethod(prisma.faculty, "findFirst", async () => null),
     replaceMethod(prisma.faculty, "findMany", async () => stubs.facultyByName ?? []),
     replaceMethod(prisma.studyProgram, "findFirst", async () => stubs.programByCode ?? null),
     replaceMethod(prisma.studyProgram, "findMany", async () => stubs.programByName ?? []),
@@ -75,6 +83,8 @@ async function preview(
       const data = (args as { data: Record<string, unknown> }).data;
       const batch = {
         id: "batch-1",
+        createdAt: new Date("2026-01-01T00:00:00Z"),
+        confirmedAt: null,
         ...data,
         rows: data.rows,
       };
@@ -84,18 +94,19 @@ async function preview(
   ];
 
   try {
-    await previewImport({
+    const dto = (await previewImport({
       buffer: csv(type, rows),
       fileName: "data.csv",
       source,
       type,
       actorId: "admin-1",
-    });
+    })) as unknown as Record<string, unknown>;
     assert.equal(created.length, 1);
     const batch = created[0];
     return {
       rows: batch.rows as unknown as PreviewRow[],
-      summary: batch.summary as Record<string, number>,
+      summary: dto.previewCounts as Record<string, number>,
+      dto,
     };
   } finally {
     restores.reverse().forEach((restore) => restore());
@@ -344,7 +355,20 @@ test("unknown program fails course rows without inventing parents", async () => 
 test("failed-row CSV escapes values and neutralizes formulas", async () => {
   const batch = {
     id: "batch-1",
+    actorId: "admin-1",
+    source: "SIAT",
     type: "STUDY_PROGRAMS",
+    fileName: "data.csv",
+    status: "PARTIAL",
+    expiresAt: new Date("2026-01-01T00:10:00Z"),
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    confirmedAt: new Date("2026-01-01T00:05:00Z"),
+    createdCount: 0,
+    updatedCount: 0,
+    unchangedCount: 0,
+    failedCount: 1,
+    conflictCount: 0,
+    summary: { total: 1, created: 0, updated: 0, unchanged: 0, failed: 1, conflict: 0 },
     rows: [
       {
         rowNumber: 2,
@@ -385,33 +409,44 @@ test("failed-row CSV escapes values and neutralizes formulas", async () => {
 
 type TxStubOptions = {
   actorRole?: string;
+  revokeAfterFirstActorCheck?: boolean;
   batch: Record<string, unknown>;
   outcomes: Record<string, unknown>[];
   courseExisting?: unknown;
+  lecturerExisting?: unknown[];
   onCreate?: () => void;
 };
 
-async function withConfirmStubs(
+async function withConfirmStubs<T>(
   options: TxStubOptions,
   run: (state: {
     batchUpdates: Record<string, unknown>[];
     createdCourses: Record<string, unknown>[];
-  }) => Promise<void>
-) {
+    lecturerUpdates: Record<string, unknown>[];
+    storedBatch: () => Record<string, unknown>;
+  }) => Promise<T>
+): Promise<T> {
   const { prisma } = await loadModule();
   const batchUpdates: Record<string, unknown>[] = [];
   const createdCourses: Record<string, unknown>[] = [];
+  const lecturerUpdates: Record<string, unknown>[] = [];
   const outcomes = options.outcomes;
   let batch = { ...options.batch };
+  let actorChecks = 0;
 
   const tx = {
-    $queryRaw: async () => [{ id: batch.id }],
-    $executeRaw: async () => 1,
-    user: {
-      findUnique: async () => ({
-        id: "admin-1",
-        role: options.actorRole ?? "admin",
-      }),
+    $queryRaw: async (strings: unknown) => {
+      const sql = Array.isArray(strings) ? strings.join("?") : String(strings);
+      if (sql.includes('"user"')) {
+        actorChecks += 1;
+        const role =
+          options.revokeAfterFirstActorCheck && actorChecks > 1
+            ? "mahasiswa"
+            : options.actorRole ?? "admin";
+        return [{ id: "admin-1", role }];
+      }
+      if (sql.includes("academic_import_batch")) return [{ id: batch.id }];
+      return [{ id: "locked" }];
     },
     academicImportBatch: {
       findUnique: async () => batch,
@@ -422,7 +457,7 @@ async function withConfirmStubs(
       },
     },
     faculty: {
-      findUnique: async () => ({ id: "f1" }),
+      findUnique: async () => ({ id: "f1", updatedAt: new Date("2026-01-01T00:00:00Z") }),
       create: async ({ data }: { data: Record<string, unknown> }) => ({
         id: "f1",
         ...data,
@@ -432,6 +467,7 @@ async function withConfirmStubs(
     studyProgram: {
       findFirst: async () => ({ id: "p1" }),
       findMany: async () => [],
+      findUnique: async () => ({ updatedAt: new Date("2026-01-01T00:00:00Z") }),
       create: async ({ data }: { data: Record<string, unknown> }) => ({
         id: "p1",
         ...data,
@@ -440,17 +476,22 @@ async function withConfirmStubs(
     },
     academicCourseReference: {
       findFirst: async () => options.courseExisting ?? null,
+      findUnique: async () => ({ updatedAt: new Date("2026-01-01T00:00:00Z") }),
       create: async ({ data }: { data: Record<string, unknown> }) => {
         options.onCreate?.();
         createdCourses.push(data);
-        return data;
+        return { id: "c1", ...data };
       },
       update: async ({ data }: { data: Record<string, unknown> }) => data,
     },
     lecturerReference: {
-      findMany: async () => [],
-      create: async ({ data }: { data: Record<string, unknown> }) => data,
-      update: async ({ data }: { data: Record<string, unknown> }) => data,
+      findMany: async () => options.lecturerExisting ?? [],
+      findUnique: async () => ({ updatedAt: new Date("2026-01-01T00:00:00Z") }),
+      create: async ({ data }: { data: Record<string, unknown> }) => ({ id: "l1", ...data }),
+      update: async ({ data }: { data: Record<string, unknown> }) => {
+        lecturerUpdates.push(data);
+        return data;
+      },
     },
     academicImportRowOutcome: {
       create: async ({ data }: { data: Record<string, unknown> }) => {
@@ -464,10 +505,6 @@ async function withConfirmStubs(
     replaceMethod(prisma, "$transaction", async (callback: unknown) =>
       (callback as (client: unknown) => Promise<unknown>)(tx)
     ),
-    replaceMethod(prisma.user, "findUnique", async () => ({
-      id: "admin-1",
-      role: options.actorRole ?? "admin",
-    })),
     replaceMethod(prisma.academicImportBatch, "findUnique", async () => ({
       ...batch,
       outcomes,
@@ -475,13 +512,35 @@ async function withConfirmStubs(
     replaceMethod(prisma.academicImportBatch, "update", async (args: unknown) => {
       const data = (args as { data: Record<string, unknown> }).data;
       batchUpdates.push(data);
-      return { ...batch, ...data };
+      batch = { ...batch, ...data };
+      return batch;
+    }),
+    replaceMethod(prisma.academicImportBatch, "updateMany", async (args: unknown) => {
+      const record = args as {
+        where?: { status?: string; expiresAt?: { lte?: Date } };
+        data?: Record<string, unknown>;
+      };
+      const matches =
+        (!record.where?.status || batch.status === record.where.status) &&
+        (!record.where?.expiresAt?.lte ||
+          (batch.expiresAt as Date).getTime() <= record.where.expiresAt.lte.getTime());
+      if (matches && record.data) {
+        batchUpdates.push(record.data);
+        batch = { ...batch, ...record.data };
+        return { count: 1 };
+      }
+      return { count: 0 };
     }),
     replaceMethod(prisma.academicImportRowOutcome, "findMany", async () => outcomes),
   ];
 
   try {
-    await run({ batchUpdates, createdCourses });
+    return await run({
+      batchUpdates,
+      createdCourses,
+      lecturerUpdates,
+      storedBatch: () => batch,
+    });
   } finally {
     restores.reverse().forEach((restore) => restore());
   }
@@ -505,7 +564,16 @@ function courseBatch(rows: PreviewRow[], status = "PREVIEWED") {
     fileDigest: "digest",
     status,
     expiresAt: new Date(Date.now() + 60_000),
-    summary: { total: rows.length, created: rows.length, updated: 0, unchanged: 0, failed: 0, conflict: 0, columns: [] },
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    summary: {
+      total: rows.length,
+      created: rows.filter((row) => row.action === "CREATED").length,
+      updated: rows.filter((row) => row.action === "UPDATED").length,
+      unchanged: rows.filter((row) => row.action === "UNCHANGED").length,
+      failed: rows.filter((row) => row.action === "FAILED").length,
+      conflict: rows.filter((row) => row.action === "CONFLICT").length,
+      columns: [],
+    },
     rows,
     createdCount: 0,
     updatedCount: 0,
@@ -545,13 +613,13 @@ test("expired preview is marked expired and rejected", async () => {
       },
       outcomes: [],
     },
-    async ({ batchUpdates }) => {
+    async ({ storedBatch }) => {
       await assert.rejects(
         () => service.confirmImport("batch-1", "admin-1"),
         (error: unknown) =>
           error instanceof AcademicImportError && error.status === 409
       );
-      assert.equal(batchUpdates.some((data) => data.status === "EXPIRED"), true);
+      assert.equal(storedBatch().status, "EXPIRED");
     }
   );
 });
@@ -584,7 +652,7 @@ test("stale preview target fails the row without applying it", async () => {
     },
     async ({ batchUpdates }) => {
       const txUpdate = updates;
-      await service.confirmImport("batch-1", "admin-1");
+      const result = await service.confirmImport("batch-1", "admin-1");
       assert.equal(txUpdate, 0);
       assert.equal(outcomes.length, 1);
       assert.equal(outcomes[0].action, "FAILED");
@@ -593,6 +661,17 @@ test("stale preview target fails the row without applying it", async () => {
         batchUpdates.some((data) => data.status === "PARTIAL"),
         true
       );
+      assert.equal(result.status, "PARTIAL");
+      assert.deepEqual(
+        {
+          created: result.resultCounts?.created,
+          updated: result.resultCounts?.updated,
+          failed: result.resultCounts?.failed,
+        },
+        { created: 0, updated: 0, failed: 1 }
+      );
+      assert.equal(result.previewCounts.created, 0);
+      assert.equal(result.previewCounts.updated, 1);
     }
   );
   updates = 0;
@@ -644,4 +723,373 @@ test("per-row transaction failure preserves earlier commits and reports partial"
       assert.equal(finalUpdate?.failedCount, 1);
     }
   );
+});
+
+test("preview DTO exposes PREVIEWED status and immediate confirmation eligibility", async () => {
+  const valid = await preview({}, "STUDY_PROGRAMS", [
+    ["FTIP", "Fakultas", "TIP", "Program"],
+  ]);
+  assert.equal(valid.dto.status, "PREVIEWED");
+  assert.equal(valid.dto.canConfirm, true);
+  assert.equal(valid.dto.resultCounts, null);
+  assert.equal(valid.summary.created, 1);
+  assert.equal(valid.rows[0].originalCells?.length, 4);
+
+  const invalid = await preview({}, "STUDY_PROGRAMS", [
+    ["x", "Fakultas", "TIP", "Program"],
+  ]);
+  assert.equal(invalid.dto.status, "PREVIEWED");
+  assert.equal(invalid.dto.canConfirm, false);
+  assert.equal(invalid.summary.failed, 1);
+});
+
+test("XLSX keeps populated row positions across blanks and rejects sparse extremes", async () => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Data");
+  sheet.addRow([...TEMPLATE_HEADERS.STUDY_PROGRAMS]);
+  sheet.addRow(["FTIP", "Fakultas", "TIP", "Program A"]);
+  sheet.getRow(4).getCell(1).value = "FTIP";
+  sheet.getRow(4).getCell(2).value = "Fakultas";
+  sheet.getRow(4).getCell(3).value = "TIP";
+  sheet.getRow(4).getCell(4).value = "Program B";
+  const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+  const parsed = await parseImportFile(buffer, "data.xlsx", "STUDY_PROGRAMS");
+  assert.deepEqual(parsed.rows.map((row) => row.rowNumber), [2, 4]);
+
+  const sparse = new ExcelJS.Workbook();
+  const sparseSheet = sparse.addWorksheet("Data");
+  sparseSheet.addRow([...TEMPLATE_HEADERS.STUDY_PROGRAMS]);
+  sparseSheet.getRow(3001).getCell(1).value = "FTIP";
+  const sparseBuffer = Buffer.from(await sparse.xlsx.writeBuffer());
+  await assert.rejects(
+    () => parseImportFile(sparseBuffer, "data.xlsx", "STUDY_PROGRAMS"),
+    /terlalu jauh/
+  );
+});
+
+test("parser rejects invalid UTF-8 and oversized cells", async () => {
+  const invalid = Buffer.concat([
+    Buffer.from(
+      "faculty_code,faculty_name,study_program_code,study_program_name\n"
+    ),
+    Buffer.from([0xff, 0xfe]),
+    Buffer.from("\n"),
+  ]);
+  await assert.rejects(
+    () => parseImportFile(invalid, "data.csv", "STUDY_PROGRAMS"),
+    /UTF-8/
+  );
+
+  await assert.rejects(
+    () =>
+      parseImportFile(
+        csv("STUDY_PROGRAMS", [["FTIP", "x".repeat(MAX_CELL_CHARS + 1), "TIP", "P"]]),
+        "data.csv",
+        "STUDY_PROGRAMS"
+      ),
+    /melebihi/
+  );
+});
+
+test("identical SIAT data promotes PIPP provenance and blocks later PIPP overwrite", async () => {
+  const now = new Date("2026-01-01T00:00:00Z");
+  const faculty = { id: "f1", name: "Fakultas", code: "FTIP", source: "PIPP" as const, updatedAt: now };
+  const program = {
+    id: "p1",
+    facultyId: "f1",
+    name: "Program",
+    code: "TIP",
+    source: "PIPP" as const,
+    updatedAt: now,
+  };
+  const stubs = { facultyByCode: faculty, programByCode: program };
+  const values = [["FTIP", "Fakultas", "TIP", "Program"]];
+
+  const promoted = await preview(stubs, "STUDY_PROGRAMS", values, "SIAT");
+  assert.equal(promoted.rows[0].action, "UPDATED");
+  assert.deepEqual(promoted.rows[0].changes?.facultySource, { from: "PIPP", to: "SIAT" });
+  assert.deepEqual(promoted.rows[0].changes?.studyProgramSource, {
+    from: "PIPP",
+    to: "SIAT",
+  });
+
+  const blocked = await preview(
+    {
+      facultyByCode: { ...faculty, source: "SIAT" as const },
+      programByCode: { ...program, source: "SIAT" as const },
+    },
+    "STUDY_PROGRAMS",
+    [["FTIP", "Fakultas", "TIP", "Program Baru"]],
+    "PIPP"
+  );
+  assert.equal(blocked.rows[0].action, "CONFLICT");
+
+  const course = await preview(
+    {
+      facultyByCode: { id: "f1" },
+      programByCode: { id: "p1" },
+      courseByCode: { id: "c1", name: "Mata Kuliah", isActive: true, source: "PIPP", updatedAt: now },
+    },
+    "COURSES",
+    [["FTIP", "TIP", "TIP101", "Mata Kuliah", "true"]],
+    "SIAT"
+  );
+  assert.equal(course.rows[0].action, "UPDATED");
+  assert.deepEqual(course.rows[0].changes?.source, { from: "PIPP", to: "SIAT" });
+
+  const lecturer = await preview(
+    {
+      lecturers: [
+        {
+          id: "l1",
+          nip: "1987654321",
+          nidn: null,
+          name: "Dosen",
+          email: null,
+          isActive: true,
+          source: "PIPP",
+          updatedAt: now,
+        },
+      ],
+    },
+    "LECTURERS",
+    [["1987654321", "", "Dosen", "", "true"]],
+    "SIAT"
+  );
+  assert.equal(lecturer.rows[0].action, "UPDATED");
+  assert.deepEqual(lecturer.rows[0].changes?.source, { from: "PIPP", to: "SIAT" });
+});
+
+test("shared faculty contradictions fail while compatible parent data is adopted", async () => {
+  const contradiction = await preview({}, "STUDY_PROGRAMS", [
+    ["FTIP", "Fakultas A", "TIP", "Program A"],
+    ["FTIP", "Fakultas B", "TIP2", "Program B"],
+  ]);
+  assert.equal(contradiction.rows.every((row) => row.action === "FAILED"), true);
+  assert.match(contradiction.rows[0].errors.join(" "), /nama fakultas berbeda/);
+
+  const compatible = await preview({}, "STUDY_PROGRAMS", [
+    ["FTIP", "Fakultas", "TIP", "Program A"],
+    ["FTIP", "Fakultas", "TIP2", "Program B"],
+  ]);
+  assert.equal(compatible.rows.every((row) => row.action === "CREATED"), true);
+
+  const adoption = await preview(
+    {
+      facultyByName: [
+        {
+          id: "f1",
+          name: "Fakultas",
+          code: null,
+          source: "SIAT",
+          updatedAt: new Date("2026-01-01T00:00:00Z"),
+        },
+      ],
+    },
+    "STUDY_PROGRAMS",
+    [
+      ["FTIP", "Fakultas", "TIP", "Program A"],
+      ["FTIP", "Fakultas", "TIP2", "Program B"],
+    ]
+  );
+  assert.equal(adoption.rows.every((row) => row.action === "CREATED"), true);
+  assert.deepEqual(adoption.rows[0].changes?.facultyAdopted, { from: false, to: true });
+  assert.deepEqual(adoption.rows[1].changes?.facultyAdopted, { from: false, to: true });
+
+  const rename = await preview(
+    {
+      facultyByCode: {
+        id: "f1",
+        name: "Fakultas Lama",
+        code: "FTIP",
+        source: "SIAT",
+        updatedAt: new Date("2026-01-01T00:00:00Z"),
+      },
+    },
+    "STUDY_PROGRAMS",
+    [
+      ["FTIP", "Fakultas Baru", "TIP", "Program A"],
+      ["FTIP", "Fakultas Baru", "TIP2", "Program B"],
+    ]
+  );
+  assert.equal(rename.rows.every((row) => row.action === "CREATED"), true);
+  assert.deepEqual(rename.rows[0].changes?.facultyName, {
+    from: "Fakultas Lama",
+    to: "Fakultas Baru",
+  });
+  assert.deepEqual(rename.rows[1].changes?.facultyName, {
+    from: "Fakultas Lama",
+    to: "Fakultas Baru",
+  });
+});
+
+test("overlapping lecturer identifiers with contradictions fail together", async () => {
+  const result = await preview({}, "LECTURERS", [
+    ["1987654321", "0012345678", "Dosen", "dosen@example.ac.id", "true"],
+    ["1987654321", "0099999999", "Dosen", "dosen@example.ac.id", "true"],
+  ]);
+  assert.equal(result.rows.every((row) => row.action === "FAILED"), true);
+  assert.match(result.rows[0].errors.join(" "), /bertentangan/);
+});
+
+test("confirmation preserves omitted lecturer identifiers", async () => {
+  const { service } = await loadModule();
+  const row: PreviewRow = {
+    rowNumber: 2,
+    identity: "LECT:1987654321|0012345678",
+    action: "UPDATED",
+    values: { nip: "1987654321", nidn: null, name: "Nama Baru", email: null, isActive: true },
+    errors: [],
+    targets: {
+      lecturerReference: { id: "l1", updatedAt: "2026-01-01T00:00:00.000Z" },
+    },
+  };
+  const outcomes: Record<string, unknown>[] = [];
+  await withConfirmStubs(
+    {
+      batch: { ...courseBatch([row]), type: "LECTURERS" },
+      outcomes,
+      lecturerExisting: [
+        {
+          id: "l1",
+          nip: "1987654321",
+          nidn: "0012345678",
+          name: "Lama",
+          email: null,
+          isActive: true,
+          source: "SIAT",
+          updatedAt: new Date("2026-01-01T00:00:00Z"),
+        },
+      ],
+    },
+    async ({ lecturerUpdates }) => {
+      await service.confirmImport("batch-1", "admin-1");
+      assert.equal(lecturerUpdates.length, 1);
+      assert.equal(lecturerUpdates[0].nidn, "0012345678");
+      assert.equal(lecturerUpdates[0].name, "Nama Baru");
+    }
+  );
+});
+
+test("preview-only failed export returns original invalid cells", async () => {
+  const batch = {
+    id: "batch-1",
+    actorId: "admin-1",
+    source: "SIAT",
+    type: "LECTURERS",
+    fileName: "data.csv",
+    status: "PREVIEWED",
+    expiresAt: new Date(Date.now() + 60_000),
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    confirmedAt: null,
+    createdCount: 0,
+    updatedCount: 0,
+    unchangedCount: 0,
+    failedCount: 2,
+    conflictCount: 0,
+    summary: { total: 2, created: 0, updated: 0, unchanged: 0, failed: 2, conflict: 0 },
+    outcomes: [],
+    rows: [
+      {
+        rowNumber: 2,
+        identity: "LECT:1234567|",
+        action: "FAILED",
+        values: { nip: "1234567", nidn: null, name: "Dosen", email: "bukan-email", isActive: true },
+        originalCells: ["1234567", "", "Dosen", "bukan-email", "maybe"],
+        errors: ["NIP tidak valid.", "Email tidak valid."],
+        targets: {},
+      },
+      {
+        rowNumber: 4,
+        identity: "LECT:",
+        action: "FAILED",
+        values: { nip: null, nidn: null, name: "", email: null, isActive: true },
+        originalCells: ["", "", "=cmd", "", "true"],
+        errors: ["Nama wajib diisi."],
+        targets: {},
+      },
+    ],
+  };
+  const { prisma } = await loadModule();
+  const restore = replaceMethod(prisma.academicImportBatch, "findUnique", async () => batch);
+  try {
+    const output = await failedRowsCsv("batch-1");
+    assert.match(output, /^2,/m);
+    assert.match(output, /1234567/);
+    assert.match(output, /bukan-email/);
+    assert.match(output, /'=cmd/);
+  } finally {
+    restore();
+  }
+});
+
+test("only the preview creator may confirm", async () => {
+  const { service } = await loadModule();
+  await withConfirmStubs(
+    {
+      batch: { ...courseBatch([]), actorId: "other-admin" },
+      outcomes: [],
+    },
+    async () => {
+      await assert.rejects(
+        () => service.confirmImport("batch-1", "admin-1"),
+        (error: unknown) =>
+          error instanceof AcademicImportError && error.status === 403
+      );
+    }
+  );
+});
+
+test("revoked actor stops business writes and reports failed outcomes", async () => {
+  const { service } = await loadModule();
+  const rows: PreviewRow[] = [
+    {
+      rowNumber: 2,
+      identity: "a",
+      action: "CREATED",
+      values: { ...COURSE_VALUES, courseCode: "TIP101" },
+      errors: [],
+      targets: {},
+    },
+    {
+      rowNumber: 3,
+      identity: "b",
+      action: "CREATED",
+      values: { ...COURSE_VALUES, courseCode: "TIP102" },
+      errors: [],
+      targets: {},
+    },
+  ];
+  const outcomes: Record<string, unknown>[] = [];
+  await withConfirmStubs(
+    {
+      batch: courseBatch(rows),
+      outcomes,
+      revokeAfterFirstActorCheck: true,
+    },
+    async ({ createdCourses }) => {
+      const result = await service.confirmImport("batch-1", "admin-1");
+      assert.equal(createdCourses.length, 0);
+      assert.equal(outcomes.length, 2);
+      assert.equal(outcomes.every((outcome) => outcome.action === "FAILED"), true);
+      assert.equal(result.status, "PARTIAL");
+    }
+  );
+});
+
+test("cleanup is withheld after an uncertain HTTP completion", async () => {
+  let ran = false;
+  const unsafe: PairSafety = {
+    blockerReleased: true,
+    releaseUncertain: false,
+    operationsSettled: false,
+    failures: ["operation settlement failed: timeout"],
+    cleanupSafe: false,
+  };
+  const result = await runSafeCleanup([unsafe], async () => {
+    ran = true;
+  });
+  assert.equal(result.ran, false);
+  assert.equal(ran, false);
+  assert.equal(result.decision.allowed, false);
 });

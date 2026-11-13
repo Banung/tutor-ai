@@ -14,6 +14,7 @@ import "dotenv/config";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import prisma from "../../src/lib/prisma";
+import { runSafeCleanup, type PairSafety } from "./fr003-validation";
 
 const BASE_URL = process.env.FR005_BASE_URL || "http://localhost:3000";
 const PREFIX = "H7";
@@ -62,6 +63,7 @@ const courseB = `CB${stamp}`;
 const lecturerNip = `00${String(Date.now()).slice(-8)}`;
 const lecturerNidn = `11${String(Date.now()).slice(-8)}`;
 const fixtureEmail = `h7.${stamp.toLowerCase()}@harness.test`;
+const fixtureAdminEmail = `h7.admin.${stamp.toLowerCase()}@harness.test`;
 
 const checks: string[] = [];
 function check(name: string, condition: unknown, detail?: unknown): void {
@@ -74,28 +76,61 @@ function check(name: string, condition: unknown, detail?: unknown): void {
 type Json = unknown;
 type Api = { status: number; data: Json };
 
+type Counts = {
+  total: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  failed: number;
+  conflict: number;
+};
+
+type BatchDto = {
+  id: string;
+  status: string;
+  canConfirm: boolean;
+  previewCounts: Counts & { columns: string[] };
+  resultCounts: Counts | null;
+  rows: Array<{
+    rowNumber: number;
+    action: string;
+    originalCells?: unknown[];
+    changes?: Record<string, { from: unknown; to: unknown }>;
+  }>;
+  outcomes: Array<{ rowNumber: number; identity: string; action: string; message: string | null }>;
+};
+
+const uncertainRequests: string[] = [];
+
 async function request(
   path: string,
   init: { method?: string; cookie?: string; body?: unknown; form?: FormData } = {}
 ): Promise<Api> {
-  const res = await fetch(BASE_URL + path, {
-    method: init.method ?? "GET",
-    headers: {
-      origin: BASE_URL,
-      ...(init.cookie ? { cookie: init.cookie } : {}),
-      ...(init.body !== undefined ? { "content-type": "application/json" } : {}),
-    },
-    body: init.form ?? (init.body !== undefined ? JSON.stringify(init.body) : undefined),
-    signal: AbortSignal.timeout(20000),
-  });
-  const text = await res.text();
-  let data: Json = null;
+  const label = `${init.method ?? "GET"} ${path}`;
   try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = text.slice(0, 200);
+    const res = await fetch(BASE_URL + path, {
+      method: init.method ?? "GET",
+      headers: {
+        origin: BASE_URL,
+        ...(init.cookie ? { cookie: init.cookie } : {}),
+        ...(init.body !== undefined ? { "content-type": "application/json" } : {}),
+      },
+      body: init.form ?? (init.body !== undefined ? JSON.stringify(init.body) : undefined),
+      signal: AbortSignal.timeout(20000),
+    });
+    const text = await res.text();
+    let data: Json = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text.slice(0, 200);
+    }
+    return { status: res.status, data };
+  } catch (error) {
+    // A timeout only stops waiting; server work may still be running.
+    uncertainRequests.push(label);
+    throw error;
   }
-  return { status: res.status, data };
 }
 
 async function login(email: string, password = PASSWORD): Promise<string> {
@@ -135,7 +170,7 @@ async function preview(
   headers: string,
   rows: string[][],
   status = 201
-): Promise<{ id: string; status: string; summary: Record<string, number>; rows: Array<Record<string, unknown>> }> {
+): Promise<BatchDto> {
   const form = new FormData();
   form.set("source", source);
   form.set("type", type);
@@ -146,7 +181,7 @@ async function preview(
     form,
   });
   check(`${type} ${source} preview status ${status}`, res.status === status, res);
-  return res.data as never;
+  return res.data as BatchDto;
 }
 
 async function confirm(cookie: string, id: string) {
@@ -156,6 +191,10 @@ async function confirm(cookie: string, id: string) {
 async function main() {
   const fixtureUserIds: string[] = [];
   const batchIds: string[] = [];
+  const facultyIds: string[] = [];
+  const programIds: string[] = [];
+  const courseRefIds: string[] = [];
+  const lecturerIds: string[] = [];
 
   try {
   const adminRow = await prisma.user.findFirst({
@@ -210,8 +249,14 @@ async function main() {
   ];
   const spPreview = await preview(adminCookie, "SIAT", "STUDY_PROGRAMS", "h7-programs.csv", spHeaders, spRows);
   batchIds.push(spPreview.id);
-  check("program preview counts", spPreview.summary.created === 2 && spPreview.summary.failed === 1, spPreview.summary);
+  check("program preview allows immediate confirmation", spPreview.canConfirm === true);
+  check("program preview counts", spPreview.previewCounts.created === 2 && spPreview.previewCounts.failed === 1, spPreview.previewCounts);
   check("program row numbers preserved", spPreview.rows.map((r) => r.rowNumber).join(",") === "2,3,4");
+  check(
+    "program preview keeps original cells",
+    spPreview.rows[2].originalCells?.[0] === "x",
+    spPreview.rows[2].originalCells
+  );
   check(
     "program preview writes nothing",
     (await prisma.faculty.count({ where: { code: facultyCode } })) === 0 &&
@@ -220,10 +265,18 @@ async function main() {
 
   const spConfirm = await confirm(adminCookie, spPreview.id);
   check("program confirm status", spConfirm.status === 200, spConfirm);
-  const spBatch = spConfirm.data as { status: string; createdCount: number; failedCount: number };
-  check("program partial result", spBatch.status === "PARTIAL" && spBatch.createdCount === 2 && spBatch.failedCount === 1, spBatch);
+  const spBatch = spConfirm.data as BatchDto;
+  check(
+    "program partial result",
+    spBatch.status === "PARTIAL" &&
+      spBatch.resultCounts?.created === 2 &&
+      spBatch.resultCounts?.failed === 1,
+    spBatch.resultCounts
+  );
   const faculty = await prisma.faculty.findUnique({ where: { code: facultyCode } });
   const programs = await prisma.studyProgram.findMany({ where: { code: { in: [programA, programB] } } });
+  if (faculty) facultyIds.push(faculty.id);
+  for (const program of programs) programIds.push(program.id);
   check("program references created", Boolean(faculty) && programs.length === 2);
   check("program source recorded", faculty?.source === "SIAT");
 
@@ -237,21 +290,32 @@ async function main() {
   ];
   const coursePreview = await preview(adminCookie, "PIPP", "COURSES", "h7-courses.csv", courseHeaders, courseRows);
   batchIds.push(coursePreview.id);
-  check("course preview counts", coursePreview.summary.created === 2 && coursePreview.summary.failed === 2, coursePreview.summary);
+  check("course preview counts", coursePreview.previewCounts.created === 2 && coursePreview.previewCounts.failed === 2, coursePreview.previewCounts);
   check("course preview writes nothing", (await prisma.academicCourseReference.count()) === 0);
 
   const courseConfirm = await confirm(adminCookie, coursePreview.id);
-  const courseBatch = courseConfirm.data as { status: string; createdCount: number; failedCount: number };
-  check("course partial commit", courseBatch.status === "PARTIAL" && courseBatch.createdCount === 2 && courseBatch.failedCount === 2, courseBatch);
+  const courseBatch = courseConfirm.data as BatchDto;
+  check(
+    "course partial commit",
+    courseBatch.status === "PARTIAL" &&
+      courseBatch.resultCounts?.created === 2 &&
+      courseBatch.resultCounts?.failed === 2,
+    courseBatch.resultCounts
+  );
   check("course references persist", (await prisma.academicCourseReference.count()) === 2);
+  const courseRefs = await prisma.academicCourseReference.findMany({
+    where: { studyProgramId: { in: programIds }, courseCode: { in: [courseA, courseB] } },
+    select: { id: true },
+  });
+  for (const reference of courseRefs) courseRefIds.push(reference.id);
   check("catalog Course untouched", (await prisma.course.count()) === catalogCoursesBefore);
 
   const rePreview = await preview(adminCookie, "PIPP", "COURSES", "h7-courses.csv", courseHeaders, courseRows);
   batchIds.push(rePreview.id);
-  check("re-import classifies unchanged", rePreview.summary.updated === 0 && rePreview.summary.unchanged === 2, rePreview.summary);
+  check("re-import classifies unchanged", rePreview.previewCounts.updated === 0 && rePreview.previewCounts.unchanged === 2, rePreview.previewCounts);
   const reConfirm = await confirm(adminCookie, rePreview.id);
-  const reBatch = reConfirm.data as { createdCount: number; unchangedCount: number };
-  check("re-import creates no duplicates", reBatch.createdCount === 0 && reBatch.unchangedCount === 2, reBatch);
+  const reBatch = reConfirm.data as BatchDto;
+  check("re-import creates no duplicates", reBatch.resultCounts?.created === 0 && reBatch.resultCounts?.unchanged === 2, reBatch.resultCounts);
   check("reference count stable after re-import", (await prisma.academicCourseReference.count()) === 2);
 
   // --- Source precedence, both orders ---
@@ -264,7 +328,7 @@ async function main() {
     [[facultyCode, programA, courseA, `${PREFIX} Course A SIAT`, "true"]]
   );
   batchIds.push(siatUpdateA.id);
-  check("PIPP-owned course may be superseded by SIAT", siatUpdateA.summary.updated === 1, siatUpdateA.summary);
+  check("PIPP-owned course may be superseded by SIAT", siatUpdateA.previewCounts.updated === 1, siatUpdateA.previewCounts);
   await confirm(adminCookie, siatUpdateA.id);
   check(
     "SIAT supersede applied",
@@ -280,7 +344,7 @@ async function main() {
     [[facultyCode, programA, courseA, `${PREFIX} PIPP overwrite`, "true"]]
   );
   batchIds.push(pippOverwriteA.id);
-  check("PIPP cannot overwrite SIAT-owned course", pippOverwriteA.summary.conflict === 1, pippOverwriteA.summary);
+  check("PIPP cannot overwrite SIAT-owned course", pippOverwriteA.previewCounts.conflict === 1, pippOverwriteA.previewCounts);
   await confirm(adminCookie, pippOverwriteA.id);
   check(
     "SIAT data survived PIPP attempt",
@@ -303,10 +367,11 @@ async function main() {
     data: { name: `${PREFIX} External Edit` },
   });
   const staleConfirm = await confirm(adminCookie, stale.id);
-  const staleBatch = staleConfirm.data as { status: string; outcomes: Array<{ message: string | null }> };
+  const staleBatch = staleConfirm.data as BatchDto;
   check(
     "stale preview marked failed",
     staleBatch.status === "PARTIAL" &&
+      staleBatch.resultCounts?.failed === 1 &&
       staleBatch.outcomes.some((row) => (row.message ?? "").includes("berubah sejak pratinjau")),
     staleBatch.status
   );
@@ -351,11 +416,12 @@ async function main() {
   ];
   const lecturerPreview = await preview(adminCookie, "SIAT", "LECTURERS", "h7-lecturers.csv", lecturerHeaders, lecturerRows);
   batchIds.push(lecturerPreview.id);
-  check("lecturer preview counts", lecturerPreview.summary.created === 1 && lecturerPreview.summary.failed === 1, lecturerPreview.summary);
+  check("lecturer preview counts", lecturerPreview.previewCounts.created === 1 && lecturerPreview.previewCounts.failed === 1, lecturerPreview.previewCounts);
   check("lecturer preview creates no auth rows", (await prisma.user.count()) === usersBefore && (await prisma.account.count()) === accountsBefore);
   const lecturerConfirm = await confirm(adminCookie, lecturerPreview.id);
-  check("lecturer confirm partial", (lecturerConfirm.data as { status: string }).status === "PARTIAL");
+  check("lecturer confirm partial", (lecturerConfirm.data as BatchDto).status === "PARTIAL");
   const lecturer = await prisma.lecturerReference.findFirst({ where: { nip: lecturerNip } });
+  if (lecturer) lecturerIds.push(lecturer.id);
   check("lecturer reference keeps leading zeros", lecturer?.nip === lecturerNip, lecturer?.nip);
   check("lecturer import creates no user", (await prisma.user.count()) === usersBefore);
   check(
@@ -364,9 +430,290 @@ async function main() {
   );
   const lecturerRe = await preview(adminCookie, "SIAT", "LECTURERS", "h7-lecturers.csv", lecturerHeaders, lecturerRows);
   batchIds.push(lecturerRe.id);
-  check("lecturer re-import unchanged", lecturerRe.summary.unchanged === 1 && lecturerRe.summary.created === 0, lecturerRe.summary);
+  check("lecturer re-import unchanged", lecturerRe.previewCounts.unchanged === 1 && lecturerRe.previewCounts.created === 0, lecturerRe.previewCounts);
   await confirm(adminCookie, lecturerRe.id);
   check("lecturer no duplicate", (await prisma.lecturerReference.count({ where: { nip: lecturerNip } })) === 1);
+
+  // --- SIAT provenance promotion on identical business values ---
+  const promotion = await preview(
+    adminCookie,
+    "SIAT",
+    "COURSES",
+    "h7-promotion.csv",
+    courseHeaders,
+    [[facultyCode, programA, courseB, `${PREFIX} Course B`, "true"]]
+  );
+  batchIds.push(promotion.id);
+  check(
+    "identical SIAT import previews provenance promotion",
+    promotion.previewCounts.updated === 1 && promotion.rows[0].changes?.source?.to === "SIAT",
+    promotion.previewCounts
+  );
+  await confirm(adminCookie, promotion.id);
+  check(
+    "SIAT provenance promotion persisted",
+    (await prisma.academicCourseReference.findFirst({ where: { courseCode: courseB } }))?.source === "SIAT"
+  );
+  const pippAfterPromotion = await preview(
+    adminCookie,
+    "PIPP",
+    "COURSES",
+    "h7-promotion-pipp.csv",
+    courseHeaders,
+    [[facultyCode, programA, courseB, `${PREFIX} PIPP After Promotion`, "true"]]
+  );
+  batchIds.push(pippAfterPromotion.id);
+  check(
+    "promoted SIAT data blocks PIPP overwrite",
+    pippAfterPromotion.previewCounts.conflict === 1,
+    pippAfterPromotion.previewCounts
+  );
+  await confirm(adminCookie, pippAfterPromotion.id);
+  check(
+    "promoted SIAT value survives PIPP attempt",
+    (await prisma.academicCourseReference.findFirst({ where: { courseCode: courseB } }))?.name ===
+      `${PREFIX} Course B`
+  );
+
+  // --- Shared parent rename with two valid program rows ---
+  const shared = await preview(
+    adminCookie,
+    "SIAT",
+    "STUDY_PROGRAMS",
+    "h7-shared-parent.csv",
+    spHeaders,
+    [
+      [facultyCode, `${PREFIX} Faculty Renamed`, programA, `${PREFIX} Program A Renamed`],
+      [facultyCode, `${PREFIX} Faculty Renamed`, programB, `${PREFIX} Program B Renamed`],
+    ]
+  );
+  batchIds.push(shared.id);
+  check(
+    "shared parent rename previews both rows",
+    shared.previewCounts.updated === 2,
+    shared.previewCounts
+  );
+  const sharedConfirm = await confirm(adminCookie, shared.id);
+  check(
+    "shared parent rename commits both rows",
+    (sharedConfirm.data as BatchDto).resultCounts?.updated === 2 &&
+      (sharedConfirm.data as BatchDto).resultCounts?.failed === 0,
+    sharedConfirm.data
+  );
+  check(
+    "shared parent rename persisted",
+    (await prisma.faculty.findUnique({ where: { code: facultyCode } }))?.name ===
+      `${PREFIX} Faculty Renamed`
+  );
+  check(
+    "both shared programs renamed",
+    (await prisma.studyProgram.count({
+      where: {
+        code: { in: [programA, programB] },
+        name: { in: [`${PREFIX} Program A Renamed`, `${PREFIX} Program B Renamed`] },
+      },
+    })) === 2
+  );
+
+  // --- Two different batches target the same existing reference ---
+  async function resetCourseA(name: string) {
+    await prisma.academicCourseReference.updateMany({
+      where: { courseCode: courseA },
+      data: { name },
+    });
+  }
+
+  async function orderedPair(order: "forward" | "reverse") {
+    const base = `${PREFIX} Race ${order} Base`;
+    await resetCourseA(base);
+    const first = await preview(
+      adminCookie,
+      "SIAT",
+      "COURSES",
+      `h7-race-${order}-1.csv`,
+      courseHeaders,
+      [[facultyCode, programA, courseA, `${PREFIX} Race ${order} First`, "true"]]
+    );
+    const second = await preview(
+      adminCookie,
+      "SIAT",
+      "COURSES",
+      `h7-race-${order}-2.csv`,
+      courseHeaders,
+      [[facultyCode, programA, courseA, `${PREFIX} Race ${order} Second`, "true"]]
+    );
+    batchIds.push(first.id, second.id);
+    const sequence = order === "forward" ? [first, second] : [second, first];
+    const responses = [];
+    for (const batch of sequence) {
+      responses.push(await confirm(adminCookie, batch.id));
+    }
+    check(
+      `ordered pair ${order} responses controlled`,
+      responses.every((response) => response.status === 200),
+      responses.map((response) => response.status)
+    );
+    check(
+      `ordered pair ${order} one stale rejection`,
+      responses[0].status === 200 &&
+        (responses[0].data as BatchDto).status === "CONFIRMED" &&
+        (responses[1].data as BatchDto).status === "PARTIAL" &&
+        (responses[1].data as BatchDto).resultCounts?.failed === 1,
+      responses.map((response) => (response.data as BatchDto).status)
+    );
+    return (await prisma.academicCourseReference.findFirst({ where: { courseCode: courseA } }))?.name;
+  }
+
+  check("forward ordering first batch wins", (await orderedPair("forward")) === `${PREFIX} Race forward First`);
+  check("reverse ordering second-created batch wins", (await orderedPair("reverse")) === `${PREFIX} Race reverse Second`);
+
+  await resetCourseA(`${PREFIX} Race Concurrent Base`);
+  const concurrentA = await preview(
+    adminCookie,
+    "SIAT",
+    "COURSES",
+    "h7-race-concurrent-a.csv",
+    courseHeaders,
+    [[facultyCode, programA, courseA, `${PREFIX} Race Concurrent A`, "true"]]
+  );
+  const concurrentB = await preview(
+    adminCookie,
+    "SIAT",
+    "COURSES",
+    "h7-race-concurrent-b.csv",
+    courseHeaders,
+    [[facultyCode, programA, courseA, `${PREFIX} Race Concurrent B`, "true"]]
+  );
+  batchIds.push(concurrentA.id, concurrentB.id);
+  const [raceA, raceB] = await Promise.all([
+    confirm(adminCookie, concurrentA.id),
+    confirm(adminCookie, concurrentB.id),
+  ]);
+  const raceStatuses = [raceA, raceB].map((response) => (response.data as BatchDto).status).sort();
+  check(
+    "concurrent distinct batches serialize",
+    raceStatuses.join(",") === "CONFIRMED,PARTIAL",
+    raceStatuses
+  );
+  const concurrentWinner = (
+    await prisma.academicCourseReference.findFirst({ where: { courseCode: courseA } })
+  )?.name;
+  check(
+    "concurrent distinct batches leave exactly one winner",
+    concurrentWinner === `${PREFIX} Race Concurrent A` ||
+      concurrentWinner === `${PREFIX} Race Concurrent B`,
+    concurrentWinner
+  );
+
+  // --- Persisted expiration after rejected confirmation ---
+  const currentFaculty = await prisma.faculty.findUnique({ where: { code: facultyCode } });
+  const expiring = await preview(
+    adminCookie,
+    "SIAT",
+    "STUDY_PROGRAMS",
+    "h7-expired.csv",
+    spHeaders,
+    [[facultyCode, currentFaculty!.name, programA, `${PREFIX} Expired Proposal`]]
+  );
+  batchIds.push(expiring.id);
+  await prisma.academicImportBatch.update({
+    where: { id: expiring.id },
+    data: { expiresAt: new Date(Date.now() - 1000) },
+  });
+  const expiredConfirm = await confirm(adminCookie, expiring.id);
+  check("expired confirmation rejected", expiredConfirm.status === 409, expiredConfirm);
+  check(
+    "expired state persisted",
+    (await prisma.academicImportBatch.findUnique({ where: { id: expiring.id } }))?.status === "EXPIRED"
+  );
+  check(
+    "expired confirmation applied no business change",
+    (await prisma.studyProgram.findFirst({ where: { code: programA } }))?.name !==
+      `${PREFIX} Expired Proposal`
+  );
+
+  // --- Fixture-admin ownership and revocation ---
+  const createAdmin = await request("/api/admin/users", {
+    method: "POST",
+    cookie: adminCookie,
+    body: {
+      name: `${PREFIX} fixture admin`,
+      email: fixtureAdminEmail,
+      password: PASSWORD,
+      role: "admin",
+    },
+  });
+  check("fixture admin created", createAdmin.status === 201, createAdmin);
+  const fixtureAdminId = (createAdmin.data as { id: string }).id;
+  fixtureUserIds.push(fixtureAdminId);
+  const fixtureAdminCookie = await login(fixtureAdminEmail);
+  const owned = await preview(
+    fixtureAdminCookie,
+    "SIAT",
+    "COURSES",
+    "h7-owned.csv",
+    courseHeaders,
+    [[facultyCode, programA, courseB, `${PREFIX} Owned Proposal`, "true"]]
+  );
+  batchIds.push(owned.id);
+  const foreignConfirm = await confirm(adminCookie, owned.id);
+  check("non-creator cannot confirm a preview", foreignConfirm.status === 403, foreignConfirm);
+  const demote = await request(`/api/admin/users/${fixtureAdminId}`, {
+    method: "PATCH",
+    cookie: adminCookie,
+    body: { role: "mahasiswa", npm: `33${String(Date.now()).slice(-8)}`, academicLevel: "S1" },
+  });
+  check("fixture admin demoted", demote.status === 200, demote);
+  const revokedConfirm = await confirm(fixtureAdminCookie, owned.id);
+  check("revoked actor cannot confirm", revokedConfirm.status === 403, revokedConfirm);
+  check(
+    "revoked actor applied no business change",
+    (await prisma.academicCourseReference.findFirst({ where: { courseCode: courseB } }))?.name ===
+      `${PREFIX} Course B`
+  );
+
+  // --- Adopt an existing faculty with no code using two valid rows ---
+  const adoptFacultyCode = `A${stamp}`;
+  const adoptProgramA = `QA${stamp}`;
+  const adoptProgramB = `QB${stamp}`;
+  const adoptFaculty = await prisma.faculty.create({
+    data: {
+      id: crypto.randomUUID(),
+      name: `${PREFIX} Adopt Faculty`,
+      code: null,
+      source: "PIPP",
+    },
+  });
+  facultyIds.push(adoptFaculty.id);
+  const adoptPreview = await preview(
+    adminCookie,
+    "SIAT",
+    "STUDY_PROGRAMS",
+    "h7-adopt.csv",
+    spHeaders,
+    [
+      [adoptFacultyCode, `${PREFIX} Adopt Faculty`, adoptProgramA, `${PREFIX} Adopt Program A`],
+      [adoptFacultyCode, `${PREFIX} Adopt Faculty`, adoptProgramB, `${PREFIX} Adopt Program B`],
+    ]
+  );
+  batchIds.push(adoptPreview.id);
+  check(
+    "faculty adoption previewed as explicit parent change",
+    adoptPreview.previewCounts.created === 2 &&
+      adoptPreview.rows.every((row) => row.changes?.facultyAdopted?.to === true),
+    adoptPreview.previewCounts
+  );
+  await confirm(adminCookie, adoptPreview.id);
+  check(
+    "faculty adoption persisted",
+    (await prisma.faculty.findUnique({ where: { id: adoptFaculty.id } }))?.code === adoptFacultyCode
+  );
+  const adoptedPrograms = await prisma.studyProgram.findMany({
+    where: { code: { in: [adoptProgramA, adoptProgramB] } },
+    select: { id: true },
+  });
+  for (const program of adoptedPrograms) programIds.push(program.id);
+  check("adopted faculty has two programs", adoptedPrograms.length === 2);
 
   console.log(
     JSON.stringify(
@@ -381,36 +728,104 @@ async function main() {
     )
   );
 } finally {
+  const safety: PairSafety = {
+    blockerReleased: true,
+    releaseUncertain: false,
+    operationsSettled: uncertainRequests.length === 0,
+    failures: uncertainRequests.map((operation) => `uncertain completion: ${operation}`),
+    cleanupSafe: uncertainRequests.length === 0,
+  };
+  const ownershipManifest = {
+    fixtureUserIds: [...fixtureUserIds],
+    facultyIds: [...facultyIds],
+    programIds: [...programIds],
+    courseRefIds: [...courseRefIds],
+    lecturerIds: [...lecturerIds],
+    retainedBatchIds: [...batchIds],
+  };
   const cleanupErrors: string[] = [];
-  try {
-    await prisma.academicCourseReference.deleteMany({ where: { courseCode: { in: [courseA, courseB] } } });
-  } catch (error) {
-    cleanupErrors.push(`course refs: ${String(error)}`);
-  }
-  try {
-    await prisma.lecturerReference.deleteMany({ where: { nip: lecturerNip } });
-  } catch (error) {
-    cleanupErrors.push(`lecturer refs: ${String(error)}`);
-  }
-  try {
-    await prisma.studyProgram.deleteMany({ where: { code: { in: [programA, programB] } } });
-  } catch (error) {
-    cleanupErrors.push(`programs: ${String(error)}`);
-  }
-  try {
-    await prisma.faculty.deleteMany({ where: { code: facultyCode } });
-  } catch (error) {
-    cleanupErrors.push(`faculty: ${String(error)}`);
-  }
-  try {
-    if (fixtureUserIds.length > 0) {
-      await prisma.user.deleteMany({ where: { id: { in: fixtureUserIds } } });
+
+  const cleanup = async () => {
+    const [facultyRows, programRows, courseRows, lecturerRows] = await Promise.all([
+      prisma.faculty.findMany({
+        where: { OR: [{ id: { in: facultyIds } }, { code: facultyCode }] },
+        select: { id: true },
+      }),
+      prisma.studyProgram.findMany({
+        where: {
+          code: { in: [programA, programB, `QA${stamp}`, `QB${stamp}`] },
+          name: { startsWith: PREFIX },
+        },
+        select: { id: true },
+      }),
+      prisma.academicCourseReference.findMany({
+        where: {
+          courseCode: { in: [courseA, courseB] },
+          name: { startsWith: PREFIX },
+        },
+        select: { id: true },
+      }),
+      prisma.lecturerReference.findMany({
+        where: { nip: lecturerNip, nidn: lecturerNidn },
+        select: { id: true },
+      }),
+    ]);
+    const ids = (recorded: string[], found: Array<{ id: string }>) =>
+      [...new Set([...recorded, ...found.map((row) => row.id)])];
+    const allCourseIds = ids(courseRefIds, courseRows);
+    const allLecturerIds = ids(lecturerIds, lecturerRows);
+    const allProgramIds = ids(programIds, programRows);
+    const allFacultyIds = ids(facultyIds, facultyRows);
+
+    try {
+      if (allCourseIds.length > 0) {
+        await prisma.academicCourseReference.deleteMany({ where: { id: { in: allCourseIds } } });
+      }
+    } catch (error) {
+      cleanupErrors.push(`course refs: ${String(error)}`);
     }
-  } catch (error) {
-    cleanupErrors.push(`fixture users: ${String(error)}`);
-  }
-  if (cleanupErrors.length > 0) {
-    console.error(JSON.stringify({ cleanupErrors, retainedBatchIds: batchIds }));
+    try {
+      if (allLecturerIds.length > 0) {
+        await prisma.lecturerReference.deleteMany({ where: { id: { in: allLecturerIds } } });
+      }
+    } catch (error) {
+      cleanupErrors.push(`lecturer refs: ${String(error)}`);
+    }
+    try {
+      if (allProgramIds.length > 0) {
+        await prisma.studyProgram.deleteMany({ where: { id: { in: allProgramIds } } });
+      }
+    } catch (error) {
+      cleanupErrors.push(`programs: ${String(error)}`);
+    }
+    try {
+      if (allFacultyIds.length > 0) {
+        await prisma.faculty.deleteMany({ where: { id: { in: allFacultyIds } } });
+      }
+    } catch (error) {
+      cleanupErrors.push(`faculty: ${String(error)}`);
+    }
+    try {
+      if (fixtureUserIds.length > 0) {
+        await prisma.user.deleteMany({ where: { id: { in: fixtureUserIds } } });
+      }
+    } catch (error) {
+      cleanupErrors.push(`fixture users: ${String(error)}`);
+    }
+  };
+
+  const outcome = await runSafeCleanup([safety], cleanup);
+  if (!outcome.decision.allowed) {
+    console.error(
+      JSON.stringify({
+        deferredCleanup: true,
+        reason: outcome.decision.reason,
+        ownershipManifest,
+      })
+    );
+    process.exitCode = 1;
+  } else if (cleanupErrors.length > 0) {
+    console.error(JSON.stringify({ cleanupErrors, ownershipManifest }));
     process.exitCode = 1;
   }
 }

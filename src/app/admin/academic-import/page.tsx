@@ -46,15 +46,16 @@ type PreviewRow = {
   changes?: Record<string, { from: unknown; to: unknown }>;
 };
 
-type Summary = {
+type Counts = {
   total: number;
   created: number;
   updated: number;
   unchanged: number;
   failed: number;
   conflict: number;
-  columns: string[];
 };
+
+type PreviewCounts = Counts & { columns: string[] };
 
 type Outcome = {
   rowNumber: number;
@@ -69,17 +70,30 @@ type Batch = {
   type: ImportType;
   fileName: string;
   status: string;
-  summary: Summary;
+  previewCounts: PreviewCounts;
+  resultCounts: Counts | null;
   rows: PreviewRow[];
-  outcomes?: Outcome[];
+  outcomes: Outcome[];
+  canConfirm: boolean;
   expiresAt: string;
   createdAt: string;
   confirmedAt: string | null;
+};
+
+type HistoryItem = {
+  id: string;
+  source: Source;
+  type: ImportType;
+  fileName: string;
+  status: string;
   createdCount: number;
   updatedCount: number;
   unchangedCount: number;
   failedCount: number;
   conflictCount: number;
+  createdAt: string;
+  confirmedAt: string | null;
+  expiresAt: string;
 };
 
 const TYPE_LABEL: Record<ImportType, string> = {
@@ -96,6 +110,14 @@ const ACTION_LABEL: Record<Action, string> = {
   CONFLICT: "Konflik sumber",
 };
 
+const PREVIEW_ACTION_LABEL: Record<Action, string> = {
+  CREATED: "Rencana baru",
+  UPDATED: "Rencana ubah",
+  UNCHANGED: "Tetap",
+  FAILED: "Gagal",
+  CONFLICT: "Konflik sumber",
+};
+
 const ACTION_VARIANT: Record<Action, "default" | "secondary" | "destructive" | "outline"> = {
   CREATED: "default",
   UPDATED: "outline",
@@ -104,21 +126,65 @@ const ACTION_VARIANT: Record<Action, "default" | "secondary" | "destructive" | "
   CONFLICT: "destructive",
 };
 
-function errorMessage(data: unknown, fallback: string) {
-  if (data && typeof data === "object" && "error" in data) {
-    const value = (data as { error: unknown }).error;
-    if (typeof value === "string") return value;
+const EMPTY_PREVIEW_COUNTS: PreviewCounts = {
+  total: 0,
+  created: 0,
+  updated: 0,
+  unchanged: 0,
+  failed: 0,
+  conflict: 0,
+  columns: [],
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isCounts(value: unknown): value is Counts {
+  return (
+    isRecord(value) &&
+    ["total", "created", "updated", "unchanged", "failed", "conflict"].every(
+      (key) => typeof value[key] === "number"
+    )
+  );
+}
+
+/** Validates the server DTO so missing fields fail loudly instead of rendering blanks. */
+function readBatch(data: unknown): Batch {
+  if (!isRecord(data)) throw new Error("Respons batch tidak valid.");
+  if (
+    typeof data.id !== "string" ||
+    typeof data.status !== "string" ||
+    typeof data.fileName !== "string" ||
+    !Array.isArray(data.rows) ||
+    !Array.isArray(data.outcomes) ||
+    !isCounts(data.previewCounts) ||
+    !Array.isArray((data.previewCounts as unknown as { columns?: unknown }).columns) ||
+    typeof data.canConfirm !== "boolean" ||
+    (data.resultCounts !== null && !isCounts(data.resultCounts))
+  ) {
+    throw new Error("Respons batch tidak lengkap.");
   }
+  return data as unknown as Batch;
+}
+
+function errorMessage(data: unknown, fallback: string) {
+  if (isRecord(data) && typeof data.error === "string") return data.error;
   return fallback;
 }
 
-function validCount(summary: Summary) {
-  return summary.created + summary.updated + summary.unchanged;
+function validCount(counts: Counts) {
+  return counts.created + counts.updated + counts.unchanged;
 }
 
 function formatDate(value: string | null) {
   if (!value) return "—";
   return new Date(value).toLocaleString("id-ID");
+}
+
+function formatChange(change: { from: unknown; to: unknown }) {
+  const text = (value: unknown) => (value === null || value === "" ? "kosong" : String(value));
+  return `${text(change.from)} → ${text(change.to)}`;
 }
 
 export default function AcademicImportPage() {
@@ -130,7 +196,7 @@ export default function AcademicImportPage() {
   const [batch, setBatch] = useState<Batch | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recoverNote, setRecoverNote] = useState<string | null>(null);
-  const [history, setHistory] = useState<Batch[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const confirmLock = useRef(false);
 
@@ -154,9 +220,9 @@ export default function AcademicImportPage() {
   async function loadBatch(id: string) {
     try {
       const res = await fetch(`/api/admin/academic-import/${id}`);
-      const data = await res.json();
+      const data: unknown = await res.json();
       if (!res.ok) throw new Error(errorMessage(data, "Gagal memuat batch."));
-      setBatch(data as Batch);
+      setBatch(readBatch(data));
       setRecoverNote(null);
       setError(null);
     } catch (err) {
@@ -185,9 +251,9 @@ export default function AcademicImportPage() {
         method: "POST",
         body: form,
       });
-      const data = await res.json();
+      const data: unknown = await res.json();
       if (!res.ok) throw new Error(errorMessage(data, "Pratinjau gagal."));
-      setBatch(data as Batch);
+      setBatch(readBatch(data));
       toast.success("Pratinjau siap. Belum ada data yang disimpan.");
     } catch (err) {
       setBatch(null);
@@ -205,36 +271,47 @@ export default function AcademicImportPage() {
     setError(null);
     setRecoverNote(null);
     try {
-      const res = await fetch(`/api/admin/academic-import/${batch.id}/confirm`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok && !data?.batchId) {
-        throw new Error(errorMessage(data, "Konfirmasi gagal."));
+      let res: Response;
+      try {
+        res = await fetch(`/api/admin/academic-import/${batch.id}/confirm`, {
+          method: "POST",
+        });
+      } catch {
+        // The server may have committed rows before the response was lost.
+        await loadBatch(batch.id);
+        await fetchHistory();
+        setRecoverNote(
+          "Koneksi terputus saat konfirmasi. Status batch dimuat ulang; jangan mengulang impor tanpa memeriksa hasil di bawah."
+        );
+        return;
       }
-      await loadBatch(data.batchId ?? batch.id);
+
+      const data: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        const batchId = isRecord(data) && typeof data.batchId === "string" ? data.batchId : null;
+        if (batchId) await loadBatch(batchId);
+        setError(errorMessage(data, "Konfirmasi tidak selesai."));
+        toast.warning(errorMessage(data, "Konfirmasi tidak selesai."));
+        return;
+      }
+
+      await loadBatch(readBatch(data).id);
       await fetchHistory();
-      if (res.ok) toast.success("Konfirmasi selesai.");
-      else toast.warning(errorMessage(data, "Konfirmasi tidak selesai."));
-    } catch {
-      // The server may have committed rows before the response was lost.
-      await loadBatch(batch.id);
-      await fetchHistory();
-      setRecoverNote(
-        "Koneksi terputus saat konfirmasi. Status batch dimuat ulang; jangan mengulang impor tanpa memeriksa hasil di bawah."
-      );
+      toast.success("Konfirmasi selesai.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Konfirmasi gagal.");
     } finally {
       confirmLock.current = false;
       setConfirming(false);
     }
   }
 
-  const actionable = batch ? validCount(batch.summary) : 0;
-  const canConfirm =
-    !!batch &&
-    batch.status === "PREVIEWED" &&
-    actionable > 0 &&
-    !confirming;
+  const previewCounts = batch?.previewCounts ?? EMPTY_PREVIEW_COUNTS;
+  const resultCounts = batch?.resultCounts ?? null;
+  const shownCounts = resultCounts ?? previewCounts;
+  const actionable = validCount(previewCounts);
+  const canConfirm = !!batch && batch.canConfirm && !confirming;
+  const exportableFailures = shownCounts.failed + shownCounts.conflict;
 
   return (
     <div className="flex flex-col gap-6">
@@ -357,7 +434,7 @@ export default function AcademicImportPage() {
                   ) : (
                     <CheckCircle2 data-icon="inline-start" />
                   )}
-                  Konfirmasi {actionable} baris valid
+                  Konfirmasi {actionable} baris valid (rencana)
                 </Button>
               )}
               {batch.status === "CONFIRMING" && (
@@ -366,7 +443,7 @@ export default function AcademicImportPage() {
                   Muat status
                 </Button>
               )}
-              {(batch.failedCount > 0 || batch.conflictCount > 0) && (
+              {exportableFailures > 0 && (
                 <Button variant="outline" asChild>
                   <a href={`/api/admin/academic-import/${batch.id}/failed`}>
                     <Download data-icon="inline-start" />
@@ -377,79 +454,123 @@ export default function AcademicImportPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-6">
-            {[
-              ["Total", batch.summary.total],
-              ["Baru", batch.summary.created],
-              ["Berubah", batch.summary.updated],
-              ["Tetap", batch.summary.unchanged],
-              ["Gagal", batch.summary.failed],
-              ["Konflik", batch.summary.conflict],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-lg border bg-muted/20 px-3 py-2">
-                <div className="text-xs text-muted-foreground">{label}</div>
-                <div className="text-lg font-semibold">{value}</div>
+          {resultCounts && (
+            <div>
+              <p className="mb-2 text-sm font-medium">Hasil konfirmasi tersimpan</p>
+              <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-6">
+                {[
+                  ["Total", resultCounts.total],
+                  ["Baru", resultCounts.created],
+                  ["Berubah", resultCounts.updated],
+                  ["Tetap", resultCounts.unchanged],
+                  ["Gagal", resultCounts.failed],
+                  ["Konflik", resultCounts.conflict],
+                ].map(([label, value]) => (
+                  <div key={`result-${label}`} className="rounded-lg border bg-muted/20 px-3 py-2">
+                    <div className="text-xs text-muted-foreground">{label}</div>
+                    <div className="text-lg font-semibold">{value}</div>
+                  </div>
+                ))}
               </div>
-            ))}
+              <p className="mt-2 text-xs text-muted-foreground">
+                Angka ini berasal dari outcome tersimpan. Baris stale atau gagal tidak dihitung
+                sebagai berhasil, walaupun rencana pratinjau menyebutkan sebaliknya.
+              </p>
+            </div>
+          )}
+
+          <div>
+            <p className="mb-2 text-sm font-medium">
+              {resultCounts ? "Rencana pratinjau (bukan hasil)" : "Rencana pratinjau"}
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-6">
+              {[
+                ["Total", previewCounts.total],
+                ["Rencana baru", previewCounts.created],
+                ["Rencana ubah", previewCounts.updated],
+                ["Tetap", previewCounts.unchanged],
+                ["Gagal", previewCounts.failed],
+                ["Konflik", previewCounts.conflict],
+              ].map(([label, value]) => (
+                <div key={`preview-${label}`} className="rounded-lg border bg-muted/20 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">{label}</div>
+                  <div className="text-lg font-semibold">{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {actionable === 0 && (
             <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
               <AlertTriangle className="size-4" />
               Tidak ada baris valid untuk disimpan. Perbaiki berkas lalu buat pratinjau baru.
+              {previewCounts.failed + previewCounts.conflict > 0
+                ? " Baris gagal tetap dapat diunduh untuk diperbaiki."
+                : ""}
             </div>
           )}
-          {batch.summary.conflict > 0 && (
+          {previewCounts.conflict > 0 && (
             <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertTriangle className="size-4" />
               Beberapa baris dimiliki SIAT dan tidak boleh ditimpa PIPP; baris tersebut dilewati.
             </div>
           )}
 
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Baris</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Catatan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batch.rows.length === 0 ? (
+          <div>
+            <p className="mb-2 text-sm font-medium">Rencana per baris (pratinjau)</p>
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">
-                      Tidak ada baris data.
-                    </TableCell>
+                    <TableHead className="w-16">Baris</TableHead>
+                    <TableHead>Rencana</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Catatan</TableHead>
                   </TableRow>
-                ) : (
-                  batch.rows.map((row) => (
-                    <TableRow key={row.rowNumber}>
-                      <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
-                      <TableCell>
-                        <Badge variant={ACTION_VARIANT[row.action]}>
-                          {ACTION_LABEL[row.action]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-[420px] text-xs">
-                        {Object.entries(row.values)
-                          .map(([key, value]) => `${key}: ${value ?? ""}`)
-                          .join(" · ")}
-                      </TableCell>
-                      <TableCell className="max-w-[320px] text-xs text-muted-foreground">
-                        {row.errors.join(" ") || row.note || ""}
+                </TableHeader>
+                <TableBody>
+                  {batch.rows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">
+                        Tidak ada baris data.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    batch.rows.map((row) => (
+                      <TableRow key={row.rowNumber}>
+                        <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
+                        <TableCell>
+                          <Badge variant={ACTION_VARIANT[row.action]}>
+                            {PREVIEW_ACTION_LABEL[row.action]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[420px] text-xs">
+                          <div>
+                            {Object.entries(row.values)
+                              .map(([key, value]) => `${key}: ${value ?? ""}`)
+                              .join(" · ")}
+                          </div>
+                          {row.changes &&
+                            Object.entries(row.changes).map(([key, change]) => (
+                              <div key={key} className="text-muted-foreground">
+                                {key}: {formatChange(change)}
+                              </div>
+                            ))}
+                        </TableCell>
+                        <TableCell className="max-w-[320px] text-xs text-muted-foreground">
+                          {row.errors.join(" ") || row.note || ""}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
-          {batch.outcomes && batch.outcomes.length > 0 && (
+          {batch.outcomes.length > 0 && (
             <div className="text-sm">
-              <p className="mb-2 font-medium">Hasil per baris tersimpan</p>
+              <p className="mb-2 font-medium">Hasil tersimpan per baris (otoritatif)</p>
               <div className="max-h-64 overflow-auto rounded-lg border">
                 <Table>
                   <TableHeader>
@@ -544,7 +665,9 @@ export default function AcademicImportPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs">
-                      {item.createdCount}/{item.updatedCount}/{item.failedCount + item.conflictCount}
+                      {item.status === "CONFIRMED" || item.status === "PARTIAL"
+                        ? `${item.createdCount}/${item.updatedCount}/${item.failedCount + item.conflictCount}`
+                        : "—"}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="sm" onClick={() => loadBatch(item.id)}>

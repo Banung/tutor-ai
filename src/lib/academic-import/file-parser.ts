@@ -45,6 +45,8 @@ function isZip(buffer: Buffer): boolean {
 }
 
 const MAX_XLSX_UNCOMPRESSED_BYTES = 64 * 1024 * 1024;
+/** Absolute sheet row position cap: bounds sparse worksheets without losing blank-row gaps. */
+const MAX_XLSX_ROW_INDEX = MAX_DATA_ROWS + 1000;
 
 /** Reads the ZIP central directory without inflating; rejects ZIP64 and oversized workbooks. */
 function assertZipBudget(buffer: Buffer): void {
@@ -121,6 +123,10 @@ function normalizeHeader(values: RawCell[], headers: readonly string[]): void {
   }
 }
 
+function countNewlines(values: string[]): number {
+  return values.reduce((total, value) => total + (value.match(/\n/g)?.length ?? 0), 0);
+}
+
 function parseCsv(text: string, headers: readonly string[]): Promise<RawImportRow[]> {
   return new Promise((resolve, reject) => {
     const records: RawImportRow[] = [];
@@ -141,8 +147,18 @@ function parseCsv(text: string, headers: readonly string[]): Promise<RawImportRo
         normalizeHeader(entry.record, headers);
         return;
       }
+      if (entry.record.length > MAX_COLUMNS) {
+        reject(new ImportFileError(`Maksimal ${MAX_COLUMNS} kolom per impor.`));
+        return;
+      }
+      for (const value of entry.record) {
+        if (value.length > MAX_CELL_CHARS) {
+          reject(new ImportFileError(`Isi sel melebihi ${MAX_CELL_CHARS} karakter.`));
+          return;
+        }
+      }
       records.push({
-        rowNumber: entry.info.lines,
+        rowNumber: Math.max(1, entry.info.lines - countNewlines(entry.record)),
         cells: entry.record.map((value) => String(value)),
       });
     });
@@ -157,6 +173,14 @@ function parseCsv(text: string, headers: readonly string[]): Promise<RawImportRo
     parser.write(text);
     parser.end();
   });
+}
+
+function decodeCsv(buffer: Buffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  } catch {
+    throw new ImportFileError("Berkas CSV bukan teks UTF-8 yang valid.");
+  }
 }
 
 function formulaError(): never {
@@ -212,6 +236,11 @@ async function parseXlsx(buffer: Buffer, headers: readonly string[]): Promise<Ra
   }
   const sheet = nonEmpty[0];
   if (!sheet) throw new ImportFileError("Workbook tidak memiliki lembar data.");
+  if (sheet.rowCount > MAX_XLSX_ROW_INDEX) {
+    throw new ImportFileError(
+      `Posisi baris XLSX terlalu jauh (maksimal ${MAX_XLSX_ROW_INDEX}).`
+    );
+  }
 
   const headerRow = sheet.getRow(1);
   const headerCells: RawCell[] = [];
@@ -223,15 +252,15 @@ async function parseXlsx(buffer: Buffer, headers: readonly string[]): Promise<Ra
   }
   normalizeHeader(headerCells, headers);
 
-  if (sheet.actualRowCount - 1 > MAX_DATA_ROWS) {
-    throw new ImportFileError(`Maksimal ${MAX_DATA_ROWS} baris data per impor.`);
-  }
-
   const rows: RawImportRow[] = [];
-  for (let rowNumber = 2; rowNumber <= sheet.actualRowCount; rowNumber += 1) {
-    const row = sheet.getRow(rowNumber);
-    const values = row.values as unknown[];
-    const width = Math.min(Math.max(values.length - 1, 0), MAX_COLUMNS + 1);
+  sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return;
+    if (rowNumber > MAX_XLSX_ROW_INDEX) {
+      throw new ImportFileError(
+        `Posisi baris XLSX terlalu jauh (maksimal ${MAX_XLSX_ROW_INDEX}).`
+      );
+    }
+    const width = row.cellCount;
     if (width > MAX_COLUMNS) {
       throw new ImportFileError(`Maksimal ${MAX_COLUMNS} kolom per impor.`);
     }
@@ -239,9 +268,12 @@ async function parseXlsx(buffer: Buffer, headers: readonly string[]): Promise<Ra
     for (let column = 1; column <= width; column += 1) {
       cells.push(xlsxCellValue(row.getCell(column)));
     }
-    if (cells.every((value) => value === null || value === "")) continue;
+    if (cells.every((value) => value === null || value === "")) return;
     rows.push({ rowNumber, cells });
-  }
+    if (rows.length > MAX_DATA_ROWS) {
+      throw new ImportFileError(`Maksimal ${MAX_DATA_ROWS} baris data per impor.`);
+    }
+  });
   return rows;
 }
 
@@ -255,7 +287,7 @@ export async function parseImportFile(
   const rows =
     format === "xlsx"
       ? await parseXlsx(buffer, headers)
-      : await parseCsv(buffer.toString("utf8"), headers);
+      : await parseCsv(decodeCsv(buffer), headers);
 
   if (rows.length === 0) {
     throw new ImportFileError("Berkas tidak memiliki baris data.");

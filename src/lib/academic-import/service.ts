@@ -42,6 +42,8 @@ export type PreviewRow = {
   identity: string;
   action: PreviewAction;
   values: Values;
+  /** Bounded raw cells as read from the file, aligned with template headers. */
+  originalCells?: RawCell[];
   errors: string[];
   note?: string;
   targets: Targets;
@@ -54,6 +56,8 @@ type Classification = {
   note?: string;
   targets: Targets;
   changes: Record<string, { from: unknown; to: unknown }>;
+  /** Lecturer values with omitted identifiers filled from the existing record. */
+  resolved?: Values;
 };
 
 function sourceConflict(
@@ -250,6 +254,9 @@ async function classifyStudyProgram(
       if (conflict) return { action: "CONFLICT", errors: [conflict], targets, changes };
       changes.facultyName = { from: faculty.name, to: facultyName };
     }
+    if (source === "SIAT" && faculty.source !== "SIAT") {
+      changes.facultySource = { from: faculty.source, to: "SIAT" };
+    }
     targets.faculty = { id: faculty.id, updatedAt: iso(faculty.updatedAt) };
   } else {
     const byName = (await db.faculty.findMany({
@@ -354,6 +361,9 @@ async function classifyStudyProgram(
       if (conflict) return { action: "CONFLICT", errors: [conflict], targets, changes };
       changes.studyProgramName = { from: program.name, to: programName };
     }
+    if (source === "SIAT" && program.source !== "SIAT") {
+      changes.studyProgramSource = { from: program.source, to: "SIAT" };
+    }
   }
 
   if (errors.length > 0) {
@@ -418,6 +428,9 @@ async function classifyCourse(
   if (existing.isActive !== isActive) {
     changes.isActive = { from: existing.isActive, to: isActive };
   }
+  if (source === "SIAT" && existing.source !== "SIAT") {
+    changes.source = { from: existing.source, to: "SIAT" };
+  }
   if (Object.keys(changes).length === 0) {
     return { action: "UNCHANGED", errors: [], targets, changes };
   }
@@ -468,6 +481,18 @@ async function classifyLecturer(
 
   const existing = matches[0] ?? null;
   if (!existing) return { action: "CREATED", errors: [], targets, changes };
+
+  const errors: string[] = [];
+  if (nip && existing.nip && existing.nip !== nip) {
+    errors.push("NIP berbeda dari NIP yang sudah tercatat; tidak dapat diganti otomatis.");
+  }
+  if (nidn && existing.nidn && existing.nidn !== nidn) {
+    errors.push("NIDN berbeda dari NIDN yang sudah tercatat; tidak dapat diganti otomatis.");
+  }
+  if (errors.length > 0) {
+    return { action: "FAILED", errors, targets, changes };
+  }
+
   targets.lecturerReference = {
     id: existing.id,
     updatedAt: iso(existing.updatedAt),
@@ -480,13 +505,26 @@ async function classifyLecturer(
   }
   if (nip && !existing.nip) changes.nip = { from: null, to: nip };
   if (nidn && !existing.nidn) changes.nidn = { from: null, to: nidn };
+  if (source === "SIAT" && existing.source !== "SIAT") {
+    changes.source = { from: existing.source, to: "SIAT" };
+  }
 
   if (Object.keys(changes).length === 0) {
     return { action: "UNCHANGED", errors: [], targets, changes };
   }
   const conflict = sourceConflict(existing.source, source);
   if (conflict) return { action: "CONFLICT", errors: [conflict], targets, changes };
-  return { action: "UPDATED", errors: [], targets, changes };
+  return {
+    action: "UPDATED",
+    errors: [],
+    targets,
+    changes,
+    resolved: {
+      ...values,
+      nip: nip ?? existing.nip,
+      nidn: nidn ?? existing.nidn,
+    },
+  };
 }
 
 function classifyRow(
@@ -500,12 +538,197 @@ function classifyRow(
   return classifyLecturer(db, source, values);
 }
 
-function targetsMatch(preview: Targets, current: Targets): boolean {
+function targetKey(kind: TargetKind, id: string): string {
+  return `${kind}:${id}`;
+}
+
+function targetsMatch(
+  preview: Targets,
+  current: Targets,
+  confirmedTargets: Map<string, string>
+): boolean {
   return (Object.keys(preview) as TargetKind[]).every((key) => {
     const left = preview[key];
     const right = current[key];
-    return !!left && !!right && left.id === right.id && left.updatedAt === right.updatedAt;
+    if (!left || !right || left.id !== right.id) return false;
+    if (left.updatedAt === right.updatedAt) return true;
+    // A mismatch is only acceptable when this same batch produced the new state.
+    return confirmedTargets.get(targetKey(key, left.id)) === right.updatedAt;
   });
+}
+
+async function lockPreviewTargets(
+  tx: Prisma.TransactionClient,
+  targets: Targets
+): Promise<void> {
+  if (targets.faculty) {
+    await tx.$queryRaw`SELECT "id" FROM "faculty" WHERE "id" = ${targets.faculty.id} FOR UPDATE`;
+  }
+  if (targets.studyProgram) {
+    await tx.$queryRaw`SELECT "id" FROM "study_program" WHERE "id" = ${targets.studyProgram.id} FOR UPDATE`;
+  }
+  if (targets.courseReference) {
+    await tx.$queryRaw`SELECT "id" FROM "academic_course_reference" WHERE "id" = ${targets.courseReference.id} FOR UPDATE`;
+  }
+  if (targets.lecturerReference) {
+    await tx.$queryRaw`SELECT "id" FROM "lecturer_reference" WHERE "id" = ${targets.lecturerReference.id} FOR UPDATE`;
+  }
+}
+
+async function snapshotAppliedTargets(
+  tx: Prisma.TransactionClient,
+  applied: AppliedTargets
+): Promise<Targets> {
+  const snapshot: Targets = {};
+  if (applied.faculty) {
+    const row = await tx.faculty.findUnique({
+      where: { id: applied.faculty },
+      select: { updatedAt: true },
+    });
+    if (row) snapshot.faculty = { id: applied.faculty, updatedAt: iso(row.updatedAt) };
+  }
+  if (applied.studyProgram) {
+    const row = await tx.studyProgram.findUnique({
+      where: { id: applied.studyProgram },
+      select: { updatedAt: true },
+    });
+    if (row) {
+      snapshot.studyProgram = { id: applied.studyProgram, updatedAt: iso(row.updatedAt) };
+    }
+  }
+  if (applied.courseReference) {
+    const row = await tx.academicCourseReference.findUnique({
+      where: { id: applied.courseReference },
+      select: { updatedAt: true },
+    });
+    if (row) {
+      snapshot.courseReference = {
+        id: applied.courseReference,
+        updatedAt: iso(row.updatedAt),
+      };
+    }
+  }
+  if (applied.lecturerReference) {
+    const row = await tx.lecturerReference.findUnique({
+      where: { id: applied.lecturerReference },
+      select: { updatedAt: true },
+    });
+    if (row) {
+      snapshot.lecturerReference = {
+        id: applied.lecturerReference,
+        updatedAt: iso(row.updatedAt),
+      };
+    }
+  }
+  return snapshot;
+}
+
+function failRows(rows: PreviewRow[], message: string): void {
+  for (const row of rows) {
+    row.action = "FAILED";
+    row.errors = [message];
+    row.targets = {};
+    row.changes = undefined;
+  }
+}
+
+function validateSharedFaculty(rows: PreviewRow[]): void {
+  const groups = new Map<string, PreviewRow[]>();
+  for (const row of rows) {
+    if (row.errors.length > 0) continue;
+    const code = String(row.values.facultyCode ?? "");
+    if (!code) continue;
+    const group = groups.get(code) ?? [];
+    group.push(row);
+    groups.set(code, group);
+  }
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const names = new Set(group.map((row) => String(row.values.facultyName ?? "")));
+    if (names.size > 1) {
+      failRows(
+        group,
+        "Baris untuk fakultas yang sama memiliki nama fakultas berbeda; perbaiki file."
+      );
+    }
+  }
+}
+
+function validateLecturerIdentities(rows: PreviewRow[]): void {
+  const candidates = rows.filter((row) => row.errors.length === 0);
+  const parent = candidates.map((_, index) => index);
+  const find = (index: number): number => {
+    let current = index;
+    while (parent[current] !== current) current = parent[current];
+    return current;
+  };
+  const union = (left: number, right: number): void => {
+    const rootLeft = find(left);
+    const rootRight = find(right);
+    if (rootLeft !== rootRight) parent[rootRight] = rootLeft;
+  };
+
+  const seen = new Map<string, number>();
+  candidates.forEach((row, index) => {
+    for (const key of ["nip", "nidn"] as const) {
+      const value = row.values[key];
+      if (value === null || value === "") continue;
+      const token = `${key}:${String(value)}`;
+      const first = seen.get(token);
+      if (first === undefined) seen.set(token, index);
+      else union(first, index);
+    }
+  });
+
+  const components = new Map<number, PreviewRow[]>();
+  candidates.forEach((row, index) => {
+    const root = find(index);
+    const group = components.get(root) ?? [];
+    group.push(row);
+    components.set(root, group);
+  });
+
+  for (const group of components.values()) {
+    if (group.length < 2) continue;
+    const nips = new Set(
+      group.map((row) => row.values.nip).filter((value): value is string => !!value)
+    );
+    const nidns = new Set(
+      group.map((row) => row.values.nidn).filter((value): value is string => !!value)
+    );
+    if (nips.size > 1 || nidns.size > 1) {
+      failRows(
+        group,
+        "Baris dosen berbagi NIP/NIDN tetapi identitasnya saling bertentangan; perbaiki file."
+      );
+      continue;
+    }
+
+    // Merge an omitted identifier from the other rows of the same identity.
+    const nip = nips.values().next().value ?? null;
+    const nidn = nidns.values().next().value ?? null;
+    for (const row of group) {
+      row.values.nip = row.values.nip ?? nip;
+      row.values.nidn = row.values.nidn ?? nidn;
+      row.identity = `LECT:${row.values.nip ?? ""}|${row.values.nidn ?? ""}`;
+    }
+
+    const profiles = new Set(
+      group.map((row) =>
+        JSON.stringify({
+          name: row.values.name,
+          email: row.values.email,
+          isActive: row.values.isActive,
+        })
+      )
+    );
+    if (profiles.size > 1) {
+      failRows(
+        group,
+        "Baris dosen dengan identitas sama memiliki nama/email/status berbeda; perbaiki file."
+      );
+    }
+  }
 }
 
 function groupDuplicates(rows: PreviewRow[]): void {
@@ -557,6 +780,118 @@ function countActions(rows: PreviewRow[]) {
   };
 }
 
+export type ImportCounts = {
+  total: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  failed: number;
+  conflict: number;
+};
+
+export type ImportBatchOutcomeDto = {
+  rowNumber: number;
+  identity: string;
+  action: PreviewAction;
+  message: string | null;
+};
+
+export type ImportBatchDto = {
+  id: string;
+  source: AcademicSourceValue;
+  type: ImportType;
+  fileName: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  confirmedAt: string | null;
+  previewCounts: ImportCounts & { columns: string[] };
+  resultCounts: ImportCounts | null;
+  rows: PreviewRow[];
+  outcomes: ImportBatchOutcomeDto[];
+  canConfirm: boolean;
+};
+
+type BatchLike = {
+  id: string;
+  source: string;
+  type: string;
+  fileName: string;
+  status: string;
+  summary: unknown;
+  rows: unknown;
+  expiresAt: Date;
+  createdAt: Date;
+  confirmedAt: Date | null;
+  createdCount: number;
+  updatedCount: number;
+  unchangedCount: number;
+  failedCount: number;
+  conflictCount: number;
+  outcomes?: Array<{
+    rowNumber: number;
+    identity: string;
+    action: string;
+    message: string | null;
+  }>;
+};
+
+export function toImportBatchDto(batch: BatchLike): ImportBatchDto {
+  const summary = (batch.summary ?? {}) as Record<string, unknown>;
+  const number = (key: string) => (typeof summary[key] === "number" ? (summary[key] as number) : 0);
+  const columns = Array.isArray(summary.columns)
+    ? summary.columns.filter((value): value is string => typeof value === "string")
+    : [];
+  const previewCounts = {
+    total: number("total"),
+    created: number("created"),
+    updated: number("updated"),
+    unchanged: number("unchanged"),
+    failed: number("failed"),
+    conflict: number("conflict"),
+    columns,
+  };
+  const resultCounts = batch.confirmedAt
+    ? {
+        total:
+          batch.createdCount +
+          batch.updatedCount +
+          batch.unchangedCount +
+          batch.failedCount +
+          batch.conflictCount,
+        created: batch.createdCount,
+        updated: batch.updatedCount,
+        unchanged: batch.unchangedCount,
+        failed: batch.failedCount,
+        conflict: batch.conflictCount,
+      }
+    : null;
+
+  return {
+    id: batch.id,
+    source: batch.source as AcademicSourceValue,
+    type: batch.type as ImportType,
+    fileName: batch.fileName,
+    status: batch.status,
+    expiresAt: batch.expiresAt.toISOString(),
+    createdAt: batch.createdAt.toISOString(),
+    confirmedAt: batch.confirmedAt ? batch.confirmedAt.toISOString() : null,
+    previewCounts,
+    resultCounts,
+    rows: batch.rows as PreviewRow[],
+    outcomes: (batch.outcomes ?? []).map((outcome) => ({
+      rowNumber: outcome.rowNumber,
+      identity: outcome.identity,
+      action: outcome.action as PreviewAction,
+      message: outcome.message,
+    })),
+    canConfirm:
+      batch.status === "PREVIEWED" &&
+      batch.expiresAt.getTime() > Date.now() &&
+      previewCounts.created + previewCounts.updated + previewCounts.unchanged > 0,
+  };
+}
+
 export async function previewImport(input: {
   buffer: Buffer;
   fileName: string;
@@ -576,6 +911,7 @@ export async function previewImport(input: {
         identity: normalized.identity,
         action: "FAILED",
         values: normalized.values,
+        originalCells: raw.cells,
         errors: normalized.errors,
         targets: {},
       });
@@ -592,6 +928,7 @@ export async function previewImport(input: {
       identity: normalized.identity,
       action: classified.action,
       values: normalized.values,
+      originalCells: raw.cells,
       errors: classified.errors,
       note: classified.note,
       targets: classified.targets,
@@ -599,6 +936,8 @@ export async function previewImport(input: {
     });
   }
 
+  if (input.type === "STUDY_PROGRAMS") validateSharedFaculty(rows);
+  if (input.type === "LECTURERS") validateLecturerIdentities(rows);
   groupDuplicates(rows);
   const summary = { ...countActions(rows), columns: [...headers] };
 
@@ -626,16 +965,10 @@ export async function previewImport(input: {
     },
   });
 
-  return {
-    id: batch.id,
-    batchId: batch.id,
-    source: batch.source,
-    type: batch.type,
-    expiresAt: batch.expiresAt,
-    summary,
-    rows,
-  };
+  return toImportBatchDto(batch);
 }
+
+type AppliedTargets = Partial<Record<TargetKind, string>>;
 
 async function applyClassified(
   tx: Prisma.TransactionClient,
@@ -643,7 +976,7 @@ async function applyClassified(
   source: AcademicSourceValue,
   values: Values,
   classified: Classification
-): Promise<void> {
+): Promise<AppliedTargets> {
   if (type === "STUDY_PROGRAMS") {
     const facultyCode = String(values.facultyCode);
     const facultyName = String(values.facultyName);
@@ -651,11 +984,12 @@ async function applyClassified(
     const programName = String(values.studyProgramName);
     let facultyId = classified.targets.faculty?.id ?? null;
     if (facultyId) {
-      if (classified.changes.facultyName || classified.changes.facultyCode) {
-        await tx.faculty.update({
-          where: { id: facultyId },
-          data: { name: facultyName, code: facultyCode, source },
-        });
+      const facultyData: Record<string, string> = {};
+      if (classified.changes.facultyName) facultyData.name = facultyName;
+      if (classified.changes.facultyCode) facultyData.code = facultyCode;
+      if (classified.changes.facultySource) facultyData.source = source;
+      if (Object.keys(facultyData).length > 0) {
+        await tx.faculty.update({ where: { id: facultyId }, data: facultyData });
       }
     } else {
       const faculty = await tx.faculty.create({
@@ -670,23 +1004,28 @@ async function applyClassified(
       facultyId = faculty.id;
     }
 
-    if (classified.targets.studyProgram?.id) {
-      await tx.studyProgram.update({
-        where: { id: classified.targets.studyProgram.id },
-        data: { name: programName, code: programCode, source },
-      });
-    } else {
-      await tx.studyProgram.create({
-        data: {
-          id: crypto.randomUUID(),
-          facultyId,
-          name: programName,
-          code: programCode,
-          source,
-        },
-      });
+    const programData: Record<string, string> = {};
+    if (classified.changes.studyProgramName) programData.name = programName;
+    if (classified.changes.studyProgramCode) programData.code = programCode;
+    if (classified.changes.studyProgramSource) programData.source = source;
+    const programId = classified.targets.studyProgram?.id ?? null;
+    if (programId) {
+      if (Object.keys(programData).length > 0) {
+        await tx.studyProgram.update({ where: { id: programId }, data: programData });
+      }
+      return { faculty: facultyId, studyProgram: programId };
     }
-    return;
+    const program = await tx.studyProgram.create({
+      data: {
+        id: crypto.randomUUID(),
+        facultyId,
+        name: programName,
+        code: programCode,
+        source,
+      },
+      select: { id: true },
+    });
+    return { faculty: facultyId, studyProgram: program.id };
   }
 
   if (type === "COURSES") {
@@ -704,50 +1043,52 @@ async function applyClassified(
     });
     if (!program) throw new Error("Program studi hilang saat konfirmasi.");
 
-    if (classified.targets.courseReference?.id) {
-      await tx.academicCourseReference.update({
-        where: { id: classified.targets.courseReference.id },
-        data: {
-          name: String(values.courseName),
-          isActive: Boolean(values.isActive),
-          source,
-        },
-      });
-    } else {
-      await tx.academicCourseReference.create({
-        data: {
-          id: crypto.randomUUID(),
-          studyProgramId: program.id,
-          courseCode,
-          name: String(values.courseName),
-          isActive: Boolean(values.isActive),
-          source,
-        },
-      });
+    const targetId = classified.targets.courseReference?.id ?? null;
+    if (targetId) {
+      const data: Record<string, string | boolean | AcademicSourceValue> = {};
+      if (classified.changes.courseName) data.name = String(values.courseName);
+      if (classified.changes.isActive) data.isActive = Boolean(values.isActive);
+      if (classified.changes.source) data.source = source;
+      if (Object.keys(data).length > 0) {
+        await tx.academicCourseReference.update({ where: { id: targetId }, data });
+      }
+      return { courseReference: targetId };
     }
-    return;
+    const created = await tx.academicCourseReference.create({
+      data: {
+        id: crypto.randomUUID(),
+        studyProgramId: program.id,
+        courseCode,
+        name: String(values.courseName),
+        isActive: Boolean(values.isActive),
+        source,
+      },
+      select: { id: true },
+    });
+    return { courseReference: created.id };
   }
 
-  const nip = values.nip === null ? null : String(values.nip);
-  const nidn = values.nidn === null ? null : String(values.nidn);
+  const resolved = classified.resolved ?? values;
+  const nip = resolved.nip === null ? null : String(resolved.nip);
+  const nidn = resolved.nidn === null ? null : String(resolved.nidn);
   const data = {
     nip,
     nidn,
-    name: String(values.name),
-    email: values.email === null ? null : String(values.email),
-    isActive: Boolean(values.isActive),
+    name: String(resolved.name),
+    email: resolved.email === null ? null : String(resolved.email),
+    isActive: Boolean(resolved.isActive),
     source,
   };
-  if (classified.targets.lecturerReference?.id) {
-    await tx.lecturerReference.update({
-      where: { id: classified.targets.lecturerReference.id },
-      data,
-    });
-  } else {
-    await tx.lecturerReference.create({
-      data: { id: crypto.randomUUID(), ...data },
-    });
+  const targetId = classified.targets.lecturerReference?.id ?? null;
+  if (targetId) {
+    await tx.lecturerReference.update({ where: { id: targetId }, data });
+    return { lecturerReference: targetId };
   }
+  const created = await tx.lecturerReference.create({
+    data: { id: crypto.randomUUID(), ...data },
+    select: { id: true },
+  });
+  return { lecturerReference: created.id };
 }
 
 async function recordOutcome(
@@ -771,28 +1112,37 @@ async function recordOutcome(
 }
 
 export async function confirmImport(batchId: string, actorId: string) {
-  const actor = await prisma.user.findUnique({
-    where: { id: actorId },
-    select: { id: true, role: true },
-  });
-  if (!actor || actor.role !== "admin") {
-    throw new AcademicImportError("Akses admin diperlukan.", 403);
-  }
+  type Claim =
+    | { kind: "claimed"; batch: NonNullable<Awaited<ReturnType<typeof prisma.academicImportBatch.findUnique>>> }
+    | { kind: "stored" }
+    | { kind: "expired" };
 
-  let claimed = false;
-  let existingBatch = null as Awaited<ReturnType<typeof prisma.academicImportBatch.findUnique>>;
+  let claim: Claim;
   try {
-    claimed = await prisma.$transaction(async (tx) => {
+    claim = await prisma.$transaction(async (tx) => {
+      const actorRows = await tx.$queryRaw<Array<{ id: string; role: string }>>`
+        SELECT "id", "role" FROM "user" WHERE "id" = ${actorId} FOR UPDATE
+      `;
+      if (actorRows.length === 0 || actorRows[0].role !== "admin") {
+        throw new AcademicImportError("Akses admin diperlukan.", 403);
+      }
+
       const rows = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT "id" FROM "academic_import_batch" WHERE "id" = ${batchId} FOR UPDATE
       `;
       if (rows.length === 0) throw new AcademicImportError("Batch impor tidak ditemukan.", 404);
       const batch = await tx.academicImportBatch.findUnique({ where: { id: batchId } });
       if (!batch) throw new AcademicImportError("Batch impor tidak ditemukan.", 404);
-      existingBatch = batch;
 
+      if (batch.actorId !== actorId) {
+        throw new AcademicImportError(
+          "Hanya pembuat pratinjau yang dapat mengonfirmasi batch ini. Buat pratinjau sendiri.",
+          403,
+          batchId
+        );
+      }
       if (batch.status === "CONFIRMED" || batch.status === "PARTIAL") {
-        return false;
+        return { kind: "stored" };
       }
       if (batch.status === "CONFIRMING") {
         throw new AcademicImportError(
@@ -805,56 +1155,78 @@ export async function confirmImport(batchId: string, actorId: string) {
         throw new AcademicImportError("Batch tidak dapat dikonfirmasi.", 409, batchId);
       }
       if (batch.expiresAt.getTime() <= Date.now()) {
-        await tx.academicImportBatch.update({
-          where: { id: batchId },
-          data: { status: "EXPIRED" },
-        });
-        throw new AcademicImportError(
-          "Pratinjau kedaluwarsa. Buat pratinjau baru.",
-          409,
-          batchId
-        );
+        return { kind: "expired" };
       }
       await tx.academicImportBatch.update({
         where: { id: batchId },
         data: { status: "CONFIRMING" },
       });
-      return true;
+      return { kind: "claimed", batch };
     });
   } catch (error) {
     if (error instanceof AcademicImportError) throw error;
     throw new AcademicImportError("Gagal memulai konfirmasi.", 500, batchId);
   }
 
-  if (!claimed) {
+  if (claim.kind === "stored") {
     return getBatch(batchId);
   }
+  if (claim.kind === "expired") {
+    // Commit the EXPIRED state in its own transaction; never roll it back by throwing.
+    await prisma.academicImportBatch.updateMany({
+      where: { id: batchId, status: "PREVIEWED", expiresAt: { lte: new Date() } },
+      data: { status: "EXPIRED" },
+    });
+    throw new AcademicImportError(
+      "Pratinjau kedaluwarsa. Buat pratinjau baru.",
+      409,
+      batchId
+    );
+  }
 
-  const batch = existingBatch;
-  if (!batch) throw new AcademicImportError("Batch impor tidak ditemukan.", 404);
+  const batch = claim.batch;
   const rows = batch.rows as unknown as PreviewRow[];
+  const confirmedTargets = new Map<string, string>();
+  let authorityRevoked = false;
 
   for (const row of rows) {
     if (row.action === "FAILED" || row.action === "CONFLICT") {
       await bestEffortOutcome(batchId, row, row.action, row.errors.join(" ") || null);
       continue;
     }
+    if (authorityRevoked) {
+      await bestEffortOutcome(
+        batchId,
+        row,
+        "FAILED",
+        "Otoritas admin dicabut sebelum baris ini diproses; tidak ada perubahan yang diterapkan."
+      );
+      continue;
+    }
 
     try {
-      await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx) => {
+        const actorRows = await tx.$queryRaw<Array<{ id: string; role: string }>>`
+          SELECT "id", "role" FROM "user" WHERE "id" = ${actorId} FOR UPDATE
+        `;
+        if (actorRows.length === 0 || actorRows[0].role !== "admin") {
+          return { revoked: true as const };
+        }
+
         if (row.action === "UNCHANGED" && Object.keys(row.targets).length === 0) {
           // Identical duplicate row: intentionally skipped, not re-resolved.
           await recordOutcome(tx, batchId, row, "UNCHANGED", row.note ?? null);
-          return;
+          return { revoked: false as const };
         }
 
+        await lockPreviewTargets(tx, row.targets);
         const classified = await classifyRow(
           tx,
           batch.type as ImportType,
           batch.source as AcademicSourceValue,
           row.values
         );
-        if (!targetsMatch(row.targets, classified.targets)) {
+        if (!targetsMatch(row.targets, classified.targets, confirmedTargets)) {
           await recordOutcome(
             tx,
             batchId,
@@ -862,54 +1234,66 @@ export async function confirmImport(batchId: string, actorId: string) {
             "FAILED",
             "Data berubah sejak pratinjau. Buat pratinjau baru sebelum mengonfirmasi."
           );
-          return;
+          return { revoked: false as const };
         }
 
         if (row.action === "UNCHANGED") {
           await recordOutcome(tx, batchId, row, "UNCHANGED", row.note ?? null);
-          return;
+          return { revoked: false as const };
         }
 
-        if (row.action === "CREATED") {
-          if (classified.action !== "CREATED") {
-            await recordOutcome(
-              tx,
-              batchId,
-              row,
-              "FAILED",
-              "Identitas sudah berubah sejak pratinjau. Buat pratinjau baru."
-            );
-            return;
-          }
-          await applyClassified(tx, batch.type as ImportType, batch.source as AcademicSourceValue, row.values, classified);
-          await recordOutcome(tx, batchId, row, "CREATED", null);
-          return;
+        if (row.action === "CREATED" && classified.action !== "CREATED") {
+          await recordOutcome(
+            tx,
+            batchId,
+            row,
+            "FAILED",
+            "Identitas sudah berubah sejak pratinjau. Buat pratinjau baru."
+          );
+          return { revoked: false as const };
+        }
+        if (row.action === "UPDATED" && classified.action !== "UPDATED") {
+          await recordOutcome(
+            tx,
+            batchId,
+            row,
+            "FAILED",
+            "Data berubah sejak pratinjau. Buat pratinjau baru."
+          );
+          return { revoked: false as const };
+        }
+        if (row.action !== "CREATED" && row.action !== "UPDATED") {
+          await recordOutcome(tx, batchId, row, "FAILED", "Status baris tidak dikenal.");
+          return { revoked: false as const };
         }
 
-        if (row.action === "UPDATED") {
-          if (classified.action !== "UPDATED") {
-            await recordOutcome(
-              tx,
-              batchId,
-              row,
-              "FAILED",
-              "Data berubah sejak pratinjau. Buat pratinjau baru."
-            );
-            return;
-          }
-          await applyClassified(tx, batch.type as ImportType, batch.source as AcademicSourceValue, row.values, classified);
-          await recordOutcome(tx, batchId, row, "UPDATED", null);
-          return;
-        }
-
-        await recordOutcome(
+        const applied = await applyClassified(
           tx,
+          batch.type as ImportType,
+          batch.source as AcademicSourceValue,
+          row.values,
+          classified
+        );
+        const snapshot = await snapshotAppliedTargets(tx, applied);
+        await recordOutcome(tx, batchId, row, row.action, null);
+        return { revoked: false as const, snapshot };
+      });
+
+      if (result.revoked) {
+        authorityRevoked = true;
+        await bestEffortOutcome(
           batchId,
           row,
           "FAILED",
-          "Status baris tidak dikenal."
+          "Otoritas admin dicabut sebelum baris ini diproses; tidak ada perubahan yang diterapkan."
         );
-      });
+        continue;
+      }
+      if (result.snapshot) {
+        for (const [kind, target] of Object.entries(result.snapshot)) {
+          confirmedTargets.set(targetKey(kind as TargetKind, target.id), target.updatedAt);
+        }
+      }
     } catch (error) {
       const code = (error as { code?: string }).code;
       const message =
@@ -1004,58 +1388,84 @@ export async function getBatch(batchId: string) {
     include: { outcomes: { orderBy: { rowNumber: "asc" } } },
   });
   if (!batch) throw new AcademicImportError("Batch impor tidak ditemukan.", 404);
-  return batch;
+  return toImportBatchDto(batch);
+}
+
+function valueKey(type: ImportType, header: string): string | undefined {
+  const maps: Record<ImportType, Record<string, string>> = {
+    STUDY_PROGRAMS: {
+      faculty_code: "facultyCode",
+      faculty_name: "facultyName",
+      study_program_code: "studyProgramCode",
+      study_program_name: "studyProgramName",
+    },
+    COURSES: {
+      faculty_code: "facultyCode",
+      study_program_code: "studyProgramCode",
+      course_code: "courseCode",
+      course_name: "courseName",
+      is_active: "isActive",
+    },
+    LECTURERS: {
+      nip: "nip",
+      nidn: "nidn",
+      name: "name",
+      email: "email",
+      is_active: "isActive",
+    },
+  };
+  return maps[type][header];
+}
+
+function rawCellText(cell: RawCell | undefined): string {
+  return cell === null || cell === undefined ? "" : String(cell);
 }
 
 export async function failedRowsCsv(batchId: string) {
   const batch = await getBatch(batchId);
-  const rows = batch.rows as unknown as PreviewRow[];
+  const rows = batch.rows;
   const byRow = new Map(rows.map((row) => [row.rowNumber, row]));
-  const headers = TEMPLATE_HEADERS[batch.type as ImportType];
-  const failed = batch.outcomes.filter(
-    (outcome) => outcome.action === "FAILED" || outcome.action === "CONFLICT"
-  );
+  const headers = TEMPLATE_HEADERS[batch.type];
 
-  const reportRows = failed.map((outcome) => {
-    const row = byRow.get(outcome.rowNumber);
-    const values = headers.map((header) => {
-      const key =
-        batch.type === "STUDY_PROGRAMS"
-          ? {
-              faculty_code: "facultyCode",
-              faculty_name: "facultyName",
-              study_program_code: "studyProgramCode",
-              study_program_name: "studyProgramName",
-            }[header]
-          : batch.type === "COURSES"
-            ? {
-                faculty_code: "facultyCode",
-                study_program_code: "studyProgramCode",
-                course_code: "courseCode",
-                course_name: "courseName",
-                is_active: "isActive",
-              }[header]
-            : {
-                nip: "nip",
-                nidn: "nidn",
-                name: "name",
-                email: "email",
-                is_active: "isActive",
-              }[header];
-      return key ? (row?.values[key] ?? "") : "";
+  const originalValues = (row: PreviewRow | undefined): string[] => {
+    if (!row) return headers.map(() => "");
+    if (row.originalCells && row.originalCells.length > 0) {
+      return headers.map((_, index) => rawCellText(row.originalCells?.[index]));
+    }
+    // Legacy batches stored no original cells: fall back to normalized values.
+    return headers.map((header) => {
+      const key = valueKey(batch.type, header);
+      return key ? rawCellText(row.values[key]) : "";
     });
-    return [
-      outcome.rowNumber,
-      outcome.message ?? "",
-      outcome.identity,
-      ...values,
-    ];
-  });
+  };
 
-  return buildCsv(
-    ["row_number", "error", "identity", ...headers],
-    reportRows
-  );
+  const entries =
+    batch.outcomes.length > 0
+      ? batch.outcomes
+          .filter((outcome) => outcome.action === "FAILED" || outcome.action === "CONFLICT")
+          .map((outcome) => ({
+            rowNumber: outcome.rowNumber,
+            identity: outcome.identity,
+            message: outcome.message ?? "",
+            row: byRow.get(outcome.rowNumber),
+          }))
+      : rows
+          .filter((row) => row.action === "FAILED" || row.action === "CONFLICT")
+          .map((row) => ({
+            rowNumber: row.rowNumber,
+            identity: row.identity,
+            message: row.errors.join(" ") || row.note || "",
+            row,
+          }));
+
+  const reportRows = entries.map((entry) => [
+    entry.rowNumber,
+    entry.message,
+    entry.identity,
+    ...originalValues(entry.row),
+  ]);
+
+  return buildCsv(["row_number", "error", "identity", ...headers], reportRows);
 }
 
 export function isImportType(value: string): value is ImportType {
