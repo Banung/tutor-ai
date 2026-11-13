@@ -116,7 +116,7 @@ ELEVENLABS_API_KEY="sk_..."
 ### 5. Setup dan Migrasi Database
 Prisma CLI membaca `DIRECT_URL` (lihat `prisma.config.ts`), sedangkan aplikasi dan Better Auth membaca `DATABASE_URL`. Isi keduanya di `.env`: gunakan koneksi langsung ke database untuk `DIRECT_URL` dan koneksi pooler untuk `DATABASE_URL`.
 
-Inisialisasi database dari riwayat migrasi, lalu buat Prisma Client dan isi data development:
+Perintah berikut berlaku untuk database aplikasi baru, atau database yang sudah dikelola oleh riwayat migrasi Prisma. Inisialisasi dari riwayat migrasi, buat Prisma Client, lalu isi data development:
 ```bash
 pnpm exec prisma migrate deploy
 pnpm exec prisma generate
@@ -128,10 +128,16 @@ pnpm exec tsx prisma/seed-prompts.ts
 
 Gunakan `prisma migrate deploy`, bukan `prisma db push`, sebagai mekanisme setup. Skema dan riwayat migrasi harus berasal dari `prisma/migrations`.
 
-#### Reset database development (destruktif)
-Hanya untuk database development yang memang disposable dan tidak menyimpan data yang dibutuhkan. Hentikan server Next.js dan worker material, hapus hanya tabel aplikasi yang diketahui (jangan memakai `CASCADE` untuk melewati dependensi tak terduga), lalu jalankan ulang seluruh rantai migrasi dan seed di atas. Jangan pernah menjalankan langkah ini pada database bersama atau production.
+Database tidak kosong yang sebelumnya dibuat dengan `prisma db push` tidak memiliki `_prisma_migrations`. Database seperti itu memerlukan adopsi riwayat migrasi, atau rebuild disposable yang diotorisasi secara eksplisit. Jangan menganggap `migrate deploy` pada database seperti itu sebagai perbaikan.
 
-Untuk deployment berikutnya, cukup jalankan `pnpm exec prisma migrate deploy` setelah backup; jangan reset, jangan `db push`, dan jangan mengubah migrasi yang sudah diterapkan.
+#### Reset database (operasi terpisah, eksplisit)
+Menghapus tabel aplikasi saja bukan prosedur reset. Jika tabel dihapus sementara catatan migrasi yang berhasil masih ada di `_prisma_migrations`, `prisma migrate deploy` menganggap migrasi sudah diterapkan dan tidak akan membuat ulang tabel tersebut.
+
+Rebuild database yang sudah ada adalah operasi terpisah yang harus menyelaraskan objek aplikasi dan riwayat migrasi, dan hanya dijalankan setelah otorisasi eksplisit. Operasi ini wajib mempertahankan objek yang dikelola Supabase, tidak boleh memakai penghapusan `CASCADE` secara luas, dan tidak boleh dijalankan pada database bersama atau production.
+
+Rebuild T4 yang berhasil pada environment development ini adalah operasi sekali jalan, bukan prosedur rutin yang perlu diulang. Tidak ada perintah reset generik yang disediakan untuk tujuan ini.
+
+Untuk deployment berikutnya, cukup jalankan `pnpm exec prisma migrate deploy` setelah backup; jangan reset, jangan `db push`, dan jangan mengubah migrasi yang sudah diterapkan. Seeding development di atas bukan bagian dari deployment production.
 
 ### 6. Menjalankan Server (Development Mode)
 Aplikasi ini dikonfigurasi menggunakan `concurrently` untuk mengeksekusi server web dan background worker secara beriringan:
