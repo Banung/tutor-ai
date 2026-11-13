@@ -28,21 +28,30 @@ export type StudyProgramMinAggregateOutputType = {
   id: string | null
   facultyId: string | null
   name: string | null
+  code: string | null
+  source: $Enums.AcademicSource | null
   createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type StudyProgramMaxAggregateOutputType = {
   id: string | null
   facultyId: string | null
   name: string | null
+  code: string | null
+  source: $Enums.AcademicSource | null
   createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type StudyProgramCountAggregateOutputType = {
   id: number
   facultyId: number
   name: number
+  code: number
+  source: number
   createdAt: number
+  updatedAt: number
   _all: number
 }
 
@@ -51,21 +60,30 @@ export type StudyProgramMinAggregateInputType = {
   id?: true
   facultyId?: true
   name?: true
+  code?: true
+  source?: true
   createdAt?: true
+  updatedAt?: true
 }
 
 export type StudyProgramMaxAggregateInputType = {
   id?: true
   facultyId?: true
   name?: true
+  code?: true
+  source?: true
   createdAt?: true
+  updatedAt?: true
 }
 
 export type StudyProgramCountAggregateInputType = {
   id?: true
   facultyId?: true
   name?: true
+  code?: true
+  source?: true
   createdAt?: true
+  updatedAt?: true
   _all?: true
 }
 
@@ -145,7 +163,10 @@ export type StudyProgramGroupByOutputType = {
   id: string
   facultyId: string
   name: string
+  code: string | null
+  source: $Enums.AcademicSource | null
   createdAt: Date
+  updatedAt: Date
   _count: StudyProgramCountAggregateOutputType | null
   _min: StudyProgramMinAggregateOutputType | null
   _max: StudyProgramMaxAggregateOutputType | null
@@ -173,38 +194,54 @@ export type StudyProgramWhereInput = {
   id?: Prisma.StringFilter<"StudyProgram"> | string
   facultyId?: Prisma.StringFilter<"StudyProgram"> | string
   name?: Prisma.StringFilter<"StudyProgram"> | string
+  code?: Prisma.StringNullableFilter<"StudyProgram"> | string | null
+  source?: Prisma.EnumAcademicSourceNullableFilter<"StudyProgram"> | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFilter<"StudyProgram"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"StudyProgram"> | Date | string
   faculty?: Prisma.XOR<Prisma.FacultyScalarRelationFilter, Prisma.FacultyWhereInput>
   courses?: Prisma.CourseListRelationFilter
+  academicCourseReferences?: Prisma.AcademicCourseReferenceListRelationFilter
 }
 
 export type StudyProgramOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   facultyId?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrderInput | Prisma.SortOrder
+  source?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   faculty?: Prisma.FacultyOrderByWithRelationInput
   courses?: Prisma.CourseOrderByRelationAggregateInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceOrderByRelationAggregateInput
 }
 
 export type StudyProgramWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   facultyId_name?: Prisma.StudyProgramFacultyIdNameCompoundUniqueInput
+  facultyId_code?: Prisma.StudyProgramFacultyIdCodeCompoundUniqueInput
   AND?: Prisma.StudyProgramWhereInput | Prisma.StudyProgramWhereInput[]
   OR?: Prisma.StudyProgramWhereInput[]
   NOT?: Prisma.StudyProgramWhereInput | Prisma.StudyProgramWhereInput[]
   facultyId?: Prisma.StringFilter<"StudyProgram"> | string
   name?: Prisma.StringFilter<"StudyProgram"> | string
+  code?: Prisma.StringNullableFilter<"StudyProgram"> | string | null
+  source?: Prisma.EnumAcademicSourceNullableFilter<"StudyProgram"> | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFilter<"StudyProgram"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"StudyProgram"> | Date | string
   faculty?: Prisma.XOR<Prisma.FacultyScalarRelationFilter, Prisma.FacultyWhereInput>
   courses?: Prisma.CourseListRelationFilter
-}, "id" | "facultyId_name">
+  academicCourseReferences?: Prisma.AcademicCourseReferenceListRelationFilter
+}, "id" | "facultyId_name" | "facultyId_code">
 
 export type StudyProgramOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   facultyId?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrderInput | Prisma.SortOrder
+  source?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   _count?: Prisma.StudyProgramCountOrderByAggregateInput
   _max?: Prisma.StudyProgramMaxOrderByAggregateInput
   _min?: Prisma.StudyProgramMinOrderByAggregateInput
@@ -217,59 +254,87 @@ export type StudyProgramScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"StudyProgram"> | string
   facultyId?: Prisma.StringWithAggregatesFilter<"StudyProgram"> | string
   name?: Prisma.StringWithAggregatesFilter<"StudyProgram"> | string
+  code?: Prisma.StringNullableWithAggregatesFilter<"StudyProgram"> | string | null
+  source?: Prisma.EnumAcademicSourceNullableWithAggregatesFilter<"StudyProgram"> | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"StudyProgram"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"StudyProgram"> | Date | string
 }
 
 export type StudyProgramCreateInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   faculty: Prisma.FacultyCreateNestedOneWithoutStudyProgramsInput
   courses?: Prisma.CourseCreateNestedManyWithoutStudyProgramInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceCreateNestedManyWithoutStudyProgramInput
 }
 
 export type StudyProgramUncheckedCreateInput = {
   id: string
   facultyId: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   courses?: Prisma.CourseUncheckedCreateNestedManyWithoutStudyProgramInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceUncheckedCreateNestedManyWithoutStudyProgramInput
 }
 
 export type StudyProgramUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   faculty?: Prisma.FacultyUpdateOneRequiredWithoutStudyProgramsNestedInput
   courses?: Prisma.CourseUpdateManyWithoutStudyProgramNestedInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceUpdateManyWithoutStudyProgramNestedInput
 }
 
 export type StudyProgramUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   facultyId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courses?: Prisma.CourseUncheckedUpdateManyWithoutStudyProgramNestedInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceUncheckedUpdateManyWithoutStudyProgramNestedInput
 }
 
 export type StudyProgramCreateManyInput = {
   id: string
   facultyId: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type StudyProgramUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type StudyProgramUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   facultyId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type StudyProgramListRelationFilter = {
@@ -287,25 +352,44 @@ export type StudyProgramFacultyIdNameCompoundUniqueInput = {
   name: string
 }
 
+export type StudyProgramFacultyIdCodeCompoundUniqueInput = {
+  facultyId: string
+  code: string
+}
+
 export type StudyProgramCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   facultyId?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrder
+  source?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type StudyProgramMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   facultyId?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrder
+  source?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type StudyProgramMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   facultyId?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrder
+  source?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
+}
+
+export type StudyProgramScalarRelationFilter = {
+  is?: Prisma.StudyProgramWhereInput
+  isNot?: Prisma.StudyProgramWhereInput
 }
 
 export type StudyProgramNullableScalarRelationFilter = {
@@ -355,6 +439,20 @@ export type StudyProgramUncheckedUpdateManyWithoutFacultyNestedInput = {
   deleteMany?: Prisma.StudyProgramScalarWhereInput | Prisma.StudyProgramScalarWhereInput[]
 }
 
+export type StudyProgramCreateNestedOneWithoutAcademicCourseReferencesInput = {
+  create?: Prisma.XOR<Prisma.StudyProgramCreateWithoutAcademicCourseReferencesInput, Prisma.StudyProgramUncheckedCreateWithoutAcademicCourseReferencesInput>
+  connectOrCreate?: Prisma.StudyProgramCreateOrConnectWithoutAcademicCourseReferencesInput
+  connect?: Prisma.StudyProgramWhereUniqueInput
+}
+
+export type StudyProgramUpdateOneRequiredWithoutAcademicCourseReferencesNestedInput = {
+  create?: Prisma.XOR<Prisma.StudyProgramCreateWithoutAcademicCourseReferencesInput, Prisma.StudyProgramUncheckedCreateWithoutAcademicCourseReferencesInput>
+  connectOrCreate?: Prisma.StudyProgramCreateOrConnectWithoutAcademicCourseReferencesInput
+  upsert?: Prisma.StudyProgramUpsertWithoutAcademicCourseReferencesInput
+  connect?: Prisma.StudyProgramWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.StudyProgramUpdateToOneWithWhereWithoutAcademicCourseReferencesInput, Prisma.StudyProgramUpdateWithoutAcademicCourseReferencesInput>, Prisma.StudyProgramUncheckedUpdateWithoutAcademicCourseReferencesInput>
+}
+
 export type StudyProgramCreateNestedOneWithoutCoursesInput = {
   create?: Prisma.XOR<Prisma.StudyProgramCreateWithoutCoursesInput, Prisma.StudyProgramUncheckedCreateWithoutCoursesInput>
   connectOrCreate?: Prisma.StudyProgramCreateOrConnectWithoutCoursesInput
@@ -374,15 +472,23 @@ export type StudyProgramUpdateOneWithoutCoursesNestedInput = {
 export type StudyProgramCreateWithoutFacultyInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   courses?: Prisma.CourseCreateNestedManyWithoutStudyProgramInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceCreateNestedManyWithoutStudyProgramInput
 }
 
 export type StudyProgramUncheckedCreateWithoutFacultyInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   courses?: Prisma.CourseUncheckedCreateNestedManyWithoutStudyProgramInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceUncheckedCreateNestedManyWithoutStudyProgramInput
 }
 
 export type StudyProgramCreateOrConnectWithoutFacultyInput = {
@@ -418,21 +524,92 @@ export type StudyProgramScalarWhereInput = {
   id?: Prisma.StringFilter<"StudyProgram"> | string
   facultyId?: Prisma.StringFilter<"StudyProgram"> | string
   name?: Prisma.StringFilter<"StudyProgram"> | string
+  code?: Prisma.StringNullableFilter<"StudyProgram"> | string | null
+  source?: Prisma.EnumAcademicSourceNullableFilter<"StudyProgram"> | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFilter<"StudyProgram"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"StudyProgram"> | Date | string
+}
+
+export type StudyProgramCreateWithoutAcademicCourseReferencesInput = {
+  id: string
+  name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  faculty: Prisma.FacultyCreateNestedOneWithoutStudyProgramsInput
+  courses?: Prisma.CourseCreateNestedManyWithoutStudyProgramInput
+}
+
+export type StudyProgramUncheckedCreateWithoutAcademicCourseReferencesInput = {
+  id: string
+  facultyId: string
+  name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  courses?: Prisma.CourseUncheckedCreateNestedManyWithoutStudyProgramInput
+}
+
+export type StudyProgramCreateOrConnectWithoutAcademicCourseReferencesInput = {
+  where: Prisma.StudyProgramWhereUniqueInput
+  create: Prisma.XOR<Prisma.StudyProgramCreateWithoutAcademicCourseReferencesInput, Prisma.StudyProgramUncheckedCreateWithoutAcademicCourseReferencesInput>
+}
+
+export type StudyProgramUpsertWithoutAcademicCourseReferencesInput = {
+  update: Prisma.XOR<Prisma.StudyProgramUpdateWithoutAcademicCourseReferencesInput, Prisma.StudyProgramUncheckedUpdateWithoutAcademicCourseReferencesInput>
+  create: Prisma.XOR<Prisma.StudyProgramCreateWithoutAcademicCourseReferencesInput, Prisma.StudyProgramUncheckedCreateWithoutAcademicCourseReferencesInput>
+  where?: Prisma.StudyProgramWhereInput
+}
+
+export type StudyProgramUpdateToOneWithWhereWithoutAcademicCourseReferencesInput = {
+  where?: Prisma.StudyProgramWhereInput
+  data: Prisma.XOR<Prisma.StudyProgramUpdateWithoutAcademicCourseReferencesInput, Prisma.StudyProgramUncheckedUpdateWithoutAcademicCourseReferencesInput>
+}
+
+export type StudyProgramUpdateWithoutAcademicCourseReferencesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  faculty?: Prisma.FacultyUpdateOneRequiredWithoutStudyProgramsNestedInput
+  courses?: Prisma.CourseUpdateManyWithoutStudyProgramNestedInput
+}
+
+export type StudyProgramUncheckedUpdateWithoutAcademicCourseReferencesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  facultyId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  courses?: Prisma.CourseUncheckedUpdateManyWithoutStudyProgramNestedInput
 }
 
 export type StudyProgramCreateWithoutCoursesInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   faculty: Prisma.FacultyCreateNestedOneWithoutStudyProgramsInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceCreateNestedManyWithoutStudyProgramInput
 }
 
 export type StudyProgramUncheckedCreateWithoutCoursesInput = {
   id: string
   facultyId: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
+  academicCourseReferences?: Prisma.AcademicCourseReferenceUncheckedCreateNestedManyWithoutStudyProgramInput
 }
 
 export type StudyProgramCreateOrConnectWithoutCoursesInput = {
@@ -454,41 +631,63 @@ export type StudyProgramUpdateToOneWithWhereWithoutCoursesInput = {
 export type StudyProgramUpdateWithoutCoursesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   faculty?: Prisma.FacultyUpdateOneRequiredWithoutStudyProgramsNestedInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceUpdateManyWithoutStudyProgramNestedInput
 }
 
 export type StudyProgramUncheckedUpdateWithoutCoursesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   facultyId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  academicCourseReferences?: Prisma.AcademicCourseReferenceUncheckedUpdateManyWithoutStudyProgramNestedInput
 }
 
 export type StudyProgramCreateManyFacultyInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type StudyProgramUpdateWithoutFacultyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courses?: Prisma.CourseUpdateManyWithoutStudyProgramNestedInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceUpdateManyWithoutStudyProgramNestedInput
 }
 
 export type StudyProgramUncheckedUpdateWithoutFacultyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courses?: Prisma.CourseUncheckedUpdateManyWithoutStudyProgramNestedInput
+  academicCourseReferences?: Prisma.AcademicCourseReferenceUncheckedUpdateManyWithoutStudyProgramNestedInput
 }
 
 export type StudyProgramUncheckedUpdateManyWithoutFacultyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -498,10 +697,12 @@ export type StudyProgramUncheckedUpdateManyWithoutFacultyInput = {
 
 export type StudyProgramCountOutputType = {
   courses: number
+  academicCourseReferences: number
 }
 
 export type StudyProgramCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   courses?: boolean | StudyProgramCountOutputTypeCountCoursesArgs
+  academicCourseReferences?: boolean | StudyProgramCountOutputTypeCountAcademicCourseReferencesArgs
 }
 
 /**
@@ -521,14 +722,25 @@ export type StudyProgramCountOutputTypeCountCoursesArgs<ExtArgs extends runtime.
   where?: Prisma.CourseWhereInput
 }
 
+/**
+ * StudyProgramCountOutputType without action
+ */
+export type StudyProgramCountOutputTypeCountAcademicCourseReferencesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AcademicCourseReferenceWhereInput
+}
+
 
 export type StudyProgramSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   facultyId?: boolean
   name?: boolean
+  code?: boolean
+  source?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   faculty?: boolean | Prisma.FacultyDefaultArgs<ExtArgs>
   courses?: boolean | Prisma.StudyProgram$coursesArgs<ExtArgs>
+  academicCourseReferences?: boolean | Prisma.StudyProgram$academicCourseReferencesArgs<ExtArgs>
   _count?: boolean | Prisma.StudyProgramCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["studyProgram"]>
 
@@ -536,7 +748,10 @@ export type StudyProgramSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   id?: boolean
   facultyId?: boolean
   name?: boolean
+  code?: boolean
+  source?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   faculty?: boolean | Prisma.FacultyDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["studyProgram"]>
 
@@ -544,7 +759,10 @@ export type StudyProgramSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   id?: boolean
   facultyId?: boolean
   name?: boolean
+  code?: boolean
+  source?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   faculty?: boolean | Prisma.FacultyDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["studyProgram"]>
 
@@ -552,13 +770,17 @@ export type StudyProgramSelectScalar = {
   id?: boolean
   facultyId?: boolean
   name?: boolean
+  code?: boolean
+  source?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
 }
 
-export type StudyProgramOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "facultyId" | "name" | "createdAt", ExtArgs["result"]["studyProgram"]>
+export type StudyProgramOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "facultyId" | "name" | "code" | "source" | "createdAt" | "updatedAt", ExtArgs["result"]["studyProgram"]>
 export type StudyProgramInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   faculty?: boolean | Prisma.FacultyDefaultArgs<ExtArgs>
   courses?: boolean | Prisma.StudyProgram$coursesArgs<ExtArgs>
+  academicCourseReferences?: boolean | Prisma.StudyProgram$academicCourseReferencesArgs<ExtArgs>
   _count?: boolean | Prisma.StudyProgramCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type StudyProgramIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -573,12 +795,16 @@ export type $StudyProgramPayload<ExtArgs extends runtime.Types.Extensions.Intern
   objects: {
     faculty: Prisma.$FacultyPayload<ExtArgs>
     courses: Prisma.$CoursePayload<ExtArgs>[]
+    academicCourseReferences: Prisma.$AcademicCourseReferencePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     facultyId: string
     name: string
+    code: string | null
+    source: $Enums.AcademicSource | null
     createdAt: Date
+    updatedAt: Date
   }, ExtArgs["result"]["studyProgram"]>
   composites: {}
 }
@@ -975,6 +1201,7 @@ export interface Prisma__StudyProgramClient<T, Null = never, ExtArgs extends run
   readonly [Symbol.toStringTag]: "PrismaPromise"
   faculty<T extends Prisma.FacultyDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FacultyDefaultArgs<ExtArgs>>): Prisma.Prisma__FacultyClient<runtime.Types.Result.GetResult<Prisma.$FacultyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   courses<T extends Prisma.StudyProgram$coursesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.StudyProgram$coursesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CoursePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  academicCourseReferences<T extends Prisma.StudyProgram$academicCourseReferencesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.StudyProgram$academicCourseReferencesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AcademicCourseReferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1007,7 +1234,10 @@ export interface StudyProgramFieldRefs {
   readonly id: Prisma.FieldRef<"StudyProgram", 'String'>
   readonly facultyId: Prisma.FieldRef<"StudyProgram", 'String'>
   readonly name: Prisma.FieldRef<"StudyProgram", 'String'>
+  readonly code: Prisma.FieldRef<"StudyProgram", 'String'>
+  readonly source: Prisma.FieldRef<"StudyProgram", 'AcademicSource'>
   readonly createdAt: Prisma.FieldRef<"StudyProgram", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"StudyProgram", 'DateTime'>
 }
     
 
@@ -1430,6 +1660,30 @@ export type StudyProgram$coursesArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.CourseScalarFieldEnum | Prisma.CourseScalarFieldEnum[]
+}
+
+/**
+ * StudyProgram.academicCourseReferences
+ */
+export type StudyProgram$academicCourseReferencesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AcademicCourseReference
+   */
+  select?: Prisma.AcademicCourseReferenceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AcademicCourseReference
+   */
+  omit?: Prisma.AcademicCourseReferenceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcademicCourseReferenceInclude<ExtArgs> | null
+  where?: Prisma.AcademicCourseReferenceWhereInput
+  orderBy?: Prisma.AcademicCourseReferenceOrderByWithRelationInput | Prisma.AcademicCourseReferenceOrderByWithRelationInput[]
+  cursor?: Prisma.AcademicCourseReferenceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AcademicCourseReferenceScalarFieldEnum | Prisma.AcademicCourseReferenceScalarFieldEnum[]
 }
 
 /**

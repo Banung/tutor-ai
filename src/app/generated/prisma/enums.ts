@@ -9,6 +9,46 @@
 * 🟢 You can import this file directly.
 */
 
+export const AcademicSource = {
+  SIAT: 'SIAT',
+  PIPP: 'PIPP'
+} as const
+
+export type AcademicSource = (typeof AcademicSource)[keyof typeof AcademicSource]
+
+
+export const AcademicImportType = {
+  STUDY_PROGRAMS: 'STUDY_PROGRAMS',
+  COURSES: 'COURSES',
+  LECTURERS: 'LECTURERS'
+} as const
+
+export type AcademicImportType = (typeof AcademicImportType)[keyof typeof AcademicImportType]
+
+
+export const AcademicImportStatus = {
+  PREVIEWED: 'PREVIEWED',
+  CONFIRMING: 'CONFIRMING',
+  CONFIRMED: 'CONFIRMED',
+  PARTIAL: 'PARTIAL',
+  FAILED: 'FAILED',
+  EXPIRED: 'EXPIRED'
+} as const
+
+export type AcademicImportStatus = (typeof AcademicImportStatus)[keyof typeof AcademicImportStatus]
+
+
+export const AcademicImportAction = {
+  CREATED: 'CREATED',
+  UPDATED: 'UPDATED',
+  UNCHANGED: 'UNCHANGED',
+  FAILED: 'FAILED',
+  CONFLICT: 'CONFLICT'
+} as const
+
+export type AcademicImportAction = (typeof AcademicImportAction)[keyof typeof AcademicImportAction]
+
+
 export const CatalogStatus = {
   DRAFT: 'DRAFT',
   PUBLISHED: 'PUBLISHED',

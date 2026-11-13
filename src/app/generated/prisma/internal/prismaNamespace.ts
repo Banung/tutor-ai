@@ -391,6 +391,10 @@ export const ModelName = {
   Verification: 'Verification',
   Faculty: 'Faculty',
   StudyProgram: 'StudyProgram',
+  AcademicCourseReference: 'AcademicCourseReference',
+  LecturerReference: 'LecturerReference',
+  AcademicImportBatch: 'AcademicImportBatch',
+  AcademicImportRowOutcome: 'AcademicImportRowOutcome',
   Course: 'Course',
   CourseCatalogStatusLog: 'CourseCatalogStatusLog',
   CourseInstructor: 'CourseInstructor',
@@ -418,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userRoleAudit" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "course" | "courseCatalogStatusLog" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
+    modelProps: "user" | "userRoleAudit" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "academicCourseReference" | "lecturerReference" | "academicImportBatch" | "academicImportRowOutcome" | "course" | "courseCatalogStatusLog" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -937,6 +941,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.StudyProgramCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.StudyProgramCountAggregateOutputType> | number
+        }
+      }
+    }
+    AcademicCourseReference: {
+      payload: Prisma.$AcademicCourseReferencePayload<ExtArgs>
+      fields: Prisma.AcademicCourseReferenceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AcademicCourseReferenceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AcademicCourseReferenceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload>
+        }
+        findFirst: {
+          args: Prisma.AcademicCourseReferenceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AcademicCourseReferenceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload>
+        }
+        findMany: {
+          args: Prisma.AcademicCourseReferenceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload>[]
+        }
+        create: {
+          args: Prisma.AcademicCourseReferenceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload>
+        }
+        createMany: {
+          args: Prisma.AcademicCourseReferenceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AcademicCourseReferenceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload>[]
+        }
+        delete: {
+          args: Prisma.AcademicCourseReferenceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload>
+        }
+        update: {
+          args: Prisma.AcademicCourseReferenceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload>
+        }
+        deleteMany: {
+          args: Prisma.AcademicCourseReferenceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AcademicCourseReferenceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AcademicCourseReferenceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload>[]
+        }
+        upsert: {
+          args: Prisma.AcademicCourseReferenceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicCourseReferencePayload>
+        }
+        aggregate: {
+          args: Prisma.AcademicCourseReferenceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAcademicCourseReference>
+        }
+        groupBy: {
+          args: Prisma.AcademicCourseReferenceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AcademicCourseReferenceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AcademicCourseReferenceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AcademicCourseReferenceCountAggregateOutputType> | number
+        }
+      }
+    }
+    LecturerReference: {
+      payload: Prisma.$LecturerReferencePayload<ExtArgs>
+      fields: Prisma.LecturerReferenceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LecturerReferenceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LecturerReferenceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload>
+        }
+        findFirst: {
+          args: Prisma.LecturerReferenceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LecturerReferenceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload>
+        }
+        findMany: {
+          args: Prisma.LecturerReferenceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload>[]
+        }
+        create: {
+          args: Prisma.LecturerReferenceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload>
+        }
+        createMany: {
+          args: Prisma.LecturerReferenceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LecturerReferenceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload>[]
+        }
+        delete: {
+          args: Prisma.LecturerReferenceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload>
+        }
+        update: {
+          args: Prisma.LecturerReferenceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload>
+        }
+        deleteMany: {
+          args: Prisma.LecturerReferenceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LecturerReferenceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LecturerReferenceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload>[]
+        }
+        upsert: {
+          args: Prisma.LecturerReferenceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LecturerReferencePayload>
+        }
+        aggregate: {
+          args: Prisma.LecturerReferenceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLecturerReference>
+        }
+        groupBy: {
+          args: Prisma.LecturerReferenceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LecturerReferenceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LecturerReferenceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LecturerReferenceCountAggregateOutputType> | number
+        }
+      }
+    }
+    AcademicImportBatch: {
+      payload: Prisma.$AcademicImportBatchPayload<ExtArgs>
+      fields: Prisma.AcademicImportBatchFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AcademicImportBatchFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AcademicImportBatchFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload>
+        }
+        findFirst: {
+          args: Prisma.AcademicImportBatchFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AcademicImportBatchFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload>
+        }
+        findMany: {
+          args: Prisma.AcademicImportBatchFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload>[]
+        }
+        create: {
+          args: Prisma.AcademicImportBatchCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload>
+        }
+        createMany: {
+          args: Prisma.AcademicImportBatchCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AcademicImportBatchCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload>[]
+        }
+        delete: {
+          args: Prisma.AcademicImportBatchDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload>
+        }
+        update: {
+          args: Prisma.AcademicImportBatchUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload>
+        }
+        deleteMany: {
+          args: Prisma.AcademicImportBatchDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AcademicImportBatchUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AcademicImportBatchUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload>[]
+        }
+        upsert: {
+          args: Prisma.AcademicImportBatchUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportBatchPayload>
+        }
+        aggregate: {
+          args: Prisma.AcademicImportBatchAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAcademicImportBatch>
+        }
+        groupBy: {
+          args: Prisma.AcademicImportBatchGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AcademicImportBatchGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AcademicImportBatchCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AcademicImportBatchCountAggregateOutputType> | number
+        }
+      }
+    }
+    AcademicImportRowOutcome: {
+      payload: Prisma.$AcademicImportRowOutcomePayload<ExtArgs>
+      fields: Prisma.AcademicImportRowOutcomeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AcademicImportRowOutcomeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AcademicImportRowOutcomeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload>
+        }
+        findFirst: {
+          args: Prisma.AcademicImportRowOutcomeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AcademicImportRowOutcomeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload>
+        }
+        findMany: {
+          args: Prisma.AcademicImportRowOutcomeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload>[]
+        }
+        create: {
+          args: Prisma.AcademicImportRowOutcomeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload>
+        }
+        createMany: {
+          args: Prisma.AcademicImportRowOutcomeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AcademicImportRowOutcomeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload>[]
+        }
+        delete: {
+          args: Prisma.AcademicImportRowOutcomeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload>
+        }
+        update: {
+          args: Prisma.AcademicImportRowOutcomeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload>
+        }
+        deleteMany: {
+          args: Prisma.AcademicImportRowOutcomeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AcademicImportRowOutcomeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AcademicImportRowOutcomeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload>[]
+        }
+        upsert: {
+          args: Prisma.AcademicImportRowOutcomeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AcademicImportRowOutcomePayload>
+        }
+        aggregate: {
+          args: Prisma.AcademicImportRowOutcomeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAcademicImportRowOutcome>
+        }
+        groupBy: {
+          args: Prisma.AcademicImportRowOutcomeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AcademicImportRowOutcomeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AcademicImportRowOutcomeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AcademicImportRowOutcomeCountAggregateOutputType> | number
         }
       }
     }
@@ -1948,7 +2248,10 @@ export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[k
 export const FacultyScalarFieldEnum = {
   id: 'id',
   name: 'name',
-  createdAt: 'createdAt'
+  code: 'code',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type FacultyScalarFieldEnum = (typeof FacultyScalarFieldEnum)[keyof typeof FacultyScalarFieldEnum]
@@ -1958,10 +2261,79 @@ export const StudyProgramScalarFieldEnum = {
   id: 'id',
   facultyId: 'facultyId',
   name: 'name',
-  createdAt: 'createdAt'
+  code: 'code',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type StudyProgramScalarFieldEnum = (typeof StudyProgramScalarFieldEnum)[keyof typeof StudyProgramScalarFieldEnum]
+
+
+export const AcademicCourseReferenceScalarFieldEnum = {
+  id: 'id',
+  studyProgramId: 'studyProgramId',
+  courseCode: 'courseCode',
+  name: 'name',
+  isActive: 'isActive',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AcademicCourseReferenceScalarFieldEnum = (typeof AcademicCourseReferenceScalarFieldEnum)[keyof typeof AcademicCourseReferenceScalarFieldEnum]
+
+
+export const LecturerReferenceScalarFieldEnum = {
+  id: 'id',
+  nip: 'nip',
+  nidn: 'nidn',
+  name: 'name',
+  email: 'email',
+  isActive: 'isActive',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LecturerReferenceScalarFieldEnum = (typeof LecturerReferenceScalarFieldEnum)[keyof typeof LecturerReferenceScalarFieldEnum]
+
+
+export const AcademicImportBatchScalarFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  source: 'source',
+  type: 'type',
+  fileName: 'fileName',
+  fileDigest: 'fileDigest',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  summary: 'summary',
+  rows: 'rows',
+  createdCount: 'createdCount',
+  updatedCount: 'updatedCount',
+  unchangedCount: 'unchangedCount',
+  failedCount: 'failedCount',
+  conflictCount: 'conflictCount',
+  createdAt: 'createdAt',
+  confirmedAt: 'confirmedAt'
+} as const
+
+export type AcademicImportBatchScalarFieldEnum = (typeof AcademicImportBatchScalarFieldEnum)[keyof typeof AcademicImportBatchScalarFieldEnum]
+
+
+export const AcademicImportRowOutcomeScalarFieldEnum = {
+  id: 'id',
+  batchId: 'batchId',
+  rowNumber: 'rowNumber',
+  identity: 'identity',
+  action: 'action',
+  message: 'message',
+  data: 'data',
+  createdAt: 'createdAt'
+} as const
+
+export type AcademicImportRowOutcomeScalarFieldEnum = (typeof AcademicImportRowOutcomeScalarFieldEnum)[keyof typeof AcademicImportRowOutcomeScalarFieldEnum]
 
 
 export const CourseScalarFieldEnum = {
@@ -2162,6 +2534,13 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const NullableJsonNullValueInput = {
   DbNull: DbNull,
   JsonNull: JsonNull
@@ -2237,16 +2616,58 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
- * Reference to a field of type 'CatalogStatus'
+ * Reference to a field of type 'AcademicSource'
  */
-export type EnumCatalogStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CatalogStatus'>
+export type EnumAcademicSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AcademicSource'>
     
 
 
 /**
- * Reference to a field of type 'CatalogStatus[]'
+ * Reference to a field of type 'AcademicSource[]'
  */
-export type ListEnumCatalogStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CatalogStatus[]'>
+export type ListEnumAcademicSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AcademicSource[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AcademicImportType'
+ */
+export type EnumAcademicImportTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AcademicImportType'>
+    
+
+
+/**
+ * Reference to a field of type 'AcademicImportType[]'
+ */
+export type ListEnumAcademicImportTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AcademicImportType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AcademicImportStatus'
+ */
+export type EnumAcademicImportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AcademicImportStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'AcademicImportStatus[]'
+ */
+export type ListEnumAcademicImportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AcademicImportStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -2265,6 +2686,34 @@ export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'AcademicImportAction'
+ */
+export type EnumAcademicImportActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AcademicImportAction'>
+    
+
+
+/**
+ * Reference to a field of type 'AcademicImportAction[]'
+ */
+export type ListEnumAcademicImportActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AcademicImportAction[]'>
+    
+
+
+/**
+ * Reference to a field of type 'CatalogStatus'
+ */
+export type EnumCatalogStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CatalogStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'CatalogStatus[]'
+ */
+export type ListEnumCatalogStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CatalogStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'BigInt'
  */
 export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
@@ -2275,20 +2724,6 @@ export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'BigInt[]'
  */
 export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -2422,6 +2857,10 @@ export type GlobalOmitConfig = {
   verification?: Prisma.VerificationOmit
   faculty?: Prisma.FacultyOmit
   studyProgram?: Prisma.StudyProgramOmit
+  academicCourseReference?: Prisma.AcademicCourseReferenceOmit
+  lecturerReference?: Prisma.LecturerReferenceOmit
+  academicImportBatch?: Prisma.AcademicImportBatchOmit
+  academicImportRowOutcome?: Prisma.AcademicImportRowOutcomeOmit
   course?: Prisma.CourseOmit
   courseCatalogStatusLog?: Prisma.CourseCatalogStatusLogOmit
   courseInstructor?: Prisma.CourseInstructorOmit

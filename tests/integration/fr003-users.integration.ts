@@ -25,9 +25,11 @@ import * as courseService from "../../src/lib/services/course.service";
 import * as userService from "../../src/lib/services/user.service";
 import {
   cleanupFailureMessage,
-  settle,
+  LockPairError,
+  runLockedPairSafely,
+  runSafeCleanup,
   validateWaiters,
-  withTimeout,
+  type PairSafety,
 } from "./fr003-validation";
 
 const BASE_URL = process.env.FR003_BASE_URL || "http://localhost:3000";
@@ -105,6 +107,8 @@ const email = (label: string) => `${emailPrefix}${label}@harness.test`;
 
 const checks: Array<{ name: string; detail?: unknown }> = [];
 let cleanupFailure: string | null = null;
+let cleanupDeferred = false;
+let httpUncertain = false;
 let baselineUsers = -1;
 const results: Record<string, unknown> = {
   target: {
@@ -127,11 +131,21 @@ function check(name: string, condition: unknown, detail?: unknown): void {
   checks.push({ name, ...(detail === undefined ? {} : { detail }) });
 }
 
+async function guardedFetch(input: string, init: RequestInit) {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    // An abort/timeout means we no longer know whether the server finished.
+    httpUncertain = true;
+    throw error;
+  }
+}
+
 async function request(
   path: string,
   init: { method?: string; cookie?: string; body?: unknown } = {}
 ): Promise<ApiResult> {
-  const res = await fetch(BASE_URL + path, {
+  const res = await guardedFetch(BASE_URL + path, {
     method: init.method ?? "GET",
     headers: {
       origin: BASE_URL,
@@ -152,7 +166,7 @@ async function request(
 }
 
 async function login(emailAddress: string, password = PASSWORD): Promise<string> {
-  const res = await fetch(BASE_URL + "/api/auth/sign-in/email", {
+  const res = await guardedFetch(BASE_URL + "/api/auth/sign-in/email", {
     method: "POST",
     headers: { "content-type": "application/json", origin: BASE_URL },
     body: JSON.stringify({ email: emailAddress, password }),
@@ -266,42 +280,41 @@ async function main() {
     const baseline = await chainWaiters(blockerPid);
     check("lock baseline is empty", baseline.length === 0, baseline);
 
-    await blocker.query("BEGIN");
-    const started: Array<Promise<unknown>> = [];
     try {
-      await blocker.query(lockSql, params);
-
-      const firstSettled = settle(first());
-      started.push(firstSettled);
-      const firstWaiters = await waitForWaiters(blockerPid, 1, "first operation");
-
-      const secondSettled = settle(second());
-      started.push(secondSettled);
-      const secondWaiters = await waitForWaiters(blockerPid, 2, "second operation");
-      validateWaiters(firstWaiters, secondWaiters);
-
-      await blocker.query("COMMIT");
-      const [r1, r2] = await withTimeout(
-        Promise.all([firstSettled, secondSettled]),
-        15000,
-        "locked pair settle"
-      );
+      const result = await runLockedPairSafely({
+        begin: async () => {
+          await blocker.query("BEGIN");
+          await blocker.query(lockSql, params);
+        },
+        release: async () => {
+          await blocker.query("COMMIT");
+        },
+        rollback: async () => {
+          await blocker.query("ROLLBACK");
+        },
+        first,
+        second,
+        waitFirst: () => waitForWaiters(blockerPid, 1, "first operation"),
+        waitSecond: () => waitForWaiters(blockerPid, 2, "second operation"),
+        validate: validateWaiters,
+        settleTimeoutMs: 15000,
+      });
+      pairSafeties.push(result.safety);
       return {
-        first: observed(r1),
-        second: observed(r2),
-        waiters: { baseline, firstWaiters, secondWaiters },
+        first: observed(result.first),
+        second: observed(result.second),
+        waiters: { baseline, ...result.waiters },
       };
     } catch (error) {
-      await blocker.query("ROLLBACK").catch(() => undefined);
-      await withTimeout(
-        Promise.allSettled(started),
-        15000,
-        "locked pair drain"
-      ).catch(() => undefined);
+      // Preserve the safety outcome even when the pair throws; the outer
+      // finally must not delete fixtures while settlement is uncertain.
+      if (error instanceof LockPairError) pairSafeties.push(error.safety);
       throw error;
     }
   }
 
+
+  const pairSafeties: PairSafety[] = [];
 
   try {
     const seededAdmin = await prisma.user.findFirst({
@@ -837,51 +850,92 @@ async function main() {
       facultyIds: createdFacultyIds,
     };
   } finally {
+    results.pairSafety = pairSafeties;
+    const safetyForCleanup: PairSafety[] = httpUncertain
+      ? [
+          ...pairSafeties,
+          {
+            blockerReleased: false,
+            releaseUncertain: true,
+            operationsSettled: false,
+            failures: [
+              "an HTTP request did not complete confirmation; server-side completion is unknown",
+            ],
+            cleanupSafe: false,
+          },
+        ]
+      : pairSafeties;
 
     let cleanupError: string | undefined;
-    try {
-      await prisma.course.deleteMany({ where: { id: { in: createdCourseIds } } });
-      await prisma.studyProgram.deleteMany({ where: { id: { in: createdProgramIds } } });
-      await prisma.faculty.deleteMany({ where: { id: { in: createdFacultyIds } } });
-      await prisma.user.deleteMany({
+    const cleanupOutcome = await runSafeCleanup(safetyForCleanup, async () => {
+      try {
+        await prisma.course.deleteMany({ where: { id: { in: createdCourseIds } } });
+        await prisma.studyProgram.deleteMany({ where: { id: { in: createdProgramIds } } });
+        await prisma.faculty.deleteMany({ where: { id: { in: createdFacultyIds } } });
+        await prisma.user.deleteMany({
+          where: { email: { startsWith: emailPrefix } },
+        });
+      } catch (error) {
+        cleanupError = error instanceof Error ? error.message : String(error);
+      }
+    });
+
+    if (!cleanupOutcome.ran) {
+      // At least one started operation may still be running, or the blocker
+      // outcome is unknown. Deleting fixtures here could race those operations.
+      cleanupDeferred = true;
+      results.cleanup = {
+        deferred: true,
+        reason: cleanupOutcome.decision.allowed
+          ? "cleanup was not run"
+          : cleanupOutcome.decision.reason,
+        manifest: {
+          emailPrefix,
+          userIds: [...createdUserIds],
+          courseIds: [...createdCourseIds],
+          programIds: [...createdProgramIds],
+          facultyIds: [...createdFacultyIds],
+        },
+      };
+      cleanupFailure = `fixture deletion deferred: ${
+        cleanupOutcome.decision.allowed
+          ? "cleanup was not run"
+          : cleanupOutcome.decision.reason
+      }`;
+    } else {
+      const remainingFixtures = await prisma.user.count({
         where: { email: { startsWith: emailPrefix } },
       });
-    } catch (error) {
-      cleanupError = error instanceof Error ? error.message : String(error);
+      const usersAfterCleanup = await prisma.user.count();
+      const retainedAudit = createdUserIds.length
+        ? await prisma.userRoleAudit.groupBy({
+            by: ["userId"],
+            where: { userId: { in: createdUserIds } },
+            _count: { _all: true },
+          })
+        : [];
+
+      results.cleanup = {
+        remainingFixtures,
+        error: cleanupError ?? null,
+        retainedAudit: retainedAudit.map((row) => ({
+          userId: row.userId,
+          count: row._count._all,
+        })),
+      };
+      results.preservedUsers = { baseline: baselineUsers, after: usersAfterCleanup };
+      cleanupFailure = cleanupFailureMessage({
+        remainingFixtures,
+        error: cleanupError ?? null,
+        baselineUsers,
+        usersAfterCleanup,
+      });
+
+      await blocker.end().catch(() => undefined);
+      await monitor.end().catch(() => undefined);
+      await admin.end().catch(() => undefined);
+      await prisma.$disconnect().catch(() => undefined);
     }
-
-    const remainingFixtures = await prisma.user.count({
-      where: { email: { startsWith: emailPrefix } },
-    });
-    const usersAfterCleanup = await prisma.user.count();
-    const retainedAudit = createdUserIds.length
-      ? await prisma.userRoleAudit.groupBy({
-          by: ["userId"],
-          where: { userId: { in: createdUserIds } },
-          _count: { _all: true },
-        })
-      : [];
-
-    results.cleanup = {
-      remainingFixtures,
-      error: cleanupError ?? null,
-      retainedAudit: retainedAudit.map((row) => ({
-        userId: row.userId,
-        count: row._count._all,
-      })),
-    };
-    results.preservedUsers = { baseline: baselineUsers, after: usersAfterCleanup };
-    cleanupFailure = cleanupFailureMessage({
-      remainingFixtures,
-      error: cleanupError ?? null,
-      baselineUsers,
-      usersAfterCleanup,
-    });
-
-    await blocker.end().catch(() => undefined);
-    await monitor.end().catch(() => undefined);
-    await admin.end().catch(() => undefined);
-    await prisma.$disconnect().catch(() => undefined);
   }
 
   results.checks = checks;
@@ -900,4 +954,9 @@ main().catch((error) => {
     `FR-003 harness FAILED: ${error instanceof Error ? error.message : String(error)}`
   );
   process.exitCode = 1;
+  if (cleanupDeferred) {
+    // Operations may still hold the Prisma pool; leave fixtures in place and
+    // terminate instead of risking deletion while work is in flight.
+    process.exit(1);
+  }
 });

@@ -9,7 +9,11 @@ import {
 } from "../src/lib/schemas/user.schema";
 import { parsePartialProvisioning } from "../src/lib/user-provisioning";
 import {
+  cleanupDecision,
   cleanupFailureMessage,
+  LockPairError,
+  runLockedPairSafely,
+  runSafeCleanup,
   settle,
   validateWaiters,
   withTimeout,
@@ -906,6 +910,176 @@ test("harness validators reject missing waiters, timeouts, and cleanup failures"
     }) ?? "",
     /existing user count changed/
   );
+});
+
+const basePairHooks = {
+  begin: async () => undefined,
+  release: async () => undefined,
+  rollback: async () => undefined,
+  first: async () => "first-result",
+  second: async () => "second-result",
+  waitFirst: async () => [11],
+  waitSecond: async () => [11, 12],
+  validate: validateWaiters,
+  settleTimeoutMs: 100,
+};
+
+async function capturePairFailure(promise: Promise<unknown>): Promise<LockPairError> {
+  try {
+    await promise;
+  } catch (error) {
+    return error as LockPairError;
+  }
+  throw new Error("expected the locked pair to fail");
+}
+
+test("confirmed release and drain permit fixture cleanup", async () => {
+  let cleanupRuns = 0;
+  const result = await runLockedPairSafely(basePairHooks);
+  const outcome = await runSafeCleanup([result.safety], async () => {
+    cleanupRuns += 1;
+  });
+
+  assert.equal(result.safety.cleanupSafe, true);
+  assert.equal(outcome.ran, true);
+  assert.equal(cleanupRuns, 1);
+});
+
+test("drain timeout withholds fixture cleanup", async () => {
+  let cleanupRuns = 0;
+  const error = await capturePairFailure(
+    runLockedPairSafely({
+      ...basePairHooks,
+      second: () => new Promise<never>(() => undefined),
+      settleTimeoutMs: 20,
+    })
+  );
+
+  assert.ok(error instanceof LockPairError);
+  assert.equal(error.safety.operationsSettled, false);
+  assert.equal(error.safety.cleanupSafe, false);
+
+  const outcome = await runSafeCleanup([error.safety], async () => {
+    cleanupRuns += 1;
+  });
+  assert.equal(outcome.ran, false);
+  assert.match(outcome.decision.allowed ? "" : outcome.decision.reason, /drain/i);
+  assert.equal(cleanupRuns, 0);
+});
+
+test("failed blocker release withholds fixture cleanup", async () => {
+  let cleanupRuns = 0;
+  let rolledBack = false;
+  const error = await capturePairFailure(
+    runLockedPairSafely({
+      ...basePairHooks,
+      release: async () => {
+        throw new Error("commit failed");
+      },
+      rollback: async () => {
+        rolledBack = true;
+      },
+    })
+  );
+
+  assert.equal(rolledBack, true, "rollback is still attempted");
+  assert.equal(error.safety.blockerReleased, true);
+  assert.equal(error.safety.releaseUncertain, true);
+  assert.equal(error.safety.operationsSettled, true);
+  assert.equal(error.safety.cleanupSafe, false);
+
+  const outcome = await runSafeCleanup([error.safety], async () => {
+    cleanupRuns += 1;
+  });
+  assert.equal(outcome.ran, false);
+  assert.equal(cleanupRuns, 0);
+});
+
+test("a delayed operation completing after timeout does not race cleanup", async () => {
+  let cleanupRuns = 0;
+  let resolveSecond: ((value: string) => void) | undefined;
+  const delayedSecond = new Promise<string>((resolve) => {
+    resolveSecond = resolve;
+  });
+
+  const error = await capturePairFailure(
+    runLockedPairSafely({
+      ...basePairHooks,
+      second: () => delayedSecond,
+      settleTimeoutMs: 20,
+    })
+  );
+  assert.equal(error.safety.operationsSettled, false);
+
+  const outcome = await runSafeCleanup([error.safety], async () => {
+    cleanupRuns += 1;
+  });
+  assert.equal(outcome.ran, false);
+
+  resolveSecond?.("late");
+  await delayedSecond;
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(cleanupRuns, 0, "cleanup must not run after the late operation");
+});
+
+test("original failure and rollback/drain failures are all retained", async () => {
+  const error = await capturePairFailure(
+    runLockedPairSafely({
+      ...basePairHooks,
+      first: () => new Promise<never>(() => undefined),
+      second: () => new Promise<never>(() => undefined),
+      validate: () => {
+        throw new Error("original waiter failure");
+      },
+      rollback: async () => {
+        throw new Error("rollback exploded");
+      },
+      settleTimeoutMs: 20,
+    })
+  );
+
+  assert.match(error.message, /original waiter failure/);
+  const joined = error.safety.failures.join(" | ");
+  assert.match(joined, /original waiter failure/);
+  assert.match(joined, /blocker rollback failed: rollback exploded/);
+  assert.match(joined, /operation drain failed/);
+  assert.equal(error.safety.cleanupSafe, false);
+});
+
+test("deferred cleanup is a failure outcome, not a passed result", async () => {
+  const decision = cleanupDecision([
+    {
+      blockerReleased: false,
+      releaseUncertain: true,
+      operationsSettled: false,
+      failures: ["operation drain failed: timed out"],
+      cleanupSafe: false,
+    },
+  ]);
+
+  assert.equal(decision.allowed, false);
+  if (!decision.allowed) {
+    assert.match(decision.reason, /drain failed/);
+  }
+
+  let cleanupRuns = 0;
+  const outcome = await runSafeCleanup(
+    [
+      {
+        blockerReleased: false,
+        releaseUncertain: true,
+        operationsSettled: false,
+        failures: ["operation drain failed: timed out"],
+        cleanupSafe: false,
+      },
+    ],
+    async () => {
+      cleanupRuns += 1;
+    }
+  );
+  assert.equal(outcome.ran, false);
+  assert.equal(cleanupRuns, 0);
+  assert.equal(outcome.decision.allowed, false);
 });
 
 test("assignInstructor locks the user row before checking the role", async () => {

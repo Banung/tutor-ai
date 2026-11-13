@@ -58,6 +58,10 @@ export const ModelName = {
   Verification: 'Verification',
   Faculty: 'Faculty',
   StudyProgram: 'StudyProgram',
+  AcademicCourseReference: 'AcademicCourseReference',
+  LecturerReference: 'LecturerReference',
+  AcademicImportBatch: 'AcademicImportBatch',
+  AcademicImportRowOutcome: 'AcademicImportRowOutcome',
   Course: 'Course',
   CourseCatalogStatusLog: 'CourseCatalogStatusLog',
   CourseInstructor: 'CourseInstructor',
@@ -169,7 +173,10 @@ export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[k
 export const FacultyScalarFieldEnum = {
   id: 'id',
   name: 'name',
-  createdAt: 'createdAt'
+  code: 'code',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type FacultyScalarFieldEnum = (typeof FacultyScalarFieldEnum)[keyof typeof FacultyScalarFieldEnum]
@@ -179,10 +186,79 @@ export const StudyProgramScalarFieldEnum = {
   id: 'id',
   facultyId: 'facultyId',
   name: 'name',
-  createdAt: 'createdAt'
+  code: 'code',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type StudyProgramScalarFieldEnum = (typeof StudyProgramScalarFieldEnum)[keyof typeof StudyProgramScalarFieldEnum]
+
+
+export const AcademicCourseReferenceScalarFieldEnum = {
+  id: 'id',
+  studyProgramId: 'studyProgramId',
+  courseCode: 'courseCode',
+  name: 'name',
+  isActive: 'isActive',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AcademicCourseReferenceScalarFieldEnum = (typeof AcademicCourseReferenceScalarFieldEnum)[keyof typeof AcademicCourseReferenceScalarFieldEnum]
+
+
+export const LecturerReferenceScalarFieldEnum = {
+  id: 'id',
+  nip: 'nip',
+  nidn: 'nidn',
+  name: 'name',
+  email: 'email',
+  isActive: 'isActive',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LecturerReferenceScalarFieldEnum = (typeof LecturerReferenceScalarFieldEnum)[keyof typeof LecturerReferenceScalarFieldEnum]
+
+
+export const AcademicImportBatchScalarFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  source: 'source',
+  type: 'type',
+  fileName: 'fileName',
+  fileDigest: 'fileDigest',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  summary: 'summary',
+  rows: 'rows',
+  createdCount: 'createdCount',
+  updatedCount: 'updatedCount',
+  unchangedCount: 'unchangedCount',
+  failedCount: 'failedCount',
+  conflictCount: 'conflictCount',
+  createdAt: 'createdAt',
+  confirmedAt: 'confirmedAt'
+} as const
+
+export type AcademicImportBatchScalarFieldEnum = (typeof AcademicImportBatchScalarFieldEnum)[keyof typeof AcademicImportBatchScalarFieldEnum]
+
+
+export const AcademicImportRowOutcomeScalarFieldEnum = {
+  id: 'id',
+  batchId: 'batchId',
+  rowNumber: 'rowNumber',
+  identity: 'identity',
+  action: 'action',
+  message: 'message',
+  data: 'data',
+  createdAt: 'createdAt'
+} as const
+
+export type AcademicImportRowOutcomeScalarFieldEnum = (typeof AcademicImportRowOutcomeScalarFieldEnum)[keyof typeof AcademicImportRowOutcomeScalarFieldEnum]
 
 
 export const CourseScalarFieldEnum = {
@@ -381,6 +457,13 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullableJsonNullValueInput = {

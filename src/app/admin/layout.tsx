@@ -3,13 +3,14 @@
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Loader2, LayoutDashboard, Users, BookOpen, UserPen } from "lucide-react";
+import { Loader2, LayoutDashboard, Users, BookOpen, UserPen, FileSpreadsheet } from "lucide-react";
 import { PanelSidebar } from "@/components/panel-sidebar";
 
 const NAV_ITEMS = [
   { title: "Overview", href: "/admin", icon: LayoutDashboard, exact: true },
   { title: "User Management", href: "/admin/users", icon: Users },
   { title: "Course Management", href: "/admin/courses", icon: BookOpen },
+  { title: "Impor Akademik", href: "/admin/academic-import", icon: FileSpreadsheet },
   { title: "Prompt AI", href: "/admin/tutor-prompts", icon: UserPen },
 ];
 

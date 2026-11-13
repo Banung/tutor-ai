@@ -27,19 +27,28 @@ export type AggregateFaculty = {
 export type FacultyMinAggregateOutputType = {
   id: string | null
   name: string | null
+  code: string | null
+  source: $Enums.AcademicSource | null
   createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type FacultyMaxAggregateOutputType = {
   id: string | null
   name: string | null
+  code: string | null
+  source: $Enums.AcademicSource | null
   createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type FacultyCountAggregateOutputType = {
   id: number
   name: number
+  code: number
+  source: number
   createdAt: number
+  updatedAt: number
   _all: number
 }
 
@@ -47,19 +56,28 @@ export type FacultyCountAggregateOutputType = {
 export type FacultyMinAggregateInputType = {
   id?: true
   name?: true
+  code?: true
+  source?: true
   createdAt?: true
+  updatedAt?: true
 }
 
 export type FacultyMaxAggregateInputType = {
   id?: true
   name?: true
+  code?: true
+  source?: true
   createdAt?: true
+  updatedAt?: true
 }
 
 export type FacultyCountAggregateInputType = {
   id?: true
   name?: true
+  code?: true
+  source?: true
   createdAt?: true
+  updatedAt?: true
   _all?: true
 }
 
@@ -138,7 +156,10 @@ export type FacultyGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 export type FacultyGroupByOutputType = {
   id: string
   name: string
+  code: string | null
+  source: $Enums.AcademicSource | null
   createdAt: Date
+  updatedAt: Date
   _count: FacultyCountAggregateOutputType | null
   _min: FacultyMinAggregateOutputType | null
   _max: FacultyMaxAggregateOutputType | null
@@ -165,31 +186,43 @@ export type FacultyWhereInput = {
   NOT?: Prisma.FacultyWhereInput | Prisma.FacultyWhereInput[]
   id?: Prisma.StringFilter<"Faculty"> | string
   name?: Prisma.StringFilter<"Faculty"> | string
+  code?: Prisma.StringNullableFilter<"Faculty"> | string | null
+  source?: Prisma.EnumAcademicSourceNullableFilter<"Faculty"> | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFilter<"Faculty"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Faculty"> | Date | string
   studyPrograms?: Prisma.StudyProgramListRelationFilter
 }
 
 export type FacultyOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrderInput | Prisma.SortOrder
+  source?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   studyPrograms?: Prisma.StudyProgramOrderByRelationAggregateInput
 }
 
 export type FacultyWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   name?: string
+  code?: string
   AND?: Prisma.FacultyWhereInput | Prisma.FacultyWhereInput[]
   OR?: Prisma.FacultyWhereInput[]
   NOT?: Prisma.FacultyWhereInput | Prisma.FacultyWhereInput[]
+  source?: Prisma.EnumAcademicSourceNullableFilter<"Faculty"> | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFilter<"Faculty"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Faculty"> | Date | string
   studyPrograms?: Prisma.StudyProgramListRelationFilter
-}, "id" | "name">
+}, "id" | "name" | "code">
 
 export type FacultyOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrderInput | Prisma.SortOrder
+  source?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   _count?: Prisma.FacultyCountOrderByAggregateInput
   _max?: Prisma.FacultyMaxOrderByAggregateInput
   _min?: Prisma.FacultyMinOrderByAggregateInput
@@ -201,76 +234,113 @@ export type FacultyScalarWhereWithAggregatesInput = {
   NOT?: Prisma.FacultyScalarWhereWithAggregatesInput | Prisma.FacultyScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Faculty"> | string
   name?: Prisma.StringWithAggregatesFilter<"Faculty"> | string
+  code?: Prisma.StringNullableWithAggregatesFilter<"Faculty"> | string | null
+  source?: Prisma.EnumAcademicSourceNullableWithAggregatesFilter<"Faculty"> | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Faculty"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Faculty"> | Date | string
 }
 
 export type FacultyCreateInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   studyPrograms?: Prisma.StudyProgramCreateNestedManyWithoutFacultyInput
 }
 
 export type FacultyUncheckedCreateInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   studyPrograms?: Prisma.StudyProgramUncheckedCreateNestedManyWithoutFacultyInput
 }
 
 export type FacultyUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   studyPrograms?: Prisma.StudyProgramUpdateManyWithoutFacultyNestedInput
 }
 
 export type FacultyUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   studyPrograms?: Prisma.StudyProgramUncheckedUpdateManyWithoutFacultyNestedInput
 }
 
 export type FacultyCreateManyInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type FacultyUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FacultyUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FacultyCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrder
+  source?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type FacultyMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrder
+  source?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type FacultyMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
+  code?: Prisma.SortOrder
+  source?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type FacultyScalarRelationFilter = {
   is?: Prisma.FacultyWhereInput
   isNot?: Prisma.FacultyWhereInput
+}
+
+export type NullableEnumAcademicSourceFieldUpdateOperationsInput = {
+  set?: $Enums.AcademicSource | null
 }
 
 export type FacultyCreateNestedOneWithoutStudyProgramsInput = {
@@ -290,13 +360,19 @@ export type FacultyUpdateOneRequiredWithoutStudyProgramsNestedInput = {
 export type FacultyCreateWithoutStudyProgramsInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type FacultyUncheckedCreateWithoutStudyProgramsInput = {
   id: string
   name: string
+  code?: string | null
+  source?: $Enums.AcademicSource | null
   createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type FacultyCreateOrConnectWithoutStudyProgramsInput = {
@@ -318,13 +394,19 @@ export type FacultyUpdateToOneWithWhereWithoutStudyProgramsInput = {
 export type FacultyUpdateWithoutStudyProgramsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FacultyUncheckedUpdateWithoutStudyProgramsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.NullableEnumAcademicSourceFieldUpdateOperationsInput | $Enums.AcademicSource | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -361,7 +443,10 @@ export type FacultyCountOutputTypeCountStudyProgramsArgs<ExtArgs extends runtime
 export type FacultySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   name?: boolean
+  code?: boolean
+  source?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   studyPrograms?: boolean | Prisma.Faculty$studyProgramsArgs<ExtArgs>
   _count?: boolean | Prisma.FacultyCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["faculty"]>
@@ -369,22 +454,31 @@ export type FacultySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 export type FacultySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   name?: boolean
+  code?: boolean
+  source?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
 }, ExtArgs["result"]["faculty"]>
 
 export type FacultySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   name?: boolean
+  code?: boolean
+  source?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
 }, ExtArgs["result"]["faculty"]>
 
 export type FacultySelectScalar = {
   id?: boolean
   name?: boolean
+  code?: boolean
+  source?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
 }
 
-export type FacultyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "createdAt", ExtArgs["result"]["faculty"]>
+export type FacultyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "code" | "source" | "createdAt" | "updatedAt", ExtArgs["result"]["faculty"]>
 export type FacultyInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   studyPrograms?: boolean | Prisma.Faculty$studyProgramsArgs<ExtArgs>
   _count?: boolean | Prisma.FacultyCountOutputTypeDefaultArgs<ExtArgs>
@@ -400,7 +494,10 @@ export type $FacultyPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     name: string
+    code: string | null
+    source: $Enums.AcademicSource | null
     createdAt: Date
+    updatedAt: Date
   }, ExtArgs["result"]["faculty"]>
   composites: {}
 }
@@ -827,7 +924,10 @@ export interface Prisma__FacultyClient<T, Null = never, ExtArgs extends runtime.
 export interface FacultyFieldRefs {
   readonly id: Prisma.FieldRef<"Faculty", 'String'>
   readonly name: Prisma.FieldRef<"Faculty", 'String'>
+  readonly code: Prisma.FieldRef<"Faculty", 'String'>
+  readonly source: Prisma.FieldRef<"Faculty", 'AcademicSource'>
   readonly createdAt: Prisma.FieldRef<"Faculty", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"Faculty", 'DateTime'>
 }
     
 

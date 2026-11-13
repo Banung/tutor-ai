@@ -110,10 +110,41 @@ model Verification {
 // ACADEMIC REFERENCES
 // ==========================================
 
+enum AcademicSource {
+  SIAT
+  PIPP
+}
+
+enum AcademicImportType {
+  STUDY_PROGRAMS
+  COURSES
+  LECTURERS
+}
+
+enum AcademicImportStatus {
+  PREVIEWED
+  CONFIRMING
+  CONFIRMED
+  PARTIAL
+  FAILED
+  EXPIRED
+}
+
+enum AcademicImportAction {
+  CREATED
+  UPDATED
+  UNCHANGED
+  FAILED
+  CONFLICT
+}
+
 model Faculty {
   id        String   @id
   name      String   @unique
+  code      String?  @unique // normalized stable code, null until adopted/imported
+  source    AcademicSource?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   studyPrograms StudyProgram[]
 
@@ -124,14 +155,96 @@ model StudyProgram {
   id        String   @id
   facultyId String
   name      String
+  code      String?  // identity is (facultyId, code); null until adopted/imported
+  source    AcademicSource?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   faculty Faculty  @relation(fields: [facultyId], references: [id], onDelete: Restrict)
   courses Course[]
+  academicCourseReferences AcademicCourseReference[]
 
   @@unique([facultyId, name])
+  @@unique([facultyId, code])
   @@index([facultyId])
   @@map("study_program")
+}
+
+// Imported course reference only. Never touches catalog Course, enrollment,
+// instructors, publication, or interaction data.
+model AcademicCourseReference {
+  id             String         @id
+  studyProgramId String
+  courseCode     String         // normalized UPPERCASE, unique per program
+  name           String
+  isActive       Boolean        @default(true)
+  source         AcademicSource
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  studyProgram StudyProgram @relation(fields: [studyProgramId], references: [id], onDelete: Restrict)
+
+  @@unique([studyProgramId, courseCode])
+  @@index([studyProgramId])
+  @@map("academic_course_reference")
+}
+
+// Imported lecturer reference only. Never creates or mutates User/account.
+model LecturerReference {
+  id        String         @id
+  nip       String?        @unique
+  nidn      String?        @unique
+  name      String
+  email     String?
+  isActive  Boolean        @default(true)
+  source    AcademicSource
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@map("lecturer_reference")
+}
+
+model AcademicImportBatch {
+  id            String               @id
+  actorId       String
+  source        AcademicSource
+  type          AcademicImportType
+  fileName      String
+  fileDigest    String
+  status        AcademicImportStatus @default(PREVIEWED)
+  expiresAt     DateTime
+  summary       Json
+  rows          Json // bounded server-owned staging (normalized rows + classification)
+  createdCount  Int                  @default(0)
+  updatedCount  Int                  @default(0)
+  unchangedCount Int                 @default(0)
+  failedCount   Int                  @default(0)
+  conflictCount Int                  @default(0)
+  createdAt     DateTime             @default(now())
+  confirmedAt   DateTime?
+
+  outcomes AcademicImportRowOutcome[]
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@map("academic_import_batch")
+}
+
+model AcademicImportRowOutcome {
+  id        String               @id
+  batchId   String
+  rowNumber Int
+  identity  String
+  action    AcademicImportAction
+  message   String?
+  data      Json?
+  createdAt DateTime             @default(now())
+
+  batch AcademicImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, rowNumber])
+  @@index([batchId, action])
+  @@map("academic_import_row_outcome")
 }
 
 // ==========================================

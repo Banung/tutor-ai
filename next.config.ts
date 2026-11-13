@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  serverExternalPackages: ["exceljs", "csv-parse"],
   async redirects() {
     return [
       {

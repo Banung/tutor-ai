@@ -77,6 +77,26 @@ export type Faculty = Prisma.FacultyModel
  */
 export type StudyProgram = Prisma.StudyProgramModel
 /**
+ * Model AcademicCourseReference
+ * 
+ */
+export type AcademicCourseReference = Prisma.AcademicCourseReferenceModel
+/**
+ * Model LecturerReference
+ * 
+ */
+export type LecturerReference = Prisma.LecturerReferenceModel
+/**
+ * Model AcademicImportBatch
+ * 
+ */
+export type AcademicImportBatch = Prisma.AcademicImportBatchModel
+/**
+ * Model AcademicImportRowOutcome
+ * 
+ */
+export type AcademicImportRowOutcome = Prisma.AcademicImportRowOutcomeModel
+/**
  * Model Course
  * 
  */
