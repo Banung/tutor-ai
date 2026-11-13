@@ -60,7 +60,6 @@ type RagSource = {
 const CONTEXT_MESSAGE_TYPE = "context";
 const VISIBLE_SENDER_TYPES = ["user", "ai"];
 const MAX_CONTEXT_CHUNKS = 8;
-const MAX_CONTEXT_CHARS_PER_CHUNK = 1400;
 const MAX_HISTORY_MESSAGES = 8;
 const AVATAR_RESPONSE_MAX_WORDS = 45;
 
@@ -381,7 +380,7 @@ function buildContextBlock(chunks: RetrievedChunkRow[]) {
   return chunks
     .map((chunk, index) => {
       const sourceNumber = index + 1;
-      const content = truncateText(chunk.content, MAX_CONTEXT_CHARS_PER_CHUNK);
+      const content = chunk.content;
 
       return [
         `[Sumber ${sourceNumber}]`,
