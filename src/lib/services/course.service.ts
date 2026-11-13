@@ -307,7 +307,7 @@ export async function uploadCourseCover(
     throw new CourseServiceError("Course tidak ditemukan", 404);
   }
 
-  const validation = validateCourseCoverUpload(file);
+  const validation = await validateCourseCoverUpload(file);
   if (validation.error || !validation.detected) {
     throw new CourseServiceError(validation.error ?? "Berkas gambar tidak valid.", 400);
   }
@@ -360,13 +360,24 @@ export async function deleteCourse(id: string) {
 }
 
 export async function assignInstructor(courseId: string, userId: string) {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true },
+  });
+  if (!course) {
+    throw new CourseServiceError("Course tidak ditemukan", 404);
+  }
+
   // Verify user is a dosen
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) {
-    throw new Error("User tidak ditemukan");
+    throw new CourseServiceError("User tidak ditemukan", 404);
   }
   if (user.role !== "dosen") {
-    throw new Error("Hanya user dengan role dosen yang dapat ditugaskan sebagai pengajar");
+    throw new CourseServiceError(
+      "Hanya user dengan role dosen yang dapat ditugaskan sebagai pengajar",
+      400
+    );
   }
 
   // Check not already assigned
@@ -374,49 +385,68 @@ export async function assignInstructor(courseId: string, userId: string) {
     where: { courseId, userId },
   });
   if (existing) {
-    throw new Error("Dosen sudah ditugaskan ke course ini");
+    throw new CourseServiceError("Dosen sudah ditugaskan ke course ini", 409);
   }
 
-  return prisma.courseInstructor.create({
-    data: {
-      id: crypto.randomUUID(),
-      courseId,
-      userId,
-    },
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-    },
-  });
+  try {
+    return await prisma.courseInstructor.create({
+      data: {
+        id: crypto.randomUUID(),
+        courseId,
+        userId,
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+      },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new CourseServiceError("Dosen sudah ditugaskan ke course ini", 409);
+    }
+    throw error;
+  }
 }
 
 export async function removeInstructor(courseId: string, userId: string) {
-  const existing = await prisma.courseInstructor.findFirst({
-    where: { courseId, userId },
+  // Locking convention: instructor membership changes take a row lock on the parent
+  // course. FR-002 publication must acquire the same lock before its completeness check
+  // and status transition so the two operations serialize.
+  return prisma.$transaction(async (tx) => {
+    const lockedCourse = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "course" WHERE "id" = ${courseId} FOR UPDATE
+    `;
+    if (lockedCourse.length === 0) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    const existing = await tx.courseInstructor.findFirst({
+      where: { courseId, userId },
+    });
+    if (!existing) {
+      throw new CourseServiceError("Assignment tidak ditemukan", 404);
+    }
+
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: {
+        catalogStatus: true,
+        _count: { select: { instructors: true } },
+      },
+    });
+
+    if (
+      course?.catalogStatus === "PUBLISHED" &&
+      course._count.instructors <= 1
+    ) {
+      throw new CourseServiceError(
+        "Course yang dipublikasikan wajib memiliki minimal satu dosen pengampu.",
+        409
+      );
+    }
+
+    await tx.courseInstructor.delete({ where: { id: existing.id } });
+    return { success: true };
   });
-  if (!existing) {
-    throw new CourseServiceError("Assignment tidak ditemukan", 404);
-  }
-
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    select: {
-      catalogStatus: true,
-      _count: { select: { instructors: true } },
-    },
-  });
-
-  if (
-    course?.catalogStatus === "PUBLISHED" &&
-    course._count.instructors <= 1
-  ) {
-    throw new CourseServiceError(
-      "Course yang dipublikasikan wajib memiliki minimal satu dosen pengampu.",
-      409
-    );
-  }
-
-  await prisma.courseInstructor.delete({ where: { id: existing.id } });
-  return { success: true };
 }
 
 export async function listAdminCourseSessions(courseId: string) {

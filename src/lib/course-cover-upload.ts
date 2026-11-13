@@ -1,3 +1,5 @@
+import { loadImage } from "canvas";
+
 export const MAX_COURSE_COVER_BYTES = 2 * 1024 * 1024;
 
 export type DetectedCoverImage = {
@@ -27,7 +29,10 @@ export function detectCourseCoverImage(buffer: Uint8Array): DetectedCoverImage |
   return null;
 }
 
-export function validateCourseCoverUpload(file: { size: number; buffer: Uint8Array }) {
+export async function validateCourseCoverUpload(file: {
+  size: number;
+  buffer: Uint8Array;
+}) {
   if (file.size > MAX_COURSE_COVER_BYTES || file.buffer.byteLength > MAX_COURSE_COVER_BYTES) {
     return { error: "Berkas gambar melebihi 2 MB." as const, detected: null };
   }
@@ -35,6 +40,21 @@ export function validateCourseCoverUpload(file: { size: number; buffer: Uint8Arr
   const detected = detectCourseCoverImage(file.buffer);
   if (!detected) {
     return { error: "Format berkas tidak didukung. Gunakan JPG atau PNG." as const, detected: null };
+  }
+
+  try {
+    const image = await loadImage(Buffer.from(file.buffer));
+    if (!image.width || !image.height) {
+      return {
+        error: "Berkas gambar tidak valid atau rusak." as const,
+        detected: null,
+      };
+    }
+  } catch {
+    return {
+      error: "Berkas gambar tidak valid atau rusak." as const,
+      detected: null,
+    };
   }
 
   return { error: null, detected };

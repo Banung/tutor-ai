@@ -64,8 +64,10 @@ import {
   X,
   BookOpen,
   Boxes,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { retrySavedCourseCover, saveCourseWithOptionalCover } from "@/lib/course-save-flow";
 
 type CatalogStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 
@@ -160,6 +162,13 @@ export default function CoursesPage() {
   const [formFacultyId, setFormFacultyId] = useState("");
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [partialCover, setPartialCover] = useState<{
+    courseId: string;
+    title: string;
+    file: File;
+    message: string;
+  } | null>(null);
+  const [retryingCover, setRetryingCover] = useState(false);
 
   // Archive dialog
   const [archiveTarget, setArchiveTarget] = useState<Course | null>(null);
@@ -271,19 +280,35 @@ export default function CoursesPage() {
     setDialogOpen(true);
   }
 
-  async function uploadCover(courseId: string) {
-    if (!coverFile) return true;
+  async function uploadCover(courseId: string, file: File) {
     const body = new FormData();
-    body.set("file", coverFile);
+    body.set("file", file);
     const res = await fetch(`/api/admin/courses/${courseId}/cover`, {
       method: "POST",
       body,
     });
     if (!res.ok) {
-      toast.error(await getErrorMessage(res, "Course tersimpan, tetapi cover gagal diunggah."));
-      return false;
+      throw new Error(await getErrorMessage(res, "Cover gagal diunggah"));
     }
-    return true;
+  }
+
+  async function retryPartialCover() {
+    if (!partialCover) return;
+    setRetryingCover(true);
+    const outcome = await retrySavedCourseCover({
+      courseId: partialCover.courseId,
+      uploadCover: (courseId) => uploadCover(courseId, partialCover.file),
+    });
+
+    if (outcome.ok) {
+      toast.success("Cover berhasil diunggah");
+      setPartialCover(null);
+      fetchCourses();
+    } else {
+      setPartialCover((current) => (current ? { ...current, message: outcome.message } : null));
+      toast.error(outcome.message);
+    }
+    setRetryingCover(false);
   }
 
   async function handleSubmit() {
@@ -296,33 +321,64 @@ export default function CoursesPage() {
         studyProgramId: form.studyProgramId || null,
         hasArModule: form.hasArModule,
       };
+      const file = coverFile;
 
-      if (editingCourse) {
-        const body: Record<string, unknown> = { ...shared };
-        if (form.courseCode.trim()) body.courseCode = form.courseCode;
+      const outcome = await saveCourseWithOptionalCover({
+        hasCover: Boolean(file),
+        saveMetadata: async () => {
+          if (editingCourse) {
+            const body: Record<string, unknown> = { ...shared };
+            if (form.courseCode.trim()) body.courseCode = form.courseCode;
 
-        const res = await fetch(`/api/admin/courses/${editingCourse.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) {
-          throw new Error(await getErrorMessage(res, "Gagal memperbarui course"));
-        }
-        await uploadCover(editingCourse.id);
-        toast.success("Course berhasil diperbarui");
+            const res = await fetch(`/api/admin/courses/${editingCourse.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+              throw new Error(await getErrorMessage(res, "Gagal memperbarui course"));
+            }
+            return editingCourse.id;
+          }
+
+          const res = await fetch("/api/admin/courses", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...shared, courseCode: form.courseCode }),
+          });
+          if (!res.ok) {
+            throw new Error(await getErrorMessage(res, "Gagal membuat course"));
+          }
+
+          const created = (await res.json().catch(() => null)) as { id?: string } | null;
+          if (!created?.id) {
+            throw new Error("Course tersimpan tetapi ID course tidak diterima");
+          }
+          return created.id;
+        },
+        uploadCover: async (courseId) => {
+          if (file) await uploadCover(courseId, file);
+        },
+      });
+
+      if (outcome.kind === "metadata-failed") {
+        toast.error(outcome.message);
+        return;
+      }
+
+      if (outcome.kind === "saved") {
+        setPartialCover(null);
+        toast.success(editingCourse ? "Course berhasil diperbarui" : "Course berhasil dibuat sebagai draft");
       } else {
-        const res = await fetch("/api/admin/courses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...shared, courseCode: form.courseCode }),
+        setPartialCover({
+          courseId: outcome.courseId,
+          title: form.title,
+          file: file!,
+          message: outcome.message,
         });
-        if (!res.ok) {
-          throw new Error(await getErrorMessage(res, "Gagal membuat course"));
-        }
-        const created = (await res.json()) as { id: string };
-        await uploadCover(created.id);
-        toast.success("Course berhasil dibuat sebagai draft");
+        toast.error(
+          "Metadata course sudah tersimpan, tetapi cover gagal diunggah. Gunakan tombol coba lagi pada banner."
+        );
       }
 
       setDialogOpen(false);
@@ -508,6 +564,40 @@ export default function CoursesPage() {
           </SelectContent>
         </Select>
       </div>
+
+      {partialCover && (
+        <div className="flex flex-col gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 sm:flex-row sm:items-start">
+          <AlertCircle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">
+              Metadata &quot;{partialCover.title}&quot; sudah tersimpan.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {partialCover.message} Course tidak akan dibuat ulang; unggah ulang cover
+              untuk course yang sudah tersimpan ini.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={retryPartialCover}
+              disabled={retryingCover}
+            >
+              {retryingCover && <Loader2 className="animate-spin" data-icon="inline-start" />}
+              Coba unggah cover
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setPartialCover(null)}
+              disabled={retryingCover}
+            >
+              Tutup
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-xl border bg-card">

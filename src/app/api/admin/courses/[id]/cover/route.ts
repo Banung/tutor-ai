@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, type RouteContext } from "@/lib/api-utils";
+import { MAX_COURSE_COVER_BYTES } from "@/lib/course-cover-upload";
 import { CourseServiceError, uploadCourseCover } from "@/lib/services/course.service";
 
 export async function POST(request: NextRequest, context: RouteContext) {
@@ -12,6 +13,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "Berkas gambar wajib diunggah." }, { status: 400 });
+  }
+
+  if (file.size > MAX_COURSE_COVER_BYTES) {
+    return NextResponse.json({ error: "Berkas gambar melebihi 2 MB." }, { status: 400 });
   }
 
   try {

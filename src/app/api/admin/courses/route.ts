@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-utils";
+import {
+  GENERIC_API_ERROR,
+  logUnexpectedError,
+  readJsonBody,
+} from "@/lib/api-errors";
 import { adminCreateCourseSchema, catalogStatusSchema } from "@/lib/schemas/course.schema";
 import * as courseService from "@/lib/services/course.service";
 import { AcademicReferenceError } from "@/lib/services/academic.service";
 
-function toErrorResponse(err: unknown, fallback: string) {
+function toErrorResponse(err: unknown) {
   if (err instanceof courseService.CourseServiceError) {
     return NextResponse.json({ error: err.message }, { status: err.status });
   }
   if (err instanceof AcademicReferenceError) {
     return NextResponse.json({ error: err.message }, { status: err.status });
   }
-  return NextResponse.json(
-    { error: err instanceof Error ? err.message : fallback },
-    { status: 500 }
-  );
+
+  logUnexpectedError("admin.courses", err);
+  return NextResponse.json({ error: GENERIC_API_ERROR }, { status: 500 });
 }
 
 export async function GET(request: NextRequest) {
@@ -44,9 +48,12 @@ export async function POST(request: NextRequest) {
   const { error, session } = await requireAdmin(request);
   if (error) return error;
 
-  const body = await request.json();
-  const result = adminCreateCourseSchema.safeParse(body);
+  const body = await readJsonBody(request);
+  if (!body.ok) {
+    return NextResponse.json({ error: "Payload JSON tidak valid" }, { status: 400 });
+  }
 
+  const result = adminCreateCourseSchema.safeParse(body.data);
   if (!result.success) {
     return NextResponse.json({ error: result.error.issues }, { status: 400 });
   }
@@ -55,6 +62,6 @@ export async function POST(request: NextRequest) {
     const course = await courseService.createCourse(result.data, session!.user.id);
     return NextResponse.json(course, { status: 201 });
   } catch (err) {
-    return toErrorResponse(err, "Gagal membuat course");
+    return toErrorResponse(err);
   }
 }
