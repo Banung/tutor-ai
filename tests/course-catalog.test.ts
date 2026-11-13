@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import {
   adminCreateCourseSchema,
   createCourseSchema,
+  publicationActionSchema,
   updateCourseSchema,
 } from "../src/lib/schemas/course.schema";
 import {
@@ -164,49 +165,399 @@ test("uploaded covers are recognized as custom and preserved", () => {
   assert.equal(isCustomCourseCover(null), false);
 });
 
-test("archiveCourse is idempotent and does not delete anything", async () => {
+test("archiveCourse logs one transition and is a no-op when already archived", async () => {
   const { prisma, courseService } = await loadServices();
-  const calls: unknown[] = [];
-  const restoreFind = replaceMethod(prisma.course, "findUnique", async () => ({
-    id: "course-1",
-    catalogStatus: "PUBLISHED",
-  }));
-  const restoreUpdate = replaceMethod(prisma.course, "update", async (args: unknown) => {
-    calls.push(args);
-    return { id: "course-1", catalogStatus: "ARCHIVED" };
-  });
+  let status: "DRAFT" | "PUBLISHED" | "ARCHIVED" = "PUBLISHED";
+  const logs: Array<Record<string, unknown>> = [];
+  let updates = 0;
+  const tx = {
+    $queryRaw: async () => [{ id: "course-1" }],
+    course: {
+      findUnique: async () => ({ catalogStatus: status }),
+      update: async () => {
+        updates += 1;
+        status = "ARCHIVED";
+        return { id: "course-1", catalogStatus: status };
+      },
+    },
+    courseCatalogStatusLog: {
+      create: async (args: { data: Record<string, unknown> }) => {
+        logs.push(args.data);
+        return args.data;
+      },
+    },
+  };
+  const restore = replaceMethod(prisma, "$transaction", async (callback: unknown) =>
+    (callback as (client: unknown) => Promise<unknown>)(tx)
+  );
 
   try {
-    const first = await courseService.archiveCourse("course-1");
-    assert.deepEqual(first, { success: true, catalogStatus: "ARCHIVED" });
-    assert.equal(calls.length, 1);
+    const first = await courseService.archiveCourse("course-1", "admin-1");
+    assert.deepEqual(first, { success: true, catalogStatus: "ARCHIVED", changed: true });
+    assert.equal(updates, 1);
+    assert.equal(logs.length, 1);
+    assert.equal(logs[0].courseId, "course-1");
+    assert.equal(logs[0].actorId, "admin-1");
+    assert.equal(logs[0].fromStatus, "PUBLISHED");
+    assert.equal(logs[0].toStatus, "ARCHIVED");
 
-    restoreFind();
-    replaceMethod(prisma.course, "findUnique", async () => ({
-      id: "course-1",
-      catalogStatus: "ARCHIVED",
-    }));
-
-    const second = await courseService.archiveCourse("course-1");
-    assert.deepEqual(second, { success: true, catalogStatus: "ARCHIVED" });
-    assert.equal(calls.length, 1, "already archived course must not be updated again");
+    const second = await courseService.archiveCourse("course-1", "admin-1");
+    assert.deepEqual(second, { success: true, catalogStatus: "ARCHIVED", changed: false });
+    assert.equal(updates, 1, "already archived course must not be updated again");
+    assert.equal(logs.length, 1, "no-op archive must not add an audit entry");
   } finally {
-    restoreFind();
-    restoreUpdate();
+    restore();
   }
 });
 
 test("archiveCourse reports missing courses with a 404 service error", async () => {
   const { prisma, courseService } = await loadServices();
-  const restore = replaceMethod(prisma.course, "findUnique", async () => null);
+  const tx = { $queryRaw: async () => [] };
+  const restore = replaceMethod(prisma, "$transaction", async (callback: unknown) =>
+    (callback as (client: unknown) => Promise<unknown>)(tx)
+  );
 
   try {
     await assert.rejects(
-      () => courseService.archiveCourse("missing"),
+      () => courseService.archiveCourse("missing", "admin-1"),
       (error: unknown) =>
         error instanceof courseService.CourseServiceError &&
         error.status === 404 &&
         error.message === "Course tidak ditemukan"
+    );
+  } finally {
+    restore();
+  }
+});
+
+type PublicationCourse = {
+  id: string;
+  title: string;
+  courseCode: string | null;
+  isActive: boolean;
+  catalogStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  studyProgram: { id: string; facultyId: string } | null;
+  _count: { instructors: number };
+};
+
+function publicationTx(course: PublicationCourse | null) {
+  const logs: Array<Record<string, unknown>> = [];
+  let updates = 0;
+  const state = course ? { ...course } : null;
+  const tx = {
+    $queryRaw: async () => (state ? [{ id: state.id }] : []),
+    course: {
+      findUnique: async () => state,
+      update: async (args: { data: { catalogStatus?: string } }) => {
+        updates += 1;
+        if (state && args.data.catalogStatus) {
+          state.catalogStatus = args.data.catalogStatus as PublicationCourse["catalogStatus"];
+        }
+        return { id: state?.id, catalogStatus: state?.catalogStatus };
+      },
+    },
+    courseCatalogStatusLog: {
+      create: async (args: { data: Record<string, unknown> }) => {
+        logs.push(args.data);
+        return args.data;
+      },
+    },
+  };
+  return {
+    tx,
+    state,
+    stats: () => ({ updates, logs }),
+  };
+}
+
+function stubTransaction(prisma: object, tx: unknown) {
+  return replaceMethod(prisma, "$transaction", async (callback: unknown) =>
+    (callback as (client: unknown) => Promise<unknown>)(tx)
+  );
+}
+
+test("publication completeness requires title, code, program faculty, and an instructor", async () => {
+  const { courseService } = await loadServices();
+
+  const emptyIssues = courseService.getCoursePublicationIssues({
+    title: "   ",
+    courseCode: "IF1",
+    studyProgram: null,
+    instructorCount: 0,
+  });
+  assert.deepEqual(
+    emptyIssues.map((issue) => issue.field),
+    ["title", "courseCode", "studyProgram", "instructors"]
+  );
+
+  const tooLong = courseService.getCoursePublicationIssues({
+    title: "A".repeat(151),
+    courseCode: "IF1234",
+    studyProgram: { id: "prog-1", facultyId: "fac-1" },
+    instructorCount: 1,
+  });
+  assert.deepEqual(tooLong.map((issue) => issue.field), ["title"]);
+
+  assert.deepEqual(
+    courseService.getCoursePublicationIssues({
+      title: "Algoritma",
+      courseCode: "if1234",
+      studyProgram: { id: "prog-1", facultyId: "fac-1" },
+      instructorCount: 1,
+    }),
+    []
+  );
+});
+
+test("publication payload rejects forged actor and unsupported actions", () => {
+  assert.equal(publicationActionSchema.safeParse({ action: "publish" }).success, true);
+  assert.equal(publicationActionSchema.safeParse({ action: "unpublish" }).success, true);
+  assert.equal(
+    publicationActionSchema.safeParse({ action: "publish", actorId: "forged" }).success,
+    false
+  );
+  assert.equal(publicationActionSchema.safeParse({ action: "archive" }).success, false);
+});
+
+test("publish transitions a complete active draft once and logs the session actor", async () => {
+  const { prisma, courseService } = await loadServices();
+  const fixture = publicationTx({
+    id: "course-1",
+    title: "Algoritma",
+    courseCode: "IF1234",
+    isActive: true,
+    catalogStatus: "DRAFT",
+    studyProgram: { id: "prog-1", facultyId: "fac-1" },
+    _count: { instructors: 1 },
+  });
+  const restore = stubTransaction(prisma, fixture.tx);
+
+  try {
+    const first = await courseService.setCoursePublication("course-1", "publish", "admin-1");
+    assert.deepEqual(first, { catalogStatus: "PUBLISHED", changed: true });
+    assert.equal(fixture.stats().updates, 1);
+    assert.equal(fixture.stats().logs.length, 1);
+    assert.equal(fixture.stats().logs[0].actorId, "admin-1");
+    assert.equal(fixture.stats().logs[0].fromStatus, "DRAFT");
+    assert.equal(fixture.stats().logs[0].toStatus, "PUBLISHED");
+
+    const second = await courseService.setCoursePublication("course-1", "publish", "admin-1");
+    assert.deepEqual(second, { catalogStatus: "PUBLISHED", changed: false });
+    assert.equal(fixture.stats().updates, 1);
+    assert.equal(fixture.stats().logs.length, 1, "repeat publish must not add an audit entry");
+  } finally {
+    restore();
+  }
+});
+
+test("publish rejects archived and inactive entries without writes", async () => {
+  const { prisma, courseService } = await loadServices();
+  const archived = publicationTx({
+    id: "course-1",
+    title: "Algoritma",
+    courseCode: "IF1234",
+    isActive: true,
+    catalogStatus: "ARCHIVED",
+    studyProgram: { id: "prog-1", facultyId: "fac-1" },
+    _count: { instructors: 1 },
+  });
+  let restore = stubTransaction(prisma, archived.tx);
+  try {
+    await assert.rejects(
+      () => courseService.setCoursePublication("course-1", "publish", "admin-1"),
+      (error: unknown) =>
+        error instanceof courseService.CourseServiceError && error.status === 409
+    );
+    assert.equal(archived.stats().updates, 0);
+    assert.equal(archived.stats().logs.length, 0);
+  } finally {
+    restore();
+  }
+
+  const inactive = publicationTx({
+    id: "course-1",
+    title: "Algoritma",
+    courseCode: "IF1234",
+    isActive: false,
+    catalogStatus: "DRAFT",
+    studyProgram: { id: "prog-1", facultyId: "fac-1" },
+    _count: { instructors: 1 },
+  });
+  restore = stubTransaction(prisma, inactive.tx);
+  try {
+    await assert.rejects(
+      () => courseService.setCoursePublication("course-1", "publish", "admin-1"),
+      (error: unknown) =>
+        error instanceof courseService.CourseServiceError &&
+        error.status === 409 &&
+        /Aktifkan akses/.test(error.message)
+    );
+    assert.equal(inactive.stats().updates, 0);
+    assert.equal(inactive.stats().logs.length, 0);
+  } finally {
+    restore();
+  }
+});
+
+test("publish rejects incomplete entries with every missing field and no writes", async () => {
+  const { prisma, courseService } = await loadServices();
+  const fixture = publicationTx({
+    id: "course-1",
+    title: "   ",
+    courseCode: "IF1",
+    isActive: true,
+    catalogStatus: "DRAFT",
+    studyProgram: null,
+    _count: { instructors: 0 },
+  });
+  const restore = stubTransaction(prisma, fixture.tx);
+
+  try {
+    await assert.rejects(
+      () => courseService.setCoursePublication("course-1", "publish", "admin-1"),
+      (error: unknown) => {
+        if (!(error instanceof courseService.CourseServiceError)) return false;
+        assert.equal(error.status, 400);
+        assert.equal(error.message, "Lengkapi data sebelum mempublikasikan entri.");
+        assert.deepEqual(
+          error.missingFields?.map((issue) => issue.field),
+          ["title", "courseCode", "studyProgram", "instructors"]
+        );
+        return true;
+      }
+    );
+    assert.equal(fixture.stats().updates, 0);
+    assert.equal(fixture.stats().logs.length, 0);
+  } finally {
+    restore();
+  }
+});
+
+test("unpublish returns published entries to draft and is a no-op for drafts", async () => {
+  const { prisma, courseService } = await loadServices();
+  const fixture = publicationTx({
+    id: "course-1",
+    title: "Algoritma",
+    courseCode: "IF1234",
+    isActive: true,
+    catalogStatus: "PUBLISHED",
+    studyProgram: { id: "prog-1", facultyId: "fac-1" },
+    _count: { instructors: 1 },
+  });
+  const restore = stubTransaction(prisma, fixture.tx);
+
+  try {
+    const first = await courseService.setCoursePublication("course-1", "unpublish", "admin-1");
+    assert.deepEqual(first, { catalogStatus: "DRAFT", changed: true });
+    assert.equal(fixture.stats().logs.length, 1);
+    assert.equal(fixture.stats().logs[0].fromStatus, "PUBLISHED");
+    assert.equal(fixture.stats().logs[0].toStatus, "DRAFT");
+
+    const second = await courseService.setCoursePublication("course-1", "unpublish", "admin-1");
+    assert.deepEqual(second, { catalogStatus: "DRAFT", changed: false });
+    assert.equal(fixture.stats().updates, 1);
+    assert.equal(fixture.stats().logs.length, 1);
+  } finally {
+    restore();
+  }
+});
+
+test("unpublish rejects archived entries", async () => {
+  const { prisma, courseService } = await loadServices();
+  const fixture = publicationTx({
+    id: "course-1",
+    title: "Algoritma",
+    courseCode: "IF1234",
+    isActive: true,
+    catalogStatus: "ARCHIVED",
+    studyProgram: { id: "prog-1", facultyId: "fac-1" },
+    _count: { instructors: 1 },
+  });
+  const restore = stubTransaction(prisma, fixture.tx);
+
+  try {
+    await assert.rejects(
+      () => courseService.setCoursePublication("course-1", "unpublish", "admin-1"),
+      (error: unknown) =>
+        error instanceof courseService.CourseServiceError && error.status === 409
+    );
+    assert.equal(fixture.stats().updates, 0);
+    assert.equal(fixture.stats().logs.length, 0);
+  } finally {
+    restore();
+  }
+});
+
+test("published metadata edits cannot remove required completeness", async () => {
+  const { prisma, courseService } = await loadServices();
+  let updates = 0;
+  const tx = {
+    $queryRaw: async () => [{ id: "course-1" }],
+    course: {
+      findUnique: async () => ({
+        id: "course-1",
+        title: "Algoritma",
+        courseCode: "IF1234",
+        description: null,
+        isActive: true,
+        catalogStatus: "PUBLISHED",
+        studyProgramId: "prog-1",
+        coverStoragePath: null,
+        coverImage: null,
+        enrollmentKey: "ABCD1234",
+        learningOutcomes: null,
+        hasArModule: false,
+      }),
+      update: async () => {
+        updates += 1;
+        return { id: "course-1" };
+      },
+    },
+    courseInstructor: { count: async () => 1 },
+    studyProgram: { findUnique: async () => null },
+  };
+  const restore = stubTransaction(prisma, tx);
+
+  try {
+    await assert.rejects(
+      () => courseService.updateCourse("course-1", { studyProgramId: null }),
+      (error: unknown) => {
+        if (!(error instanceof courseService.CourseServiceError)) return false;
+        assert.equal(error.status, 400);
+        assert.deepEqual(
+          error.missingFields?.map((issue) => issue.field),
+          ["studyProgram"]
+        );
+        return true;
+      }
+    );
+    assert.equal(updates, 0, "incomplete published edit must not be persisted");
+  } finally {
+    restore();
+  }
+});
+
+test("audit insertion failure prevents a successful publication result", async () => {
+  const { prisma, courseService } = await loadServices();
+  const marker = "AUDIT_WRITE_FAILED";
+  const fixture = publicationTx({
+    id: "course-1",
+    title: "Algoritma",
+    courseCode: "IF1234",
+    isActive: true,
+    catalogStatus: "DRAFT",
+    studyProgram: { id: "prog-1", facultyId: "fac-1" },
+    _count: { instructors: 1 },
+  });
+  fixture.tx.courseCatalogStatusLog.create = async () => {
+    throw new Error(marker);
+  };
+  const restore = stubTransaction(prisma, fixture.tx);
+
+  try {
+    await assert.rejects(
+      () => courseService.setCoursePublication("course-1", "publish", "admin-1"),
+      (error: unknown) => error instanceof Error && error.message === marker
     );
   } finally {
     restore();
@@ -735,5 +1086,106 @@ test("lecturer title edits preserve an uploaded cover", async () => {
     restoreFindFirst();
     restoreUpdate();
     restoreFindUnique();
+  }
+});
+
+test("publication endpoint uses the session actor and returns changed status", async () => {
+  const { prisma } = await loadServices();
+  const fixture = publicationTx({
+    id: "course-1",
+    title: "Algoritma",
+    courseCode: "IF1234",
+    isActive: true,
+    catalogStatus: "DRAFT",
+    studyProgram: { id: "prog-1", facultyId: "fac-1" },
+    _count: { instructors: 1 },
+  });
+  const restoreTransaction = stubTransaction(prisma, fixture.tx);
+
+  try {
+    await withAdminSession(async () => {
+      const { POST } = await import(
+        "../src/app/api/admin/courses/[id]/publication/route"
+      );
+      const request = new NextRequest(
+        "http://localhost/api/admin/courses/course-1/publication",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "publish" }),
+        }
+      );
+      const response = await POST(request as never, {
+        params: Promise.resolve({ id: "course-1" }),
+      });
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), {
+        catalogStatus: "PUBLISHED",
+        changed: true,
+      });
+      assert.equal(fixture.stats().logs[0].actorId, "admin-1");
+    });
+  } finally {
+    restoreTransaction();
+  }
+});
+
+test("publication endpoint rejects malformed JSON and forged actor input", async () => {
+  const { POST } = await import("../src/app/api/admin/courses/[id]/publication/route");
+
+  await withAdminSession(async () => {
+    const malformed = new NextRequest(
+      "http://localhost/api/admin/courses/course-1/publication",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{",
+      }
+    );
+    const malformedResponse = await POST(malformed as never, {
+      params: Promise.resolve({ id: "course-1" }),
+    });
+    assert.equal(malformedResponse.status, 400);
+
+    const forged = new NextRequest(
+      "http://localhost/api/admin/courses/course-1/publication",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "publish", actorId: "forged" }),
+      }
+    );
+    const forgedResponse = await POST(forged as never, {
+      params: Promise.resolve({ id: "course-1" }),
+    });
+    assert.equal(forgedResponse.status, 400);
+  });
+});
+
+test("publication endpoint rejects non-admin sessions", async () => {
+  const { auth } = await import("../src/lib/auth");
+  const restore = replaceMethod(auth.api, "getSession", async () => ({
+    user: { id: "mahasiswa-1", role: "mahasiswa" },
+    session: { id: "session-1" },
+  }));
+
+  try {
+    const { POST } = await import(
+      "../src/app/api/admin/courses/[id]/publication/route"
+    );
+    const request = new NextRequest(
+      "http://localhost/api/admin/courses/course-1/publication",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "publish" }),
+      }
+    );
+    const response = await POST(request as never, {
+      params: Promise.resolve({ id: "course-1" }),
+    });
+    assert.equal(response.status, 403);
+  } finally {
+    restore();
   }
 });

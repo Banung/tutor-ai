@@ -55,6 +55,14 @@ export const assignInstructorSchema = z.object({
   userId: z.string().min(1, "User ID wajib diisi"),
 });
 
+export const publicationActionSchema = z
+  .object({
+    action: z.enum(["publish", "unpublish"]),
+  })
+  .strict();
+
+export type PublicationActionInput = z.infer<typeof publicationActionSchema>;
+
 export const enrollStudentSchema = z.object({
   userId: z.string().min(1, "User ID wajib diisi"),
 });

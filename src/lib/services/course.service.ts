@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@/app/generated/prisma/client";
 import type {
   AdminCreateCourseInput,
   CatalogStatusInput,
@@ -17,10 +18,108 @@ import {
   uploadCourseCoverToSupabase,
 } from "@/lib/supabase-storage";
 
+export type PublicationMissingField = { field: string; message: string };
+
 export class CourseServiceError extends Error {
-  constructor(message: string, readonly status = 400) {
+  constructor(
+    message: string,
+    readonly status = 400,
+    readonly missingFields?: PublicationMissingField[]
+  ) {
     super(message);
     this.name = "CourseServiceError";
+  }
+}
+
+export const PUBLICATION_INCOMPLETE_MESSAGE =
+  "Lengkapi data sebelum mempublikasikan entri.";
+
+const COURSE_CODE_PATTERN = /^[A-Z0-9]{4,12}$/;
+
+/**
+ * Operational definition of a publishable catalog entry.
+ * Description, outcomes, custom cover, and AR availability stay optional.
+ */
+export function getCoursePublicationIssues(course: {
+  title: string;
+  courseCode: string | null;
+  studyProgram: { id: string; facultyId: string } | null;
+  instructorCount: number;
+}): PublicationMissingField[] {
+  const issues: PublicationMissingField[] = [];
+  const title = course.title.trim();
+
+  if (!title) {
+    issues.push({ field: "title", message: "Nama mata kuliah wajib diisi." });
+  } else if (title.length > 150) {
+    issues.push({
+      field: "title",
+      message: "Nama mata kuliah maksimal 150 karakter.",
+    });
+  }
+
+  if (!COURSE_CODE_PATTERN.test((course.courseCode ?? "").trim().toUpperCase())) {
+    issues.push({
+      field: "courseCode",
+      message: "Format kode mata kuliah tidak valid.",
+    });
+  }
+
+  if (!course.studyProgram?.id || !course.studyProgram.facultyId) {
+    issues.push({
+      field: "studyProgram",
+      message: "Program studi dan fakultas wajib dipilih.",
+    });
+  }
+
+  if (course.instructorCount < 1) {
+    issues.push({
+      field: "instructors",
+      message: "Tambahkan minimal satu dosen pengampu.",
+    });
+  }
+
+  return issues;
+}
+
+const publicationSelect = {
+  id: true,
+  title: true,
+  courseCode: true,
+  isActive: true,
+  catalogStatus: true,
+  studyProgram: { select: { id: true, facultyId: true } },
+  _count: { select: { instructors: true } },
+} as const;
+
+type PublicationCourse = {
+  id: string;
+  title: string;
+  courseCode: string | null;
+  isActive: boolean;
+  catalogStatus: CatalogStatusInput;
+  studyProgram: { id: string; facultyId: string } | null;
+  _count: { instructors: number };
+};
+
+/** Row-lock convention shared with instructor removal and FR-002 publication. */
+async function lockCourseRow(tx: Prisma.TransactionClient, courseId: string) {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "course" WHERE "id" = ${courseId} FOR UPDATE
+  `;
+  return rows.length > 0;
+}
+
+function assertPublicationComplete(course: PublicationCourse, message: string) {
+  const issues = getCoursePublicationIssues({
+    title: course.title,
+    courseCode: course.courseCode,
+    studyProgram: course.studyProgram,
+    instructorCount: course._count.instructors,
+  });
+
+  if (issues.length > 0) {
+    throw new CourseServiceError(message, 400, issues);
   }
 }
 
@@ -219,80 +318,212 @@ export async function createCourse(data: AdminCreateCourseInput, adminId: string
 }
 
 export async function updateCourse(id: string, data: UpdateCourseInput) {
-  const existing = await prisma.course.findUnique({ where: { id } });
-  if (!existing) {
-    throw new CourseServiceError("Course tidak ditemukan", 404);
-  }
-
   if (data.studyProgramId) {
     await assertStudyProgramExists(data.studyProgramId);
   }
 
-  const nextTitle = data.title ?? existing.title;
-  const regenerateCover =
-    data.title !== undefined &&
-    data.title !== existing.title &&
-    !existing.coverStoragePath &&
-    !isCustomCourseCover(existing.coverImage);
+  return prisma.$transaction(async (tx) => {
+    if (!(await lockCourseRow(tx, id))) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
 
-  try {
-    return await prisma.course.update({
-      where: { id },
-      data: {
-        ...(data.title !== undefined && { title: data.title }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.courseCode !== undefined && { courseCode: data.courseCode }),
-        ...(data.learningOutcomes !== undefined && {
-          learningOutcomes: data.learningOutcomes,
-        }),
-        ...(data.studyProgramId !== undefined && {
-          studyProgramId: data.studyProgramId,
-        }),
-        ...(data.hasArModule !== undefined && { hasArModule: data.hasArModule }),
-        ...(regenerateCover && {
-          coverImage: generateCourseCover({
-            id: existing.id,
-            title: nextTitle,
-            enrollmentKey: existing.enrollmentKey,
+    const existing = await tx.course.findUnique({ where: { id } });
+    if (!existing) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    if (existing.catalogStatus === "PUBLISHED") {
+      const nextStudyProgramId =
+        data.studyProgramId !== undefined
+          ? data.studyProgramId
+          : existing.studyProgramId;
+      const nextStudyProgram = nextStudyProgramId
+        ? await tx.studyProgram.findUnique({
+            where: { id: nextStudyProgramId },
+            select: { id: true, facultyId: true },
+          })
+        : null;
+      const instructorCount = await tx.courseInstructor.count({
+        where: { courseId: id },
+      });
+
+      const issues = getCoursePublicationIssues({
+        title: data.title ?? existing.title,
+        courseCode: data.courseCode ?? existing.courseCode,
+        studyProgram: nextStudyProgram,
+        instructorCount,
+      });
+
+      if (issues.length > 0) {
+        throw new CourseServiceError(
+          "Perubahan ini membuat data course yang dipublikasikan tidak lengkap.",
+          400,
+          issues
+        );
+      }
+    }
+
+    const nextTitle = data.title ?? existing.title;
+    const regenerateCover =
+      data.title !== undefined &&
+      data.title !== existing.title &&
+      !existing.coverStoragePath &&
+      !isCustomCourseCover(existing.coverImage);
+
+    try {
+      return await tx.course.update({
+        where: { id },
+        data: {
+          ...(data.title !== undefined && { title: data.title }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.isActive !== undefined && { isActive: data.isActive }),
+          ...(data.courseCode !== undefined && { courseCode: data.courseCode }),
+          ...(data.learningOutcomes !== undefined && {
+            learningOutcomes: data.learningOutcomes,
           }),
-        }),
-      },
-      include: {
-        creator: { select: { id: true, name: true } },
-        studyProgram: {
-          select: { id: true, name: true, faculty: { select: { id: true, name: true } } },
+          ...(data.studyProgramId !== undefined && {
+            studyProgramId: data.studyProgramId,
+          }),
+          ...(data.hasArModule !== undefined && { hasArModule: data.hasArModule }),
+          ...(regenerateCover && {
+            coverImage: generateCourseCover({
+              id: existing.id,
+              title: nextTitle,
+              enrollmentKey: existing.enrollmentKey,
+            }),
+          }),
         },
-      },
+        include: {
+          creator: { select: { id: true, name: true } },
+          studyProgram: {
+            select: { id: true, name: true, faculty: { select: { id: true, name: true } } },
+          },
+        },
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new CourseServiceError(
+          "Kode mata kuliah sudah digunakan pada program studi ini.",
+          409
+        );
+      }
+      throw error;
+    }
+  });
+}
+
+export async function setCoursePublication(
+  courseId: string,
+  action: "publish" | "unpublish",
+  actorId: string
+) {
+  return prisma.$transaction(async (tx) => {
+    if (!(await lockCourseRow(tx, courseId))) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: publicationSelect,
     });
-  } catch (error) {
-    if (isUniqueConstraintError(error)) {
+    if (!course) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    if (course.catalogStatus === "ARCHIVED") {
       throw new CourseServiceError(
-        "Kode mata kuliah sudah digunakan pada program studi ini.",
+        "Course yang diarsipkan tidak dapat diubah status publikasinya.",
         409
       );
     }
-    throw error;
-  }
+
+    if (action === "publish") {
+      if (course.catalogStatus === "PUBLISHED") {
+        return { catalogStatus: "PUBLISHED" as const, changed: false };
+      }
+
+      if (!course.isActive) {
+        throw new CourseServiceError(
+          "Aktifkan akses course sebelum mempublikasikan entri.",
+          409
+        );
+      }
+
+      assertPublicationComplete(course, PUBLICATION_INCOMPLETE_MESSAGE);
+
+      await tx.course.update({
+        where: { id: courseId },
+        data: { catalogStatus: "PUBLISHED" },
+      });
+      await tx.courseCatalogStatusLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          courseId,
+          actorId,
+          fromStatus: "DRAFT",
+          toStatus: "PUBLISHED",
+        },
+      });
+
+      return { catalogStatus: "PUBLISHED" as const, changed: true };
+    }
+
+    if (course.catalogStatus === "DRAFT") {
+      return { catalogStatus: "DRAFT" as const, changed: false };
+    }
+
+    await tx.course.update({
+      where: { id: courseId },
+      data: { catalogStatus: "DRAFT" },
+    });
+    await tx.courseCatalogStatusLog.create({
+      data: {
+        id: crypto.randomUUID(),
+        courseId,
+        actorId,
+        fromStatus: "PUBLISHED",
+        toStatus: "DRAFT",
+      },
+    });
+
+    return { catalogStatus: "DRAFT" as const, changed: true };
+  });
 }
 
-export async function archiveCourse(id: string) {
-  const existing = await prisma.course.findUnique({
-    where: { id },
-    select: { id: true, catalogStatus: true },
-  });
-  if (!existing) {
-    throw new CourseServiceError("Course tidak ditemukan", 404);
-  }
+export async function archiveCourse(id: string, actorId: string) {
+  return prisma.$transaction(async (tx) => {
+    if (!(await lockCourseRow(tx, id))) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
 
-  if (existing.catalogStatus !== "ARCHIVED") {
-    await prisma.course.update({
+    const existing = await tx.course.findUnique({
+      where: { id },
+      select: { catalogStatus: true },
+    });
+    if (!existing) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    if (existing.catalogStatus === "ARCHIVED") {
+      return { success: true, catalogStatus: "ARCHIVED" as const, changed: false };
+    }
+
+    await tx.course.update({
       where: { id },
       data: { catalogStatus: "ARCHIVED" },
     });
-  }
+    await tx.courseCatalogStatusLog.create({
+      data: {
+        id: crypto.randomUUID(),
+        courseId: id,
+        actorId,
+        fromStatus: existing.catalogStatus,
+        toStatus: "ARCHIVED",
+      },
+    });
 
-  return { success: true, catalogStatus: "ARCHIVED" as const };
+    return { success: true, catalogStatus: "ARCHIVED" as const, changed: true };
+  });
 }
 
 export async function uploadCourseCover(

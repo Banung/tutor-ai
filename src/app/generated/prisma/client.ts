@@ -77,6 +77,11 @@ export type StudyProgram = Prisma.StudyProgramModel
  */
 export type Course = Prisma.CourseModel
 /**
+ * Model CourseCatalogStatusLog
+ * 
+ */
+export type CourseCatalogStatusLog = Prisma.CourseCatalogStatusLogModel
+/**
  * Model CourseInstructor
  * 
  */

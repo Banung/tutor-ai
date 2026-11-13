@@ -38,6 +38,8 @@ import {
   Archive,
   Boxes,
   BookOpen,
+  Globe,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -138,6 +140,15 @@ export default function CourseDetailPage() {
   // Archive
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiving, setArchiving] = useState(false);
+
+  // Publication
+  const [publicationAction, setPublicationAction] = useState<
+    "publish" | "unpublish" | null
+  >(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publicationIssues, setPublicationIssues] = useState<
+    { field: string; message: string }[] | null
+  >(null);
 
   const fetchCourse = useCallback(() => {
     setLoading(true);
@@ -310,6 +321,52 @@ export default function CourseDetailPage() {
     toast.success("Enrollment key disalin");
   }
 
+  async function handlePublication() {
+    if (!publicationAction || publishing) return;
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/admin/courses/${courseId}/publication`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: publicationAction }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        if (Array.isArray(data?.missingFields) && data.missingFields.length > 0) {
+          setPublicationIssues(data.missingFields);
+          setPublicationAction(null);
+          return;
+        }
+        throw new Error(
+          typeof data?.error === "string"
+            ? data.error
+            : "Gagal mengubah status publikasi"
+        );
+      }
+
+      const publish = publicationAction === "publish";
+      toast.success(
+        publish
+          ? data?.changed
+            ? "Course dipublikasikan ke katalog"
+            : "Course sudah dipublikasikan"
+          : data?.changed
+            ? "Course ditarik dari katalog"
+            : "Course sudah berstatus draft"
+      );
+      setPublicationAction(null);
+      fetchCourse();
+      fetchEnrollments();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal mengubah status publikasi"
+      );
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   async function handleArchive() {
     setArchiving(true);
     try {
@@ -386,15 +443,36 @@ export default function CourseDetailPage() {
             </p>
           )}
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setArchiveOpen(true)}
-          disabled={course.catalogStatus === "ARCHIVED"}
-          className="shrink-0 gap-2"
-        >
-          <Archive data-icon="inline-start" />
-          {course.catalogStatus === "ARCHIVED" ? "Sudah diarsipkan" : "Arsipkan"}
-        </Button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {course.catalogStatus === "DRAFT" && (
+            <Button
+              onClick={() => setPublicationAction("publish")}
+              className="gap-2 bg-brand text-black hover:bg-brand/90"
+            >
+              <Globe data-icon="inline-start" />
+              Publikasikan
+            </Button>
+          )}
+          {course.catalogStatus === "PUBLISHED" && (
+            <Button
+              variant="outline"
+              onClick={() => setPublicationAction("unpublish")}
+              className="gap-2"
+            >
+              <EyeOff data-icon="inline-start" />
+              Tarik dari katalog
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => setArchiveOpen(true)}
+            disabled={course.catalogStatus === "ARCHIVED"}
+            className="shrink-0 gap-2"
+          >
+            <Archive data-icon="inline-start" />
+            {course.catalogStatus === "ARCHIVED" ? "Sudah diarsipkan" : "Arsipkan"}
+          </Button>
+        </div>
       </div>
 
       {/* Academic profile */}
@@ -778,6 +856,72 @@ export default function CourseDetailPage() {
             <AlertDialogAction onClick={handleArchive} disabled={archiving}>
               {archiving && <Loader2 className="animate-spin" data-icon="inline-start" />}
               Arsipkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Publication Confirmation */}
+      <AlertDialog
+        open={!!publicationAction}
+        onOpenChange={(open) => !open && !publishing && setPublicationAction(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {publicationAction === "publish"
+                ? "Publikasikan Course"
+                : "Tarik Course dari Katalog"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {publicationAction === "publish" ? (
+                <>
+                  Course <strong>{course.title}</strong> akan tampil di katalog dan
+                  dapat di-enroll mandiri oleh mahasiswa. Status akses kelas tidak
+                  berubah.
+                </>
+              ) : (
+                <>
+                  Course <strong>{course.title}</strong> akan disembunyikan dari
+                  katalog dan enrollment mandiri. Mahasiswa yang sudah terdaftar tetap
+                  memiliki akses ke kelas, sesi, materi, dan riwayat percakapan. Status
+                  akses kelas tidak berubah.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={publishing}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePublication} disabled={publishing}>
+              {publishing && <Loader2 className="animate-spin" data-icon="inline-start" />}
+              {publicationAction === "publish"
+                ? "Publikasikan"
+                : "Tarik dari katalog"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Publication completeness */}
+      <AlertDialog
+        open={!!publicationIssues}
+        onOpenChange={(open) => !open && setPublicationIssues(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Data belum lengkap</AlertDialogTitle>
+            <AlertDialogDescription>
+              Lengkapi data berikut sebelum mempublikasikan entri:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {publicationIssues?.map((issue) => (
+              <li key={issue.field}>{issue.message}</li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setPublicationIssues(null)}>
+              Mengerti
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

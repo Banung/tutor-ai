@@ -58,6 +58,7 @@ export const ModelName = {
   Faculty: 'Faculty',
   StudyProgram: 'StudyProgram',
   Course: 'Course',
+  CourseCatalogStatusLog: 'CourseCatalogStatusLog',
   CourseInstructor: 'CourseInstructor',
   Enrollment: 'Enrollment',
   CourseSession: 'CourseSession',
@@ -188,6 +189,18 @@ export const CourseScalarFieldEnum = {
 } as const
 
 export type CourseScalarFieldEnum = (typeof CourseScalarFieldEnum)[keyof typeof CourseScalarFieldEnum]
+
+
+export const CourseCatalogStatusLogScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  actorId: 'actorId',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  createdAt: 'createdAt'
+} as const
+
+export type CourseCatalogStatusLogScalarFieldEnum = (typeof CourseCatalogStatusLogScalarFieldEnum)[keyof typeof CourseCatalogStatusLogScalarFieldEnum]
 
 
 export const CourseInstructorScalarFieldEnum = {

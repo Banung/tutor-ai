@@ -11,7 +11,13 @@ import { AcademicReferenceError } from "@/lib/services/academic.service";
 
 function toErrorResponse(err: unknown) {
   if (err instanceof courseService.CourseServiceError) {
-    return NextResponse.json({ error: err.message }, { status: err.status });
+    return NextResponse.json(
+      {
+        error: err.message,
+        ...(err.missingFields && { missingFields: err.missingFields }),
+      },
+      { status: err.status }
+    );
   }
   if (err instanceof AcademicReferenceError) {
     return NextResponse.json({ error: err.message }, { status: err.status });

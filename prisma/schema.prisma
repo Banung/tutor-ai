@@ -161,6 +161,19 @@ model Course {
   @@map("course")
 }
 
+// Audit kept without foreign keys so history survives course/account deletion.
+model CourseCatalogStatusLog {
+  id         String        @id
+  courseId   String
+  actorId    String
+  fromStatus CatalogStatus
+  toStatus   CatalogStatus
+  createdAt  DateTime      @default(now())
+
+  @@index([courseId, createdAt])
+  @@map("course_catalog_status_log")
+}
+
 // Satu course bisa diampu banyak dosen
 model CourseInstructor {
   id         String   @id

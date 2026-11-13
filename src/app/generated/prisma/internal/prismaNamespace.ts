@@ -391,6 +391,7 @@ export const ModelName = {
   Faculty: 'Faculty',
   StudyProgram: 'StudyProgram',
   Course: 'Course',
+  CourseCatalogStatusLog: 'CourseCatalogStatusLog',
   CourseInstructor: 'CourseInstructor',
   Enrollment: 'Enrollment',
   CourseSession: 'CourseSession',
@@ -416,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "course" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
+    modelProps: "user" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "course" | "courseCatalogStatusLog" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -935,6 +936,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CourseCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CourseCountAggregateOutputType> | number
+        }
+      }
+    }
+    CourseCatalogStatusLog: {
+      payload: Prisma.$CourseCatalogStatusLogPayload<ExtArgs>
+      fields: Prisma.CourseCatalogStatusLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CourseCatalogStatusLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CourseCatalogStatusLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload>
+        }
+        findFirst: {
+          args: Prisma.CourseCatalogStatusLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CourseCatalogStatusLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload>
+        }
+        findMany: {
+          args: Prisma.CourseCatalogStatusLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload>[]
+        }
+        create: {
+          args: Prisma.CourseCatalogStatusLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload>
+        }
+        createMany: {
+          args: Prisma.CourseCatalogStatusLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CourseCatalogStatusLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload>[]
+        }
+        delete: {
+          args: Prisma.CourseCatalogStatusLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload>
+        }
+        update: {
+          args: Prisma.CourseCatalogStatusLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.CourseCatalogStatusLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CourseCatalogStatusLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CourseCatalogStatusLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.CourseCatalogStatusLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseCatalogStatusLogPayload>
+        }
+        aggregate: {
+          args: Prisma.CourseCatalogStatusLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCourseCatalogStatusLog>
+        }
+        groupBy: {
+          args: Prisma.CourseCatalogStatusLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CourseCatalogStatusLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CourseCatalogStatusLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CourseCatalogStatusLogCountAggregateOutputType> | number
         }
       }
     }
@@ -1821,6 +1896,18 @@ export const CourseScalarFieldEnum = {
 export type CourseScalarFieldEnum = (typeof CourseScalarFieldEnum)[keyof typeof CourseScalarFieldEnum]
 
 
+export const CourseCatalogStatusLogScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  actorId: 'actorId',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  createdAt: 'createdAt'
+} as const
+
+export type CourseCatalogStatusLogScalarFieldEnum = (typeof CourseCatalogStatusLogScalarFieldEnum)[keyof typeof CourseCatalogStatusLogScalarFieldEnum]
+
+
 export const CourseInstructorScalarFieldEnum = {
   id: 'id',
   courseId: 'courseId',
@@ -2246,6 +2333,7 @@ export type GlobalOmitConfig = {
   faculty?: Prisma.FacultyOmit
   studyProgram?: Prisma.StudyProgramOmit
   course?: Prisma.CourseOmit
+  courseCatalogStatusLog?: Prisma.CourseCatalogStatusLogOmit
   courseInstructor?: Prisma.CourseInstructorOmit
   enrollment?: Prisma.EnrollmentOmit
   courseSession?: Prisma.CourseSessionOmit
