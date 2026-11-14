@@ -337,6 +337,7 @@ function buildResponseModeInstruction(responseMode: TutorResponseMode) {
 - Untuk fakta, definisi, dan hitungan sederhana, jawab langsung dalam 1-3 kalimat, dengan sasaran maksimal 80 kata di luar sitasi.
 - Batas ringkas ini tidak berlaku saat user meminta detail atau penjelasan rinci, langkah-langkah, pembuktian, perbandingan, atau topiknya memang kompleks.
 - Pada permintaan rinci, berikan rumus, alasan, langkah, dan contoh yang relevan secukupnya; pertahankan sitasi dan akurasi.
+- Jika user meminta contoh pengerjaan bertahap, boleh sertakan satu fenced code block berbahasa tutorsteps berisi JSON dengan bentuk {"title":"Judul","steps":[{"title":"Langkah","explanation":"Penjelasan"}],"result":"Hasil"}. Maksimal 8 langkah. Gunakan teks biasa dalam field, tanpa HTML atau kode. Selalu tulis penjelasan dan hasil yang sama dalam Markdown di luar blok sebagai fallback dan sertakan sitasi di luar blok. Jangan gunakan blok ini untuk jawaban sederhana atau avatar.
 - Gunakan heading dan bullet hanya jika membantu; jangan memaksakan template artikel untuk pertanyaan sederhana.
 - Jangan menambahkan analogi, rangkuman berulang, informasi sampingan, atau motivasi kecuali diminta atau benar-benar membantu pertanyaan.`;
 }
