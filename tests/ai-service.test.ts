@@ -19,9 +19,12 @@ async function harness(t: TestContext, options: {
   history?: Array<{ senderType: string; content: string }>;
   answer?: string;
   denyAccess?: boolean;
+  denySession?: boolean;
   transactionFailure?: boolean;
   finishReason?: string;
   streamHang?: boolean;
+  retrievalFailure?: boolean;
+  generationTimeout?: boolean;
 } = {}) {
   const { default: prisma } = await import("../src/lib/prisma");
   function replace(target: object, key: string, value: unknown) {
@@ -35,13 +38,26 @@ async function harness(t: TestContext, options: {
   const providerStarted = new Promise<void>((resolve) => { markProviderStarted = resolve; });
   const saved: Array<Record<string, unknown>> = [];
   const deleted: unknown[] = [];
+  const runs: Array<Record<string, unknown>> = [];
+  replace(prisma.aiResponseRun, "create", async ({ data }: { data: Record<string, unknown> }) => {
+    if (runs.some((run) => run.requestId === data.requestId)) {
+      const { Prisma } = await import("../src/app/generated/prisma/client");
+      throw new Prisma.PrismaClientKnownRequestError("duplicate", { code: "P2002", clientVersion: "test" });
+    }
+    const run = { status: "running", ...data }; runs.push(run); return run;
+  });
+  replace(prisma.aiResponseRun, "update", async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+    const run = runs.find((run) => run.id === where.id)!; Object.assign(run, data); return run;
+  });
+  replace(prisma.aiResponseRun, "findUnique", async ({ where }: { where: { aiChatSessionId_requestId: { requestId: string } } }) => runs.find((run) => run.requestId === where.aiChatSessionId_requestId.requestId) ?? null);
+  replace(prisma.aiResponseRun, "findFirst", async ({ where }: { where: { id: string } }) => runs.find((run) => run.id === where.id && ["failed", "cancelled", "timed_out"].includes(String(run.status))) ?? null);
   const materialQueries: Array<{ where: Record<string, unknown> }> = [];
   const queries: Array<{ strings: string[]; values: unknown[] }> = [];
   const requests: Array<{ url: string; body: Record<string, unknown> }> = [];
   replace(prisma.user, "findUnique", async () => ({ id: "student", name: "Rani", role: "mahasiswa", academicLevel: options.academicLevel ?? "S1" }));
   replace(prisma.course, "findFirst", async () => options.denyAccess ? null : ({ id: "course", title: "Statistika Dasar", description: null, isActive: true }));
   replace(prisma.material, "findMany", async (args: { where: Record<string, unknown> }) => { materialQueries.push(args); return [{ id: "material-1", title: "Penilaian", fileName: chunk.fileName, pageCount: 3, chunkCount: 4, createdAt: new Date(), courseSession: { id: "lesson-1", title: "Penilaian", orderNumber: 1 } }]; } );
-  replace(prisma.aiChatSession, "findFirst", async () => ({ id: "chat", messages: [] }));
+  replace(prisma.aiChatSession, "findFirst", async () => options.denySession ? null : ({ id: "chat", messages: [] }));
   replace(prisma.aiChatSession, "update", async () => ({}));
   replace(prisma.aiChatMessage, "findFirst", async () => ({ content: JSON.stringify(options.selected ?? ["material-1"]) }));
   replace(prisma.aiChatMessage, "findMany", async () => [...(options.history ?? [])].reverse());
@@ -49,23 +65,29 @@ async function harness(t: TestContext, options: {
   replace(prisma.aiChatMessage, "delete", async (args: unknown) => { deleted.push(args); return {}; });
   replace(prisma.tutorPromptConfig, "findUnique", async () => options.academicStyle ? { promptContent: options.academicStyle } : null);
   replace(prisma, "$transaction", async (callback: (tx: typeof prisma) => Promise<unknown>) => { if (options.transactionFailure) throw new Error("synthetic transaction failure"); return callback(prisma); });
-  replace(prisma, "$queryRaw", async (strings: TemplateStringsArray, ...values: unknown[]) => { queries.push({ strings: [...strings], values }); return options.chunks ?? [chunk]; });
+  replace(prisma, "$queryRaw", async (strings: TemplateStringsArray, ...values: unknown[]) => { queries.push({ strings: [...strings], values }); if (options.retrievalFailure) throw new DOMException("synthetic deadline", "TimeoutError"); return options.chunks ?? [chunk]; });
   t.mock.method(globalThis, "fetch", async (url: string | URL | Request, init: RequestInit) => {
     const body = JSON.parse(String(init.body));
     requests.push({ url: String(url), body });
     if (String(url).toLowerCase().includes("embedcontent")) {
       return Response.json({ embeddings: [{ values: Array(768).fill(0.1) }] });
     }
-    const response = { candidates: [{ content: { role: "model", parts: [{ text: options.answer ?? "Nilai Rani 78. [Sumber 1]" }] }, finishReason: options.finishReason ?? "STOP" }] };
+    const response = { usageMetadata: { promptTokenCount: 20, candidatesTokenCount: 10, totalTokenCount: 30 }, candidates: [{ content: { role: "model", parts: [{ text: options.answer ?? "Nilai Rani 78. [Sumber 1]" }] }, finishReason: options.finishReason ?? "STOP" }] };
     if (String(url).includes("streamGenerateContent")) {
       markProviderStarted();
+      if (options.generationTimeout) throw new DOMException("synthetic timeout", "TimeoutError");
       if (options.streamHang) return new Promise<Response>(() => {});
       return new Response(`data: ${JSON.stringify(response)}\n\n`, { headers: { "Content-Type": "text/event-stream" } });
     }
     return Response.json({ candidates: [{ content: { role: "model", parts: [{ text: "Berapa nilai akhir Rani?" }] }, finishReason: "STOP" }] });
   });
   return {
-    saved, deleted, requests, queries, materialQueries, providerStarted,
+    saved, deleted, requests, queries, materialQueries, providerStarted, runs,
+    readRun: async (requestId: string) => {
+      const { getTutorResponseRun } = await import("../src/lib/tutor-ai/service");
+      return getTutorResponseRun({ courseId: "course", userId: "student", sessionId: "chat", requestId });
+    },
+    request: (requestId: string, retryOfRunId?: string) => askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content: "Berapa nilai Rani?", requestId, retryOfRunId }),
     stream: (content: string, signal?: AbortSignal) => askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal, responseMode: options.responseMode }),
     ask: async (content: string, signal?: AbortSignal) => {
       const stream = await askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal, responseMode: options.responseMode });
@@ -268,4 +290,111 @@ test("avatar responses retain their own spoken limit and citation guardrails", a
   assert.doesNotMatch(system, /80 kata/);
   assert.match(system, /Jangan membuka atau menutup jawaban dengan sapaan/);
   assert.match(system, /wajib gunakan sitasi/);
+});
+
+
+test("completed runs preserve configuration, full evidence and persisted message identities", async (t) => {
+  const h = await harness(t);
+  const events = await h.ask("Berapa nilai Rani?");
+  const run = h.runs[0];
+  assert.equal(run.status, "completed");
+  assert.equal(run.answerMessageId, h.saved.find((m) => m.senderType === "ai")?.id);
+  assert.equal(run.userMessageId, h.saved.find((m) => m.senderType === "user")?.id);
+  assert.match(JSON.stringify(run.configuration), /systemInstruction/);
+  assert.match(JSON.stringify(run.evidence), /Nilai Rani adalah 78/);
+  assert.deepEqual(run.tokenUsage, { promptTokenCount: 20, candidatesTokenCount: 10, totalTokenCount: 30 });
+  assert.ok(run.finishedAt);
+  assert.equal(typeof run.durationMs, "number");
+  assert.match(events, new RegExp(String(run.id)));
+});
+
+test("retrieval timeout leaves a terminal run without creating messages", async (t) => {
+  const h = await harness(t, { retrievalFailure: true });
+  await assert.rejects(() => h.ask("Berapa nilai Rani?"), { name: "TimeoutError" });
+  assert.equal(h.runs[0].status, "timed_out");
+  assert.equal(h.runs[0].stage, "retrieval");
+  assert.equal(h.saved.length, 0);
+});
+
+test("partial generation leaves a failed run and retry links a new attempt", async (t) => {
+  const h = await harness(t, { finishReason: "MAX_TOKENS" });
+  await h.ask("Berapa nilai Rani?");
+  assert.equal(h.runs[0].status, "failed");
+  assert.equal(h.runs[0].errorCategory, "generation_error");
+  await new Response(await h.request("retry-request", String(h.runs[0].id))).text();
+  assert.equal(h.runs.length, 2);
+  assert.equal(h.runs[1].retryOfRunId, h.runs[0].id);
+});
+
+test("duplicate request IDs never create another answer or invoke the provider again", async (t) => {
+  const h = await harness(t);
+  await new Response(await h.request("same-request")).text();
+  const calls = h.requests.length;
+  await assert.rejects(() => h.request("same-request"), (error: unknown) => (error as { status: number }).status === 409);
+  assert.equal(h.runs.length, 1);
+  assert.equal(h.requests.length, calls);
+  assert.equal(h.saved.filter((m) => m.senderType === "ai").length, 1);
+});
+
+test("cancellation persists a cancelled run", async (t) => {
+  const h = await harness(t, { streamHang: true });
+  const controller = new AbortController();
+  const result = h.ask("Berapa nilai Rani?", controller.signal);
+  await h.providerStarted;
+  controller.abort();
+  await result;
+  assert.equal(h.runs[0].status, "cancelled");
+  assert.equal(h.runs[0].answerMessageId, undefined);
+});
+
+test("access denial creates no run and invalid retry cannot reference another chat", async (t) => {
+  const h = await harness(t, { denyAccess: true });
+  await assert.rejects(() => h.ask("Berapa nilai Rani?"));
+  assert.equal(h.runs.length, 0);
+});
+
+test("retry references must identify a failed run in the same session", async (t) => {
+  const h = await harness(t);
+  await assert.rejects(() => h.request("retry-request", "foreign-run"), (error: unknown) => (error as { status: number }).status === 409);
+  assert.equal(h.runs.length, 0);
+});
+
+
+test("generation deadline is recorded separately from retrieval and provider errors", async (t) => {
+  const h = await harness(t, { generationTimeout: true });
+  await h.ask("Berapa nilai Rani?");
+  assert.equal(h.runs[0].status, "timed_out");
+  assert.equal(h.runs[0].stage, "generation");
+  assert.equal(h.saved.filter((m) => m.senderType === "ai").length, 0);
+});
+
+test("a duplicate while the first run is active cannot start a second generation", async (t) => {
+  const h = await harness(t, { streamHang: true });
+  const stream = await h.request("active-request");
+  await h.providerStarted;
+  await assert.rejects(() => h.request("active-request"), (error: unknown) => (error as { status: number }).status === 409);
+  assert.equal(h.runs.length, 1);
+  await stream.cancel();
+});
+
+test("run inspection returns saved snapshots and reports unknown request IDs", async (t) => {
+  const h = await harness(t);
+  await new Response(await h.request("inspect-request")).text();
+  const run = await h.readRun("inspect-request");
+  assert.equal(run.status, "completed");
+  await assert.rejects(() => h.readRun("unknown-request"), (error: unknown) => (error as { status: number }).status === 404);
+});
+
+test("run inspection checks course access before exposing snapshots", async (t) => {
+  const h = await harness(t, { denyAccess: true });
+  await assert.rejects(() => h.readRun("private-request"), /belum enroll/);
+});
+
+
+test("another student's session cannot expose run snapshots or create attempts", async (t) => {
+  const h = await harness(t, { denySession: true });
+  await assert.rejects(() => h.readRun("private-request"), (error: unknown) => (error as { status: number }).status === 404);
+  await assert.rejects(() => h.ask("Berapa nilai Rani?"), (error: unknown) => (error as { status: number }).status === 404);
+  assert.equal(h.runs.length, 0);
+  assert.equal(h.requests.length, 0);
 });

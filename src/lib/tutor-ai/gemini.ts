@@ -50,6 +50,7 @@ type AnswerInput = {
   signal?: AbortSignal;
   timeoutMs?: number;
   maxOutputTokens?: number;
+  onUsage?: (usage: NonNullable<GenerateContentResponse["usageMetadata"]>) => void;
 };
 
 function answerConfig(input: AnswerInput, signal: AbortSignal) {
@@ -111,6 +112,7 @@ export async function* streamTutorAnswer(input: AnswerInput): AsyncGenerator<str
     while (true) {
       const item = await deadline.run(iterator.next());
       if (item.done) break;
+      if (item.value.usageMetadata) input.onUsage?.(item.value.usageMetadata);
       if (item.value.candidates?.length) lastResponse = item.value;
       if (item.value.text) { hasText = true; yield item.value.text; }
     }

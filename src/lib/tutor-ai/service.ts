@@ -842,6 +842,8 @@ type AskTutorInput = {
   sessionId: string;
   content: string;
   responseMode?: TutorResponseMode;
+  requestId?: string;
+  retryOfRunId?: string;
   signal?: AbortSignal;
 };
 
@@ -885,6 +887,18 @@ async function prepareTutorTurn(input: AskTutorInput, question: string) {
   };
 }
 
+export async function getTutorResponseRun(input: {
+  courseId: string; sessionId: string; userId: string; requestId: string;
+}) {
+  await getTutorAccess(input.courseId, input.userId);
+  await getSessionOrThrow(input);
+  const run = await prisma.aiResponseRun.findUnique({ where: {
+    aiChatSessionId_requestId: { aiChatSessionId: input.sessionId, requestId: input.requestId },
+  } });
+  if (!run) throw new TutorAiServiceError("Run tidak ditemukan.", 404);
+  return run;
+}
+
 export async function askTutor(input: AskTutorInput) {
   const events = await new Response(await askTutorStream(input)).text();
   const failure = events.split("\n\n").find((event) => event.startsWith("event: error\n"));
@@ -898,12 +912,73 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
   if (!question) throw new TutorAiServiceError("Pertanyaan tidak boleh kosong.", 400);
   const cancellation = new AbortController();
   const signal = input.signal ? AbortSignal.any([input.signal, cancellation.signal]) : cancellation.signal;
-  const turn = await prepareTutorTurn({ ...input, signal }, question);
   signal.throwIfAborted();
+  await getTutorAccess(input.courseId, input.userId);
+  await getSessionOrThrow(input);
   const responseMode = input.responseMode ?? "chat";
-  const userMessage = await prisma.aiChatMessage.create({ data: {
-    id: crypto.randomUUID(), aiChatSessionId: input.sessionId, senderType: "user", content: question,
-  } });
+  if (input.retryOfRunId) {
+    const previous = await prisma.aiResponseRun.findFirst({ where: {
+      id: input.retryOfRunId, aiChatSessionId: input.sessionId,
+      status: { in: ["failed", "cancelled", "timed_out"] },
+    } });
+    if (!previous) throw new TutorAiServiceError("Percobaan sebelumnya tidak ditemukan atau belum gagal.", 409);
+  }
+  const runId = crypto.randomUUID();
+  const requestId = input.requestId ?? crypto.randomUUID();
+  try {
+    await prisma.aiResponseRun.create({ data: {
+      id: runId, aiChatSessionId: input.sessionId, requestId,
+      retryOfRunId: input.retryOfRunId,
+      requestHash: createHash("sha256").update(JSON.stringify({ question, responseMode, retryOfRunId: input.retryOfRunId ?? null })).digest("hex"),
+      question, responseMode,
+      configuration: { generationModel: TUTOR_AI_CHAT_MODEL, embeddingModel: MATERIAL_EMBEDDING_MODEL,
+        embeddingDimensions: MATERIAL_EMBEDDING_DIMENSIONS, retrievalSimilarityThreshold: MIN_CONTEXT_SIMILARITY },
+    } });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      throw new TutorAiServiceError("Request ini sudah diterima. Muat ulang riwayat atau periksa status run sebelum mencoba lagi.", 409);
+    }
+    throw error;
+  }
+  let stage = "retrieval";
+  let tokenUsage: Prisma.InputJsonValue | undefined;
+  const failRun = async (error: unknown) => {
+    const name = error instanceof Error ? error.name : "UnknownError";
+    const status = name === "TimeoutError" ? "timed_out" : signal.aborted ? "cancelled" : "failed";
+    await prisma.aiResponseRun.update({ where: { id: runId }, data: {
+      status, stage, finishedAt: new Date(), durationMs: Date.now() - startTime,
+      tokenUsage,
+      errorCategory: status === "failed" ? `${stage}_error` : status,
+    } });
+  };
+  let turn: Awaited<ReturnType<typeof prepareTutorTurn>>;
+  let userMessage: { id: string } | undefined;
+  try {
+    turn = await prepareTutorTurn({ ...input, signal }, question);
+    signal.throwIfAborted();
+    stage = "generation";
+    await prisma.aiResponseRun.update({ where: { id: runId }, data: {
+      stage,
+      configuration: { generationModel: turn.fixedAnswer ? null : TUTOR_AI_CHAT_MODEL,
+        embeddingModel: MATERIAL_EMBEDDING_MODEL, embeddingDimensions: MATERIAL_EMBEDDING_DIMENSIONS,
+        retrievalSimilarityThreshold: MIN_CONTEXT_SIMILARITY,
+        systemInstruction: turn.systemInstruction, prompt: turn.prompt,
+        promptHash: createHash("sha256").update(turn.systemInstruction).digest("hex"),
+        reason: turn.reason ?? null },
+      evidence: turn.chunks as unknown as Prisma.InputJsonValue,
+    } });
+    stage = "persistence";
+    userMessage = await prisma.aiChatMessage.create({ data: {
+      id: crypto.randomUUID(), aiChatSessionId: input.sessionId, senderType: "user", content: question,
+    } });
+    await prisma.aiResponseRun.update({ where: { id: runId }, data: { userMessageId: userMessage.id } });
+    stage = "generation";
+  } catch (error) {
+    if (userMessage) await prisma.aiChatMessage.delete({ where: { id: userMessage.id } }).catch(() => {});
+    await failRun(error);
+    throw error;
+  }
+  const userMessageId = userMessage.id;
   const encoder = new TextEncoder();
   return new ReadableStream({
     async start(controller) {
@@ -918,11 +993,14 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
       const onAbort = () => { closed = true; };
       signal.addEventListener("abort", onAbort, { once: true });
       try {
+        send("run", { runId, requestId });
         signal.throwIfAborted();
         let fullAnswer = turn.fixedAnswer ?? "";
         if (turn.fixedAnswer) send("text", { text: fullAnswer });
         else {
-          for await (const text of streamTutorAnswer({ systemInstruction: turn.systemInstruction, prompt: turn.prompt, signal })) {
+          for await (const text of streamTutorAnswer({ systemInstruction: turn.systemInstruction, prompt: turn.prompt, signal,
+            onUsage: (usage) => { tokenUsage = JSON.parse(JSON.stringify(usage)); },
+          })) {
             signal.throwIfAborted();
             fullAnswer += text;
             send("text", { text });
@@ -944,20 +1022,28 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
           })),
         };
         const responseTimeMs = Date.now() - startTime;
+        const answerMessageId = crypto.randomUUID();
+        stage = "persistence";
         await prisma.$transaction(async (tx) => {
           signal.throwIfAborted();
           await tx.aiChatMessage.create({ data: {
-            id: crypto.randomUUID(), aiChatSessionId: input.sessionId, senderType: "ai", content: fullAnswer.trim(),
+            id: answerMessageId, aiChatSessionId: input.sessionId, senderType: "ai", content: fullAnswer.trim(),
             ragSources: ragSources as unknown as Prisma.InputJsonValue, responseTimeMs,
+          } });
+          await tx.aiResponseRun.update({ where: { id: runId }, data: {
+            status: "completed", stage, answerMessageId, tokenUsage, finishedAt: new Date(), durationMs: responseTimeMs,
           } });
           await tx.aiChatSession.update({ where: { id: input.sessionId }, data: { lastActiveAt: new Date() } });
           signal.throwIfAborted();
         });
         answerSaved = true;
         send("metadata", { ragSources, responseTimeMs });
-        send("done", { sessionId: input.sessionId });
+        send("done", { sessionId: input.sessionId, runId, userMessageId, answerMessageId });
       } catch (error) {
-        if (!answerSaved) await prisma.aiChatMessage.delete({ where: { id: userMessage.id } }).catch(() => {});
+        if (!answerSaved) {
+          await prisma.aiChatMessage.delete({ where: { id: userMessageId } }).catch(() => {});
+          await failRun(error);
+        }
         if (!signal.aborted) {
           console.error("Tutor AI response failed", error instanceof Error ? error.name : "UnknownError");
           send("error", { error: "Tutor AI gagal menyelesaikan jawaban. Silakan coba lagi." });

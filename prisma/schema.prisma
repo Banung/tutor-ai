@@ -298,6 +298,7 @@ model AiChatSession {
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   course        Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseSession CourseSession   @relation(fields: [courseSessionId], references: [id], onDelete: Cascade)
+  responseRuns  AiResponseRun[]
   messages      AiChatMessage[]
 
   @@index([userId, courseSessionId])
@@ -337,4 +338,32 @@ model TutorPromptConfig {
 
   @@unique([academicLevel, responseMode])
   @@map("tutor_prompt_config")
+}
+
+// Snapshot data is private to the chat owner and deleted with the session.
+model AiResponseRun {
+  id              String @id
+  aiChatSessionId String
+  requestId       String
+  retryOfRunId    String?
+  requestHash     String
+  status          String @default("running")
+  stage           String @default("retrieval")
+  question        String
+  responseMode    String
+  userMessageId   String?
+  answerMessageId String? @unique
+  configuration   Json?
+  evidence        Json?
+  tokenUsage      Json?
+  errorCategory   String?
+  startedAt       DateTime @default(now())
+  finishedAt      DateTime?
+  durationMs      Int?
+
+  aiChatSession AiChatSession @relation(fields: [aiChatSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([aiChatSessionId, requestId])
+  @@index([aiChatSessionId, startedAt])
+  @@map("ai_response_run")
 }

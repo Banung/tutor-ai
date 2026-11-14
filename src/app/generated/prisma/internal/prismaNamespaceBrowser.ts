@@ -65,7 +65,8 @@ export const ModelName = {
   MaterialProcessingLog: 'MaterialProcessingLog',
   AiChatSession: 'AiChatSession',
   AiChatMessage: 'AiChatMessage',
-  TutorPromptConfig: 'TutorPromptConfig'
+  TutorPromptConfig: 'TutorPromptConfig',
+  AiResponseRun: 'AiResponseRun'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -318,6 +319,30 @@ export const TutorPromptConfigScalarFieldEnum = {
 } as const
 
 export type TutorPromptConfigScalarFieldEnum = (typeof TutorPromptConfigScalarFieldEnum)[keyof typeof TutorPromptConfigScalarFieldEnum]
+
+
+export const AiResponseRunScalarFieldEnum = {
+  id: 'id',
+  aiChatSessionId: 'aiChatSessionId',
+  requestId: 'requestId',
+  retryOfRunId: 'retryOfRunId',
+  requestHash: 'requestHash',
+  status: 'status',
+  stage: 'stage',
+  question: 'question',
+  responseMode: 'responseMode',
+  userMessageId: 'userMessageId',
+  answerMessageId: 'answerMessageId',
+  configuration: 'configuration',
+  evidence: 'evidence',
+  tokenUsage: 'tokenUsage',
+  errorCategory: 'errorCategory',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  durationMs: 'durationMs'
+} as const
+
+export type AiResponseRunScalarFieldEnum = (typeof AiResponseRunScalarFieldEnum)[keyof typeof AiResponseRunScalarFieldEnum]
 
 
 export const SortOrder = {
