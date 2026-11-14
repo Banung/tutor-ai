@@ -108,6 +108,7 @@ model Course {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  answerCorrections AiAnswerCorrection[]
   creator        User               @relation("CourseCreator", fields: [createdBy], references: [id], onDelete: Cascade)
   instructors    CourseInstructor[]
   enrollments    Enrollment[]
@@ -373,6 +374,7 @@ model AiResponseRun {
 }
 
 model AiMessageFeedback {
+  corrections AiAnswerCorrection[]
   reviewStatus   String @default("pending")
   reviewRevision Int @default(1)
   reviewerId     String?
@@ -417,4 +419,40 @@ model AiFeedbackReviewEvent {
 
   @@unique([feedbackId, revision])
   @@map("ai_feedback_review_event")
+}
+
+model AiAnswerCorrection {
+  id                   String @id @default(cuid())
+  courseId             String
+  feedbackId           String?
+  questionKey          String
+  question             String
+  version              Int
+  answer               String
+  rationale            String
+  sourceSnapshot       Json
+  sourceFingerprint    String
+  status               String @default("draft")
+  authorId             String
+  authorName           String
+  approvedBy           String?
+  approvedByName       String?
+  approvedAt           DateTime?
+  withdrawnBy          String?
+  withdrawnByName      String?
+  withdrawnAt          DateTime?
+  withdrawalReason     String?
+  supersededById       String?
+  embeddingModel       String?
+  embeddingDimensions  Int?
+  questionEmbedding    Unsupported("vector(768)")?
+  createdAt            DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  feedback AiMessageFeedback? @relation(fields: [feedbackId], references: [id], onDelete: SetNull)
+
+  @@unique([courseId, questionKey, version])
+  @@index([courseId, status])
+  @@index([feedbackId])
+  @@map("ai_answer_correction")
 }

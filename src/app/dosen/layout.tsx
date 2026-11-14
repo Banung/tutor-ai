@@ -2,13 +2,14 @@
 
 import { authClient } from "@/lib/auth-client";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Loader2, LayoutDashboard, BookOpen, MessageSquareWarning } from "lucide-react";
+import { Loader2, LayoutDashboard, BookOpen, MessageSquareWarning, FilePenLine } from "lucide-react";
 import { PanelSidebar } from "@/components/panel-sidebar";
 
 const NAV_ITEMS = [
   { title: "Dashboard", href: "/dosen", icon: LayoutDashboard, exact: true },
   { title: "My Courses", href: "/dosen/courses", icon: BookOpen },
   { title: "Feedback Jawaban", href: "/dosen/feedback", icon: MessageSquareWarning },
+  { title: "Koreksi Jawaban", href: "/dosen/corrections", icon: FilePenLine },
 ];
 
 export default function DosenLayout({ children }: { children: React.ReactNode }) {

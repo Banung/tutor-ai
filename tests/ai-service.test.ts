@@ -65,7 +65,7 @@ async function harness(t: TestContext, options: {
   replace(prisma.aiChatMessage, "delete", async (args: unknown) => { deleted.push(args); return {}; });
   replace(prisma.tutorPromptConfig, "findUnique", async () => options.academicStyle ? { promptContent: options.academicStyle } : null);
   replace(prisma, "$transaction", async (callback: (tx: typeof prisma) => Promise<unknown>) => { if (options.transactionFailure) throw new Error("synthetic transaction failure"); return callback(prisma); });
-  replace(prisma, "$queryRaw", async (strings: TemplateStringsArray, ...values: unknown[]) => { queries.push({ strings: [...strings], values }); if (options.retrievalFailure) throw new DOMException("synthetic deadline", "TimeoutError"); return options.chunks ?? [chunk]; });
+  replace(prisma, "$queryRaw", async (strings: TemplateStringsArray, ...values: unknown[]) => { if (strings.join("").includes("ai_answer_correction")) return []; queries.push({ strings: [...strings], values }); if (options.retrievalFailure) throw new DOMException("synthetic deadline", "TimeoutError"); return options.chunks ?? [chunk]; });
   t.mock.method(globalThis, "fetch", async (url: string | URL | Request, init: RequestInit) => {
     const body = JSON.parse(String(init.body));
     requests.push({ url: String(url), body });

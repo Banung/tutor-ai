@@ -107,3 +107,8 @@ export type AiMessageFeedback = Prisma.AiMessageFeedbackModel
  *
  */
 export type AiFeedbackReviewEvent = Prisma.AiFeedbackReviewEventModel
+/**
+ * Model AiAnswerCorrection
+ *
+ */
+export type AiAnswerCorrection = Prisma.AiAnswerCorrectionModel

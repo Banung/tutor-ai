@@ -401,7 +401,8 @@ export const ModelName = {
   TutorPromptConfig: 'TutorPromptConfig',
   AiResponseRun: 'AiResponseRun',
   AiMessageFeedback: 'AiMessageFeedback',
-  AiFeedbackReviewEvent: 'AiFeedbackReviewEvent'
+  AiFeedbackReviewEvent: 'AiFeedbackReviewEvent',
+  AiAnswerCorrection: 'AiAnswerCorrection'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -417,7 +418,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "course" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback" | "aiFeedbackReviewEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "course" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback" | "aiFeedbackReviewEvent" | "aiAnswerCorrection"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1753,6 +1754,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AiAnswerCorrection: {
+      payload: Prisma.$AiAnswerCorrectionPayload<ExtArgs>
+      fields: Prisma.AiAnswerCorrectionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiAnswerCorrectionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiAnswerCorrectionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        findFirst: {
+          args: Prisma.AiAnswerCorrectionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiAnswerCorrectionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        findMany: {
+          args: Prisma.AiAnswerCorrectionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>[]
+        }
+        create: {
+          args: Prisma.AiAnswerCorrectionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        createMany: {
+          args: Prisma.AiAnswerCorrectionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiAnswerCorrectionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>[]
+        }
+        delete: {
+          args: Prisma.AiAnswerCorrectionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        update: {
+          args: Prisma.AiAnswerCorrectionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiAnswerCorrectionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiAnswerCorrectionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiAnswerCorrectionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiAnswerCorrectionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        aggregate: {
+          args: Prisma.AiAnswerCorrectionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiAnswerCorrection>
+        }
+        groupBy: {
+          args: Prisma.AiAnswerCorrectionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiAnswerCorrectionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiAnswerCorrectionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiAnswerCorrectionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2089,6 +2164,36 @@ export const AiFeedbackReviewEventScalarFieldEnum = {
 export type AiFeedbackReviewEventScalarFieldEnum = (typeof AiFeedbackReviewEventScalarFieldEnum)[keyof typeof AiFeedbackReviewEventScalarFieldEnum]
 
 
+export const AiAnswerCorrectionScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  feedbackId: 'feedbackId',
+  questionKey: 'questionKey',
+  question: 'question',
+  version: 'version',
+  answer: 'answer',
+  rationale: 'rationale',
+  sourceSnapshot: 'sourceSnapshot',
+  sourceFingerprint: 'sourceFingerprint',
+  status: 'status',
+  authorId: 'authorId',
+  authorName: 'authorName',
+  approvedBy: 'approvedBy',
+  approvedByName: 'approvedByName',
+  approvedAt: 'approvedAt',
+  withdrawnBy: 'withdrawnBy',
+  withdrawnByName: 'withdrawnByName',
+  withdrawnAt: 'withdrawnAt',
+  withdrawalReason: 'withdrawalReason',
+  supersededById: 'supersededById',
+  embeddingModel: 'embeddingModel',
+  embeddingDimensions: 'embeddingDimensions',
+  createdAt: 'createdAt'
+} as const
+
+export type AiAnswerCorrectionScalarFieldEnum = (typeof AiAnswerCorrectionScalarFieldEnum)[keyof typeof AiAnswerCorrectionScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2103,6 +2208,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -2354,6 +2466,7 @@ export type GlobalOmitConfig = {
   aiResponseRun?: Prisma.AiResponseRunOmit
   aiMessageFeedback?: Prisma.AiMessageFeedbackOmit
   aiFeedbackReviewEvent?: Prisma.AiFeedbackReviewEventOmit
+  aiAnswerCorrection?: Prisma.AiAnswerCorrectionOmit
 }
 
 /* Types for Logging */

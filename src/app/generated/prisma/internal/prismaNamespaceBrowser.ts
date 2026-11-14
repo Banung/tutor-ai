@@ -68,7 +68,8 @@ export const ModelName = {
   TutorPromptConfig: 'TutorPromptConfig',
   AiResponseRun: 'AiResponseRun',
   AiMessageFeedback: 'AiMessageFeedback',
-  AiFeedbackReviewEvent: 'AiFeedbackReviewEvent'
+  AiFeedbackReviewEvent: 'AiFeedbackReviewEvent',
+  AiAnswerCorrection: 'AiAnswerCorrection'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -384,6 +385,36 @@ export const AiFeedbackReviewEventScalarFieldEnum = {
 export type AiFeedbackReviewEventScalarFieldEnum = (typeof AiFeedbackReviewEventScalarFieldEnum)[keyof typeof AiFeedbackReviewEventScalarFieldEnum]
 
 
+export const AiAnswerCorrectionScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  feedbackId: 'feedbackId',
+  questionKey: 'questionKey',
+  question: 'question',
+  version: 'version',
+  answer: 'answer',
+  rationale: 'rationale',
+  sourceSnapshot: 'sourceSnapshot',
+  sourceFingerprint: 'sourceFingerprint',
+  status: 'status',
+  authorId: 'authorId',
+  authorName: 'authorName',
+  approvedBy: 'approvedBy',
+  approvedByName: 'approvedByName',
+  approvedAt: 'approvedAt',
+  withdrawnBy: 'withdrawnBy',
+  withdrawnByName: 'withdrawnByName',
+  withdrawnAt: 'withdrawnAt',
+  withdrawalReason: 'withdrawalReason',
+  supersededById: 'supersededById',
+  embeddingModel: 'embeddingModel',
+  embeddingDimensions: 'embeddingDimensions',
+  createdAt: 'createdAt'
+} as const
+
+export type AiAnswerCorrectionScalarFieldEnum = (typeof AiAnswerCorrectionScalarFieldEnum)[keyof typeof AiAnswerCorrectionScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -398,6 +429,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

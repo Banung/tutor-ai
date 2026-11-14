@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { feedbackReasons } from "@/lib/tutor-ai/feedback-schema";
 import type { ReviewAction } from "@/lib/tutor-ai/feedback-review-schema";
 import type { FeedbackReviewDetail } from "./feedback-review-types";
+import { FeedbackCorrectionPanel } from "./feedback-correction-panel";
 import { ReviewStatusBadge, reviewDate, reviewResponse, reviewStatusLabel } from "./feedback-review-shared";
 
 export function FeedbackReviewDetailPanel({ feedbackId }: { feedbackId: string }) {
@@ -67,6 +68,7 @@ export function FeedbackReviewDetailPanel({ feedbackId }: { feedbackId: string }
           <Card><CardHeader><CardTitle>Status review</CardTitle><CardDescription>Menandai selesai hanya mencatat peninjauan. Tindakan ini belum mengubah jawaban atau pengetahuan tutor.</CardDescription></CardHeader><CardContent className="flex flex-col gap-3"><ReviewStatusBadge status={item.reviewStatus} />{item.reviewer && <p className="text-sm">Peninjau: {item.reviewer.name}</p>}{item.reviewedAt && <p className="text-sm text-muted-foreground">Selesai {reviewDate(item.reviewedAt)}</p>}{item.reviewStatus === "in_review" && item.actions.length === 0 && <p className="text-sm text-muted-foreground">Review sedang dikerjakan dosen lain.</p>}</CardContent><CardFooter className="flex flex-wrap gap-2">{item.actions.map((action) => <Button key={action} variant={action === "pending" ? "outline" : "default"} disabled={saving} onClick={() => void changeStatus(action)}>{saving ? <Loader2 data-icon="inline-start" className="animate-spin" /> : action === "completed" ? <Check data-icon="inline-start" /> : action === "pending" ? <Undo2 data-icon="inline-start" /> : <Play data-icon="inline-start" />}{action === "completed" ? "Selesai ditinjau" : action === "pending" ? "Kembalikan ke antrean" : item.reviewStatus === "completed" ? "Tinjau kembali" : "Mulai tinjau"}</Button>)}</CardFooter></Card>
         </div>
       </div>
+      <FeedbackCorrectionPanel key={item.id} feedbackId={item.id} />
       <ReviewHistory item={item} />
     </>}
   </div>;
