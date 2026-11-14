@@ -19,6 +19,7 @@ import {
   Square,
   Volume2,
 } from "lucide-react";
+import { WorkedExampleCard } from "./worked-example-card";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -329,6 +330,8 @@ function MarkdownPre({ node, children, ...props }: MarkdownPreProps) {
     const match = /language-(\w+)/.exec(codeElement.props.className || "");
     if (match) language = match[1];
   }
+
+  if (language === "tutorsteps") return <WorkedExampleCard value={codeString} />;
 
   return (
     <div className="my-5 overflow-hidden rounded-xl bg-zinc-950 dark:bg-zinc-900 border border-border">

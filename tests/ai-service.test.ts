@@ -11,6 +11,9 @@ const chunk = {
 };
 
 async function harness(t: TestContext, options: {
+  academicLevel?: "S1" | "S2" | "S3";
+  academicStyle?: string;
+  responseMode?: "chat" | "avatar";
   chunks?: typeof chunk[];
   selected?: string[];
   history?: Array<{ senderType: string; content: string }>;
@@ -35,7 +38,7 @@ async function harness(t: TestContext, options: {
   const materialQueries: Array<{ where: Record<string, unknown> }> = [];
   const queries: Array<{ strings: string[]; values: unknown[] }> = [];
   const requests: Array<{ url: string; body: Record<string, unknown> }> = [];
-  replace(prisma.user, "findUnique", async () => ({ id: "student", name: "Rani", role: "mahasiswa", academicLevel: "S1" }));
+  replace(prisma.user, "findUnique", async () => ({ id: "student", name: "Rani", role: "mahasiswa", academicLevel: options.academicLevel ?? "S1" }));
   replace(prisma.course, "findFirst", async () => options.denyAccess ? null : ({ id: "course", title: "Statistika Dasar", description: null, isActive: true }));
   replace(prisma.material, "findMany", async (args: { where: Record<string, unknown> }) => { materialQueries.push(args); return [{ id: "material-1", title: "Penilaian", fileName: chunk.fileName, pageCount: 3, chunkCount: 4, createdAt: new Date(), courseSession: { id: "lesson-1", title: "Penilaian", orderNumber: 1 } }]; } );
   replace(prisma.aiChatSession, "findFirst", async () => ({ id: "chat", messages: [] }));
@@ -44,7 +47,7 @@ async function harness(t: TestContext, options: {
   replace(prisma.aiChatMessage, "findMany", async () => [...(options.history ?? [])].reverse());
   replace(prisma.aiChatMessage, "create", async ({ data }: { data: Record<string, unknown> }) => { saved.push(data); return data; });
   replace(prisma.aiChatMessage, "delete", async (args: unknown) => { deleted.push(args); return {}; });
-  replace(prisma.tutorPromptConfig, "findUnique", async () => null);
+  replace(prisma.tutorPromptConfig, "findUnique", async () => options.academicStyle ? { promptContent: options.academicStyle } : null);
   replace(prisma, "$transaction", async (callback: (tx: typeof prisma) => Promise<unknown>) => { if (options.transactionFailure) throw new Error("synthetic transaction failure"); return callback(prisma); });
   replace(prisma, "$queryRaw", async (strings: TemplateStringsArray, ...values: unknown[]) => { queries.push({ strings: [...strings], values }); return options.chunks ?? [chunk]; });
   t.mock.method(globalThis, "fetch", async (url: string | URL | Request, init: RequestInit) => {
@@ -63,9 +66,9 @@ async function harness(t: TestContext, options: {
   });
   return {
     saved, deleted, requests, queries, materialQueries, providerStarted,
-    stream: (content: string, signal?: AbortSignal) => askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal }),
+    stream: (content: string, signal?: AbortSignal) => askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal, responseMode: options.responseMode }),
     ask: async (content: string, signal?: AbortSignal) => {
-      const stream = await askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal });
+      const stream = await askTutorStream({ courseId: "course", userId: "student", sessionId: "chat", content, signal, responseMode: options.responseMode });
       return new Response(stream).text();
     },
   };
@@ -227,4 +230,42 @@ test("only materials embedded with the current model and dimensions are offered 
   await h.ask("Apa itu median?");
   assert.equal(h.materialQueries[0].where.embeddingModel, "gemini-embedding-2");
   assert.equal(h.materialQueries[0].where.embeddingDimensions, 768);
+});
+
+
+test("the provider receives concise-first rules after a legacy academic prompt without overwriting it", async (t) => {
+  const legacy = "Panduan custom: selalu jelaskan panjang, beri analogi dan motivasi.";
+  const h = await harness(t, { academicLevel: "S3", academicStyle: legacy });
+  await h.ask("Apa definisi rata-rata?");
+  const request = h.requests.find((r) => r.url.includes("streamGenerateContent"));
+  assert.ok(request);
+  const system = JSON.stringify(request.body.systemInstruction);
+  assert.ok(system.includes(legacy), "admin academic guidance must be retained");
+  assert.ok(system.indexOf("Prioritas gaya respons") > system.indexOf(legacy));
+  assert.match(system, /1-3 kalimat/);
+  assert.match(system, /80 kata/);
+  assert.match(system, /detail|rinci/);
+  assert.match(system, /Jangan membuka atau menutup jawaban dengan sapaan/);
+});
+
+test("a detailed follow-up still receives the request for depth and no-greeting rules", async (t) => {
+  const h = await harness(t, { history: [{ senderType: "user", content: "Apa itu mean?" }, { senderType: "ai", content: "Mean adalah rata-rata." }] });
+  await h.ask("Jelaskan lebih rinci dengan contoh dan langkah perhitungan.");
+  const request = h.requests.find((r) => r.url.includes("streamGenerateContent"));
+  assert.ok(request);
+  assert.match(JSON.stringify(request.body.contents), /Jelaskan lebih rinci dengan contoh/);
+  assert.match(JSON.stringify(request.body.systemInstruction), /tidak berlaku.*rinci/);
+  assert.match(JSON.stringify(request.body.systemInstruction), /Jangan membuka atau menutup jawaban dengan sapaan/);
+});
+
+test("avatar responses retain their own spoken limit and citation guardrails", async (t) => {
+  const h = await harness(t, { responseMode: "avatar" });
+  await h.ask("Apa itu mean?");
+  const request = h.requests.find((r) => r.url.includes("streamGenerateContent"));
+  assert.ok(request);
+  const system = JSON.stringify(request.body.systemInstruction);
+  assert.match(system, /maksimal 45 kata/);
+  assert.doesNotMatch(system, /80 kata/);
+  assert.match(system, /Jangan membuka atau menutup jawaban dengan sapaan/);
+  assert.match(system, /wajib gunakan sitasi/);
 });
