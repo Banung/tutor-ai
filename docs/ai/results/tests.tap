@@ -1,0 +1,182 @@
+TAP version 13
+# Subtest: evaluation is a no-network dry run unless explicitly enabled
+ok 1 - evaluation is a no-network dry run unless explicitly enabled
+  ---
+  duration_ms: 1976.433639
+  type: 'test'
+  ...
+# Subtest: HTTP evaluation collects real turns, metadata and provenance without inventing scores
+ok 2 - HTTP evaluation collects real turns, metadata and provenance without inventing scores
+  ---
+  duration_ms: 2209.225316
+  type: 'test'
+  ...
+# Subtest: evaluation cases have unique identities, expected answers and existing PDF references
+ok 3 - evaluation cases have unique identities, expected answers and existing PDF references
+  ---
+  duration_ms: 13.595447
+  type: 'test'
+  ...
+# [embedding] Model dikonfirmasi: "gemini-embedding-2" → 768 dimensi dari API
+# Subtest: Embedding 2 uses task prefixes and omits unsupported taskType on the actual HTTP request
+ok 4 - Embedding 2 uses task prefixes and omits unsupported taskType on the actual HTTP request
+  ---
+  duration_ms: 117.856389
+  type: 'test'
+  ...
+# Subtest: invalid embedding dimensions are rejected before retrieval
+ok 5 - invalid embedding dimensions are rejected before retrieval
+  ---
+  duration_ms: 4.256596
+  type: 'test'
+  ...
+# Subtest: stream setup has a deadline even if fetch never resolves
+ok 6 - stream setup has a deadline even if fetch never resolves
+  ---
+  duration_ms: 52.663353
+  type: 'test'
+  ...
+# Subtest: a stalled stream read is covered by the same total deadline
+ok 7 - a stalled stream read is covered by the same total deadline
+  ---
+  duration_ms: 1004.692342
+  type: 'test'
+  ...
+# Subtest: caller cancellation stops a pending provider call
+ok 8 - caller cancellation stops a pending provider call
+  ---
+  duration_ms: 4.675634
+  type: 'test'
+  ...
+# Subtest: truncated or empty provider responses cannot be treated as complete
+ok 9 - truncated or empty provider responses cannot be treated as complete
+  ---
+  duration_ms: 19.562645
+  type: 'test'
+  ...
+# Subtest: a usage-only trailer after STOP does not invalidate a completed stream
+ok 10 - a usage-only trailer after STOP does not invalidate a completed stream
+  ---
+  duration_ms: 12.323381
+  type: 'test'
+  ...
+# Subtest: answer generation receives evidence after character 1400 of a retrieved chunk
+ok 11 - answer generation receives evidence after character 1400 of a retrieved chunk
+  ---
+  duration_ms: 1021.062727
+  type: 'test'
+  ...
+# Subtest: a greeting works without selected PDFs and makes no provider calls
+ok 12 - a greeting works without selected PDFs and makes no provider calls
+  ---
+  duration_ms: 10.134153
+  type: 'test'
+  ...
+# Subtest: empty retrieval abstains without asking the generator to invent an answer
+ok 13 - empty retrieval abstains without asking the generator to invent an answer
+  ---
+  duration_ms: 11.128865
+  type: 'test'
+  ...
+# Subtest: follow-up retrieval uses conversation context before embedding
+ok 14 - follow-up retrieval uses conversation context before embedding
+  ---
+  duration_ms: 20.874929
+  type: 'test'
+  ...
+# Subtest: source metadata includes only references actually cited by the answer
+ok 15 - source metadata includes only references actually cited by the answer
+  ---
+  duration_ms: 18.909378
+  type: 'test'
+  ...
+# Tutor AI response failed Error
+# Subtest: out-of-range citations are rejected and never persisted as successful answers
+ok 16 - out-of-range citations are rejected and never persisted as successful answers
+  ---
+  duration_ms: 19.145801
+  type: 'test'
+  ...
+# Subtest: course access is checked before provider calls and message writes
+ok 17 - course access is checked before provider calls and message writes
+  ---
+  duration_ms: 9.656657
+  type: 'test'
+  ...
+# Subtest: retrieval SQL scopes evidence to the course and selected ready materials
+ok 18 - retrieval SQL scopes evidence to the course and selected ready materials
+  ---
+  duration_ms: 14.430402
+  type: 'test'
+  ...
+# Subtest: mixed greeting and academic question still retrieves evidence
+ok 19 - mixed greeting and academic question still retrieves evidence
+  ---
+  duration_ms: 17.020708
+  type: 'test'
+  ...
+# Subtest: deselected materials cannot answer a factual question
+ok 20 - deselected materials cannot answer a factual question
+  ---
+  duration_ms: 21.91759
+  type: 'test'
+  ...
+# Tutor AI response failed Error
+# Subtest: partial provider output fails without saving an answer or orphaning the user turn
+ok 21 - partial provider output fails without saving an answer or orphaning the user turn
+  ---
+  duration_ms: 13.365317
+  type: 'test'
+  ...
+# Tutor AI response failed Error
+# Subtest: persistence failure never sends success and cleans up the pending turn
+ok 22 - persistence failure never sends success and cleans up the pending turn
+  ---
+  duration_ms: 10.442379
+  type: 'test'
+  ...
+# Subtest: an already aborted request writes nothing
+ok 23 - an already aborted request writes nothing
+  ---
+  duration_ms: 9.22596
+  type: 'test'
+  ...
+# Subtest: request abort closes a stalled response and cleans up its pending turn
+ok 24 - request abort closes a stalled response and cleans up its pending turn
+  ---
+  duration_ms: 11.549565
+  type: 'test'
+  ...
+# Subtest: reader cancellation also aborts a stalled provider and cleans up
+ok 25 - reader cancellation also aborts a stalled provider and cleans up
+  ---
+  duration_ms: 14.873669
+  type: 'test'
+  ...
+# Subtest: weak matches below the existing threshold produce an evidence fallback
+ok 26 - weak matches below the existing threshold produce an evidence fallback
+  ---
+  duration_ms: 10.462366
+  type: 'test'
+  ...
+# Subtest: cited source numbers retain their original context identity
+ok 27 - cited source numbers retain their original context identity
+  ---
+  duration_ms: 10.55307
+  type: 'test'
+  ...
+# Subtest: only materials embedded with the current model and dimensions are offered as ready
+ok 28 - only materials embedded with the current model and dimensions are offered as ready
+  ---
+  duration_ms: 7.33997
+  type: 'test'
+  ...
+1..28
+# tests 28
+# suites 0
+# pass 28
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5458.123395

@@ -1,0 +1,98 @@
+Exit status: 0
+Command: node_modules/.bin/next build (same command as pnpm build)
+
+▲ Next.js 16.2.2 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 44s
+  Running TypeScript ...
+  Finished TypeScript in 83s ...
+  Collecting page data using 7 workers ...
+2026-11-13T15:33:32.435Z WARN [Better Auth]: [better-auth] Base URL could not be determined. Please set a valid base URL using the baseURL config option or the BETTER_AUTH_URL environment variable. Without this, callbacks and redirects may not work correctly.
+[Error [BetterAuthError]: You are using the default secret. Please set `BETTER_AUTH_SECRET` in your environment variables or pass `secret` in your auth config.]
+2026-11-13T15:33:33.190Z WARN [Better Auth]: [better-auth] Base URL could not be determined. Please set a valid base URL using the baseURL config option or the BETTER_AUTH_URL environment variable. Without this, callbacks and redirects may not work correctly.
+[Error [BetterAuthError]: You are using the default secret. Please set `BETTER_AUTH_SECRET` in your environment variables or pass `secret` in your auth config.]
+2026-11-13T15:33:34.558Z WARN [Better Auth]: [better-auth] Base URL could not be determined. Please set a valid base URL using the baseURL config option or the BETTER_AUTH_URL environment variable. Without this, callbacks and redirects may not work correctly.
+[Error [BetterAuthError]: You are using the default secret. Please set `BETTER_AUTH_SECRET` in your environment variables or pass `secret` in your auth config.]
+2026-11-13T15:33:34.820Z WARN [Better Auth]: [better-auth] Base URL could not be determined. Please set a valid base URL using the baseURL config option or the BETTER_AUTH_URL environment variable. Without this, callbacks and redirects may not work correctly.
+[Error [BetterAuthError]: You are using the default secret. Please set `BETTER_AUTH_SECRET` in your environment variables or pass `secret` in your auth config.]
+2026-11-13T15:33:35.379Z WARN [Better Auth]: [better-auth] Base URL could not be determined. Please set a valid base URL using the baseURL config option or the BETTER_AUTH_URL environment variable. Without this, callbacks and redirects may not work correctly.
+2026-11-13T15:33:35.589Z WARN [Better Auth]: [better-auth] Base URL could not be determined. Please set a valid base URL using the baseURL config option or the BETTER_AUTH_URL environment variable. Without this, callbacks and redirects may not work correctly.
+[Error [BetterAuthError]: You are using the default secret. Please set `BETTER_AUTH_SECRET` in your environment variables or pass `secret` in your auth config.]
+[Error [BetterAuthError]: You are using the default secret. Please set `BETTER_AUTH_SECRET` in your environment variables or pass `secret` in your auth config.]
+2026-11-13T15:33:36.648Z WARN [Better Auth]: [better-auth] Base URL could not be determined. Please set a valid base URL using the baseURL config option or the BETTER_AUTH_URL environment variable. Without this, callbacks and redirects may not work correctly.
+[Error [BetterAuthError]: You are using the default secret. Please set `BETTER_AUTH_SECRET` in your environment variables or pass `secret` in your auth config.]
+  Generating static pages using 7 workers (0/31) ...
+  Generating static pages using 7 workers (7/31)
+  Generating static pages using 7 workers (15/31)
+  Generating static pages using 7 workers (23/31)
+✓ Generating static pages using 7 workers (31/31) in 3.7s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin
+├ ○ /admin/courses
+├ ƒ /admin/courses/[id]
+├ ○ /admin/tutor-prompts
+├ ○ /admin/users
+├ ƒ /api/admin/courses
+├ ƒ /api/admin/courses/[id]
+├ ƒ /api/admin/courses/[id]/enrollments
+├ ƒ /api/admin/courses/[id]/instructors
+├ ƒ /api/admin/courses/[id]/sessions
+├ ƒ /api/admin/courses/[id]/sessions/[sessionId]
+├ ƒ /api/admin/courses/[id]/sessions/[sessionId]/materials
+├ ƒ /api/admin/courses/[id]/sessions/[sessionId]/materials/[materialId]
+├ ƒ /api/admin/courses/[id]/sessions/[sessionId]/materials/[materialId]/retry
+├ ƒ /api/admin/dosen
+├ ƒ /api/admin/mahasiswa
+├ ƒ /api/admin/stats
+├ ƒ /api/admin/tutor-prompts
+├ ƒ /api/admin/tutor-prompts/reset
+├ ƒ /api/admin/users
+├ ƒ /api/admin/users/[id]
+├ ƒ /api/auth/[...all]
+├ ƒ /api/courses/[courseId]/tutor
+├ ƒ /api/courses/[courseId]/tutor/sessions
+├ ƒ /api/courses/[courseId]/tutor/sessions/[sessionId]
+├ ƒ /api/courses/[courseId]/tutor/sessions/[sessionId]/messages
+├ ƒ /api/courses/[courseId]/tutor/transcribe
+├ ƒ /api/courses/[courseId]/tutor/tts
+├ ƒ /api/dosen/activities
+├ ƒ /api/dosen/courses
+├ ƒ /api/dosen/courses/[id]
+├ ƒ /api/dosen/courses/[id]/sessions
+├ ƒ /api/dosen/courses/[id]/sessions/[sessionId]
+├ ƒ /api/dosen/courses/[id]/sessions/[sessionId]/materials
+├ ƒ /api/dosen/courses/[id]/sessions/[sessionId]/materials/[materialId]
+├ ƒ /api/dosen/courses/[id]/students
+├ ƒ /api/dosen/stats
+├ ƒ /api/mahasiswa/activities
+├ ƒ /api/mahasiswa/courses
+├ ƒ /api/mahasiswa/courses/[id]
+├ ƒ /api/mahasiswa/courses/[id]/sessions
+├ ƒ /api/mahasiswa/courses/available
+├ ƒ /api/mahasiswa/courses/enroll
+├ ƒ /api/mahasiswa/profile
+├ ƒ /courses/[courseId]/tutor
+├ ƒ /courses/[courseId]/tutor/[sessionId]
+├ ○ /dashboard
+├ ○ /dosen
+├ ○ /dosen/courses
+├ ƒ /dosen/courses/[id]
+├ ○ /dosen/courses/create
+├ ○ /login
+├ ○ /mahasiswa
+├ ƒ /mahasiswa/courses
+├ ƒ /mahasiswa/courses/[id]
+├ ƒ /mahasiswa/courses/[id]/tutor
+├ ƒ /mahasiswa/courses/[id]/tutor/[sessionId]
+└ ○ /mahasiswa/profile
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

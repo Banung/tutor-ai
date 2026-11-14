@@ -46,3 +46,6 @@ next-env.d.ts
 /app/generated/prisma
 
 dist/
+
+# Local generated artifacts and reports
+/output/*
