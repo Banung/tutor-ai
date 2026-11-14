@@ -116,3 +116,23 @@ export type AiChatMessage = Prisma.AiChatMessageModel
  * 
  */
 export type TutorPromptConfig = Prisma.TutorPromptConfigModel
+/**
+ * Model AiResponseRun
+ *
+ */
+export type AiResponseRun = Prisma.AiResponseRunModel
+/**
+ * Model AiMessageFeedback
+ *
+ */
+export type AiMessageFeedback = Prisma.AiMessageFeedbackModel
+/**
+ * Model AiFeedbackReviewEvent
+ *
+ */
+export type AiFeedbackReviewEvent = Prisma.AiFeedbackReviewEventModel
+/**
+ * Model AiAnswerCorrection
+ *
+ */
+export type AiAnswerCorrection = Prisma.AiAnswerCorrectionModel

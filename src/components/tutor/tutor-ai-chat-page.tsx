@@ -442,6 +442,8 @@ export function TutorAiChatPage({
         {/* Messages area */}
         {loadingOverview ? (
           <TutorChatMessages
+            courseId={courseId}
+            canGiveFeedback={overview?.user.role === "mahasiswa"}
             activeSession={null}
             loadingSession
             sending={false}
@@ -475,6 +477,8 @@ export function TutorAiChatPage({
           </div>
         ) : panelMode === "chat" ? (
           <TutorChatMessages
+            courseId={courseId}
+            canGiveFeedback={overview?.user.role === "mahasiswa"}
             activeSession={activeSession}
             loadingSession={loadingSession}
             sending={sending}

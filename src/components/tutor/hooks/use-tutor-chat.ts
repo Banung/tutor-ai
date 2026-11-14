@@ -36,6 +36,7 @@ export function useTutorChat({
   const chatSessionsRef = useRef<TutorChatSessionSummary[]>([]);
   const readyMaterialsRef = useRef<TutorOverview["readyMaterials"]>([]);
   const loadingSessionRef = useRef(false);
+  const lastAttemptRef = useRef<{ sessionId: string; question: string; mode: string; requestId: string } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const loadSessionRequestIdRef = useRef(0);
 
@@ -389,12 +390,28 @@ export function useTutorChat({
     }
 
     try {
+      let retryOfRunId: string | undefined;
+      const previous = lastAttemptRef.current;
+      if (previous?.sessionId === realSessionId && previous.question === question && previous.mode === panelMode) {
+        const statusResponse = await fetch(`/api/courses/${courseId}/tutor/sessions/${realSessionId}/runs/${previous.requestId}`, { signal: abortController.signal });
+        if (statusResponse.ok) {
+          const run = await statusResponse.json();
+          if (run.status === "running" || run.status === "completed") {
+            throw new Error("Request sebelumnya sudah diterima. Muat ulang riwayat untuk melihat hasilnya.");
+          }
+          retryOfRunId = run.id;
+        } else if (statusResponse.status !== 404) {
+          throw new Error("Status percobaan sebelumnya belum dapat diperiksa. Coba lagi nanti.");
+        }
+      }
+      const requestId = crypto.randomUUID();
+      lastAttemptRef.current = { sessionId: realSessionId, question, mode: panelMode, requestId };
       const response = await fetch(
         `/api/courses/${courseId}/tutor/sessions/${realSessionId}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: question, responseMode: panelMode }),
+          body: JSON.stringify({ content: question, responseMode: panelMode, requestId, retryOfRunId }),
           signal: abortController.signal,
         }
       );
@@ -415,19 +432,20 @@ export function useTutorChat({
       let streamDone = false;
       let eventType = "";
 
-      const finalizeStream = () => {
+      const finalizeStream = (userMessageId?: string, answerMessageId?: string) => {
         streamDone = true;
+        lastAttemptRef.current = null;
         setActiveSession((prev) => {
           if (!prev) return prev;
           const sessionId = isNewSession ? realSessionId : prev.id;
           const messages = prev.messages.map((msg) => {
             if (msg.id === pendingMessage.id) {
-              return { ...msg, id: `user-${Date.now()}` };
+              return { ...msg, id: userMessageId ?? `user-${Date.now()}` };
             }
             if (msg.id === streamingAiMessage.id) {
               return {
                 ...msg,
-                id: `ai-${Date.now()}`,
+                id: answerMessageId ?? `ai-${Date.now()}`,
                 content: accumulatedText,
                 ragSources,
                 responseTimeMs,
@@ -459,6 +477,8 @@ export function useTutorChat({
           ragSources?: unknown;
           responseTimeMs?: number | null;
           error?: string;
+          userMessageId?: string;
+          answerMessageId?: string;
         };
 
         try {
@@ -491,7 +511,7 @@ export function useTutorChat({
         }
 
         if (type === "done") {
-          finalizeStream();
+          finalizeStream(data.userMessageId, data.answerMessageId);
           return;
         }
 
@@ -519,26 +539,13 @@ export function useTutorChat({
         }
       }
 
-      if (!streamDone && accumulatedText.trim()) {
-        finalizeStream();
-      }
+      if (!streamDone) throw new Error("Koneksi terputus sebelum jawaban selesai. Muat ulang riwayat sebelum mencoba lagi.");
     } catch (err) {
       const isAborted = err instanceof DOMException && err.name === "AbortError";
       setActiveSession((prev) => {
         if (!prev) return prev;
-        if (isAborted) {
-          const messages = prev.messages.map((msg) => {
-            if (msg.id === streamingAiMessage.id) {
-              return msg.content
-                ? { ...msg, id: `ai-stopped-${Date.now()}` }
-                : null;
-            }
-            return msg;
-          }).filter((msg): msg is TutorMessage => msg !== null);
-          return { ...prev, id: isNewSession ? realSessionId : prev.id, messages };
-        }
         const messages = prev.messages.filter(
-          (msg) => msg.id !== streamingAiMessage.id
+          (msg) => msg.id !== streamingAiMessage.id && msg.id !== pendingMessage.id
         );
         return { ...prev, id: isNewSession ? realSessionId : prev.id, messages };
       });

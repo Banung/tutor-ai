@@ -65,7 +65,11 @@ export const ModelName = {
   MaterialProcessingLog: 'MaterialProcessingLog',
   AiChatSession: 'AiChatSession',
   AiChatMessage: 'AiChatMessage',
-  TutorPromptConfig: 'TutorPromptConfig'
+  TutorPromptConfig: 'TutorPromptConfig',
+  AiResponseRun: 'AiResponseRun',
+  AiMessageFeedback: 'AiMessageFeedback',
+  AiFeedbackReviewEvent: 'AiFeedbackReviewEvent',
+  AiAnswerCorrection: 'AiAnswerCorrection'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -320,6 +324,97 @@ export const TutorPromptConfigScalarFieldEnum = {
 export type TutorPromptConfigScalarFieldEnum = (typeof TutorPromptConfigScalarFieldEnum)[keyof typeof TutorPromptConfigScalarFieldEnum]
 
 
+export const AiResponseRunScalarFieldEnum = {
+  id: 'id',
+  aiChatSessionId: 'aiChatSessionId',
+  requestId: 'requestId',
+  retryOfRunId: 'retryOfRunId',
+  requestHash: 'requestHash',
+  status: 'status',
+  stage: 'stage',
+  question: 'question',
+  responseMode: 'responseMode',
+  userMessageId: 'userMessageId',
+  answerMessageId: 'answerMessageId',
+  configuration: 'configuration',
+  evidence: 'evidence',
+  tokenUsage: 'tokenUsage',
+  errorCategory: 'errorCategory',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  durationMs: 'durationMs'
+} as const
+
+export type AiResponseRunScalarFieldEnum = (typeof AiResponseRunScalarFieldEnum)[keyof typeof AiResponseRunScalarFieldEnum]
+
+
+export const AiMessageFeedbackScalarFieldEnum = {
+  reviewStatus: 'reviewStatus',
+  reviewRevision: 'reviewRevision',
+  reviewerId: 'reviewerId',
+  reviewedAt: 'reviewedAt',
+  id: 'id',
+  userId: 'userId',
+  messageId: 'messageId',
+  runId: 'runId',
+  value: 'value',
+  reason: 'reason',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiMessageFeedbackScalarFieldEnum = (typeof AiMessageFeedbackScalarFieldEnum)[keyof typeof AiMessageFeedbackScalarFieldEnum]
+
+
+export const AiFeedbackReviewEventScalarFieldEnum = {
+  id: 'id',
+  feedbackId: 'feedbackId',
+  revision: 'revision',
+  eventType: 'eventType',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  actorId: 'actorId',
+  actorRole: 'actorRole',
+  actorName: 'actorName',
+  feedbackBefore: 'feedbackBefore',
+  feedbackAfter: 'feedbackAfter',
+  createdAt: 'createdAt'
+} as const
+
+export type AiFeedbackReviewEventScalarFieldEnum = (typeof AiFeedbackReviewEventScalarFieldEnum)[keyof typeof AiFeedbackReviewEventScalarFieldEnum]
+
+
+export const AiAnswerCorrectionScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  feedbackId: 'feedbackId',
+  questionKey: 'questionKey',
+  question: 'question',
+  version: 'version',
+  answer: 'answer',
+  rationale: 'rationale',
+  sourceSnapshot: 'sourceSnapshot',
+  sourceFingerprint: 'sourceFingerprint',
+  status: 'status',
+  authorId: 'authorId',
+  authorName: 'authorName',
+  approvedBy: 'approvedBy',
+  approvedByName: 'approvedByName',
+  approvedAt: 'approvedAt',
+  withdrawnBy: 'withdrawnBy',
+  withdrawnByName: 'withdrawnByName',
+  withdrawnAt: 'withdrawnAt',
+  withdrawalReason: 'withdrawalReason',
+  supersededById: 'supersededById',
+  embeddingModel: 'embeddingModel',
+  embeddingDimensions: 'embeddingDimensions',
+  createdAt: 'createdAt'
+} as const
+
+export type AiAnswerCorrectionScalarFieldEnum = (typeof AiAnswerCorrectionScalarFieldEnum)[keyof typeof AiAnswerCorrectionScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -334,6 +429,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

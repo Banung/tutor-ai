@@ -398,7 +398,11 @@ export const ModelName = {
   MaterialProcessingLog: 'MaterialProcessingLog',
   AiChatSession: 'AiChatSession',
   AiChatMessage: 'AiChatMessage',
-  TutorPromptConfig: 'TutorPromptConfig'
+  TutorPromptConfig: 'TutorPromptConfig',
+  AiResponseRun: 'AiResponseRun',
+  AiMessageFeedback: 'AiMessageFeedback',
+  AiFeedbackReviewEvent: 'AiFeedbackReviewEvent',
+  AiAnswerCorrection: 'AiAnswerCorrection'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -414,7 +418,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "course" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
+    modelProps: "user" | "session" | "account" | "verification" | "course" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback" | "aiFeedbackReviewEvent" | "aiAnswerCorrection"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1528,6 +1532,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AiResponseRun: {
+      payload: Prisma.$AiResponseRunPayload<ExtArgs>
+      fields: Prisma.AiResponseRunFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiResponseRunFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiResponseRunFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload>
+        }
+        findFirst: {
+          args: Prisma.AiResponseRunFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiResponseRunFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload>
+        }
+        findMany: {
+          args: Prisma.AiResponseRunFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload>[]
+        }
+        create: {
+          args: Prisma.AiResponseRunCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload>
+        }
+        createMany: {
+          args: Prisma.AiResponseRunCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiResponseRunCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload>[]
+        }
+        delete: {
+          args: Prisma.AiResponseRunDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload>
+        }
+        update: {
+          args: Prisma.AiResponseRunUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiResponseRunDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiResponseRunUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiResponseRunUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiResponseRunUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiResponseRunPayload>
+        }
+        aggregate: {
+          args: Prisma.AiResponseRunAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiResponseRun>
+        }
+        groupBy: {
+          args: Prisma.AiResponseRunGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiResponseRunGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiResponseRunCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiResponseRunCountAggregateOutputType> | number
+        }
+      }
+    }
+    AiMessageFeedback: {
+      payload: Prisma.$AiMessageFeedbackPayload<ExtArgs>
+      fields: Prisma.AiMessageFeedbackFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiMessageFeedbackFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiMessageFeedbackFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        findFirst: {
+          args: Prisma.AiMessageFeedbackFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiMessageFeedbackFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        findMany: {
+          args: Prisma.AiMessageFeedbackFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>[]
+        }
+        create: {
+          args: Prisma.AiMessageFeedbackCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        createMany: {
+          args: Prisma.AiMessageFeedbackCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiMessageFeedbackCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>[]
+        }
+        delete: {
+          args: Prisma.AiMessageFeedbackDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        update: {
+          args: Prisma.AiMessageFeedbackUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiMessageFeedbackDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiMessageFeedbackUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiMessageFeedbackUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiMessageFeedbackUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        aggregate: {
+          args: Prisma.AiMessageFeedbackAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiMessageFeedback>
+        }
+        groupBy: {
+          args: Prisma.AiMessageFeedbackGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiMessageFeedbackGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiMessageFeedbackCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiMessageFeedbackCountAggregateOutputType> | number
+        }
+      }
+    }
+    AiFeedbackReviewEvent: {
+      payload: Prisma.$AiFeedbackReviewEventPayload<ExtArgs>
+      fields: Prisma.AiFeedbackReviewEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiFeedbackReviewEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiFeedbackReviewEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        findFirst: {
+          args: Prisma.AiFeedbackReviewEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiFeedbackReviewEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        findMany: {
+          args: Prisma.AiFeedbackReviewEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>[]
+        }
+        create: {
+          args: Prisma.AiFeedbackReviewEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        createMany: {
+          args: Prisma.AiFeedbackReviewEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiFeedbackReviewEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>[]
+        }
+        delete: {
+          args: Prisma.AiFeedbackReviewEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        update: {
+          args: Prisma.AiFeedbackReviewEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiFeedbackReviewEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiFeedbackReviewEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiFeedbackReviewEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiFeedbackReviewEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        aggregate: {
+          args: Prisma.AiFeedbackReviewEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiFeedbackReviewEvent>
+        }
+        groupBy: {
+          args: Prisma.AiFeedbackReviewEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiFeedbackReviewEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiFeedbackReviewEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiFeedbackReviewEventCountAggregateOutputType> | number
+        }
+      }
+    }
+    AiAnswerCorrection: {
+      payload: Prisma.$AiAnswerCorrectionPayload<ExtArgs>
+      fields: Prisma.AiAnswerCorrectionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiAnswerCorrectionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiAnswerCorrectionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        findFirst: {
+          args: Prisma.AiAnswerCorrectionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiAnswerCorrectionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        findMany: {
+          args: Prisma.AiAnswerCorrectionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>[]
+        }
+        create: {
+          args: Prisma.AiAnswerCorrectionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        createMany: {
+          args: Prisma.AiAnswerCorrectionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiAnswerCorrectionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>[]
+        }
+        delete: {
+          args: Prisma.AiAnswerCorrectionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        update: {
+          args: Prisma.AiAnswerCorrectionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiAnswerCorrectionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiAnswerCorrectionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiAnswerCorrectionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiAnswerCorrectionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiAnswerCorrectionPayload>
+        }
+        aggregate: {
+          args: Prisma.AiAnswerCorrectionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiAnswerCorrection>
+        }
+        groupBy: {
+          args: Prisma.AiAnswerCorrectionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiAnswerCorrectionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiAnswerCorrectionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiAnswerCorrectionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1803,6 +2103,97 @@ export const TutorPromptConfigScalarFieldEnum = {
 export type TutorPromptConfigScalarFieldEnum = (typeof TutorPromptConfigScalarFieldEnum)[keyof typeof TutorPromptConfigScalarFieldEnum]
 
 
+export const AiResponseRunScalarFieldEnum = {
+  id: 'id',
+  aiChatSessionId: 'aiChatSessionId',
+  requestId: 'requestId',
+  retryOfRunId: 'retryOfRunId',
+  requestHash: 'requestHash',
+  status: 'status',
+  stage: 'stage',
+  question: 'question',
+  responseMode: 'responseMode',
+  userMessageId: 'userMessageId',
+  answerMessageId: 'answerMessageId',
+  configuration: 'configuration',
+  evidence: 'evidence',
+  tokenUsage: 'tokenUsage',
+  errorCategory: 'errorCategory',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  durationMs: 'durationMs'
+} as const
+
+export type AiResponseRunScalarFieldEnum = (typeof AiResponseRunScalarFieldEnum)[keyof typeof AiResponseRunScalarFieldEnum]
+
+
+export const AiMessageFeedbackScalarFieldEnum = {
+  reviewStatus: 'reviewStatus',
+  reviewRevision: 'reviewRevision',
+  reviewerId: 'reviewerId',
+  reviewedAt: 'reviewedAt',
+  id: 'id',
+  userId: 'userId',
+  messageId: 'messageId',
+  runId: 'runId',
+  value: 'value',
+  reason: 'reason',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiMessageFeedbackScalarFieldEnum = (typeof AiMessageFeedbackScalarFieldEnum)[keyof typeof AiMessageFeedbackScalarFieldEnum]
+
+
+export const AiFeedbackReviewEventScalarFieldEnum = {
+  id: 'id',
+  feedbackId: 'feedbackId',
+  revision: 'revision',
+  eventType: 'eventType',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  actorId: 'actorId',
+  actorRole: 'actorRole',
+  actorName: 'actorName',
+  feedbackBefore: 'feedbackBefore',
+  feedbackAfter: 'feedbackAfter',
+  createdAt: 'createdAt'
+} as const
+
+export type AiFeedbackReviewEventScalarFieldEnum = (typeof AiFeedbackReviewEventScalarFieldEnum)[keyof typeof AiFeedbackReviewEventScalarFieldEnum]
+
+
+export const AiAnswerCorrectionScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  feedbackId: 'feedbackId',
+  questionKey: 'questionKey',
+  question: 'question',
+  version: 'version',
+  answer: 'answer',
+  rationale: 'rationale',
+  sourceSnapshot: 'sourceSnapshot',
+  sourceFingerprint: 'sourceFingerprint',
+  status: 'status',
+  authorId: 'authorId',
+  authorName: 'authorName',
+  approvedBy: 'approvedBy',
+  approvedByName: 'approvedByName',
+  approvedAt: 'approvedAt',
+  withdrawnBy: 'withdrawnBy',
+  withdrawnByName: 'withdrawnByName',
+  withdrawnAt: 'withdrawnAt',
+  withdrawalReason: 'withdrawalReason',
+  supersededById: 'supersededById',
+  embeddingModel: 'embeddingModel',
+  embeddingDimensions: 'embeddingDimensions',
+  createdAt: 'createdAt'
+} as const
+
+export type AiAnswerCorrectionScalarFieldEnum = (typeof AiAnswerCorrectionScalarFieldEnum)[keyof typeof AiAnswerCorrectionScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1817,6 +2208,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -2065,6 +2463,10 @@ export type GlobalOmitConfig = {
   aiChatSession?: Prisma.AiChatSessionOmit
   aiChatMessage?: Prisma.AiChatMessageOmit
   tutorPromptConfig?: Prisma.TutorPromptConfigOmit
+  aiResponseRun?: Prisma.AiResponseRunOmit
+  aiMessageFeedback?: Prisma.AiMessageFeedbackOmit
+  aiFeedbackReviewEvent?: Prisma.AiFeedbackReviewEventOmit
+  aiAnswerCorrection?: Prisma.AiAnswerCorrectionOmit
 }
 
 /* Types for Logging */

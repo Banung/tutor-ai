@@ -19,6 +19,7 @@ import {
   Square,
   Volume2,
 } from "lucide-react";
+import { TutorMessageFeedback } from "./tutor-message-feedback";
 import { WorkedExampleCard } from "./worked-example-card";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -426,6 +427,8 @@ function MarkdownTable({ node, children, ...props }: MarkdownTableProps) {
 }
 
 export type TutorChatMessagesProps = {
+  courseId: string;
+  canGiveFeedback?: boolean;
   activeSession: TutorChatSession | null;
   loadingSession: boolean;
   sending: boolean;
@@ -434,6 +437,8 @@ export type TutorChatMessagesProps = {
 };
 
 export const TutorChatMessages = memo(function TutorChatMessages({
+  courseId,
+  canGiveFeedback = false,
   activeSession,
   loadingSession,
   sending,
@@ -622,7 +627,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                       </div>
 
                       {!isStreaming && message.content.trim() && (
-                        <div className="mt-3 flex items-center gap-1">
+                        <div className="mt-3 flex flex-wrap items-center gap-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -676,6 +681,15 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                               {copiedMessageId === message.id ? "Copied" : "Copy Response"}
                             </TooltipContent>
                           </Tooltip>
+                          {canGiveFeedback && activeSession && !message.id.startsWith("streaming-") && (
+                            <TutorMessageFeedback
+                              key={`${message.id}-${message.feedback?.updatedAt ?? "none"}`}
+                              courseId={courseId}
+                              sessionId={activeSession.id}
+                              messageId={message.id}
+                              initialFeedback={message.feedback}
+                            />
+                          )}
                         </div>
                       )}
                     </>
