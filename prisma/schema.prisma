@@ -39,6 +39,7 @@ model User {
   enrollments        Enrollment[]
   courseSessionsMade CourseSession[]    @relation("CourseSessionCreator")
   materialsUploaded  Material[]
+  aiMessageFeedback  AiMessageFeedback[]
   aiChatSessions     AiChatSession[]
 
   @@map("user")
@@ -307,6 +308,7 @@ model AiChatSession {
 }
 
 model AiChatMessage {
+  feedbacks AiMessageFeedback[]
   id              String   @id
   aiChatSessionId String
   senderType      String // user | ai
@@ -342,6 +344,7 @@ model TutorPromptConfig {
 
 // Snapshot data is private to the chat owner and deleted with the session.
 model AiResponseRun {
+  feedbacks AiMessageFeedback[]
   id              String @id
   aiChatSessionId String
   requestId       String
@@ -366,4 +369,24 @@ model AiResponseRun {
   @@unique([aiChatSessionId, requestId])
   @@index([aiChatSessionId, startedAt])
   @@map("ai_response_run")
+}
+
+model AiMessageFeedback {
+  id        String @id @default(cuid())
+  userId    String
+  messageId String
+  runId     String?
+  value     String
+  reason    String?
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message AiChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  run     AiResponseRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, messageId])
+  @@index([runId])
+  @@map("ai_message_feedback")
 }

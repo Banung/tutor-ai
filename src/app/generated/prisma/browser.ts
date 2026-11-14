@@ -97,3 +97,8 @@ export type TutorPromptConfig = Prisma.TutorPromptConfigModel
  *
  */
 export type AiResponseRun = Prisma.AiResponseRunModel
+/**
+ * Model AiMessageFeedback
+ *
+ */
+export type AiMessageFeedback = Prisma.AiMessageFeedbackModel

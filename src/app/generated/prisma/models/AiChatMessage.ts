@@ -236,6 +236,7 @@ export type AiChatMessageWhereInput = {
   ragSources?: Prisma.JsonNullableFilter<"AiChatMessage">
   responseTimeMs?: Prisma.IntNullableFilter<"AiChatMessage"> | number | null
   createdAt?: Prisma.DateTimeFilter<"AiChatMessage"> | Date | string
+  feedbacks?: Prisma.AiMessageFeedbackListRelationFilter
   aiChatSession?: Prisma.XOR<Prisma.AiChatSessionScalarRelationFilter, Prisma.AiChatSessionWhereInput>
 }
 
@@ -248,6 +249,7 @@ export type AiChatMessageOrderByWithRelationInput = {
   ragSources?: Prisma.SortOrderInput | Prisma.SortOrder
   responseTimeMs?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  feedbacks?: Prisma.AiMessageFeedbackOrderByRelationAggregateInput
   aiChatSession?: Prisma.AiChatSessionOrderByWithRelationInput
 }
 
@@ -263,6 +265,7 @@ export type AiChatMessageWhereUniqueInput = Prisma.AtLeast<{
   ragSources?: Prisma.JsonNullableFilter<"AiChatMessage">
   responseTimeMs?: Prisma.IntNullableFilter<"AiChatMessage"> | number | null
   createdAt?: Prisma.DateTimeFilter<"AiChatMessage"> | Date | string
+  feedbacks?: Prisma.AiMessageFeedbackListRelationFilter
   aiChatSession?: Prisma.XOR<Prisma.AiChatSessionScalarRelationFilter, Prisma.AiChatSessionWhereInput>
 }, "id">
 
@@ -304,6 +307,7 @@ export type AiChatMessageCreateInput = {
   ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   responseTimeMs?: number | null
   createdAt?: Date | string
+  feedbacks?: Prisma.AiMessageFeedbackCreateNestedManyWithoutMessageInput
   aiChatSession: Prisma.AiChatSessionCreateNestedOneWithoutMessagesInput
 }
 
@@ -316,6 +320,7 @@ export type AiChatMessageUncheckedCreateInput = {
   ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   responseTimeMs?: number | null
   createdAt?: Date | string
+  feedbacks?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type AiChatMessageUpdateInput = {
@@ -326,6 +331,7 @@ export type AiChatMessageUpdateInput = {
   ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   responseTimeMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  feedbacks?: Prisma.AiMessageFeedbackUpdateManyWithoutMessageNestedInput
   aiChatSession?: Prisma.AiChatSessionUpdateOneRequiredWithoutMessagesNestedInput
 }
 
@@ -338,6 +344,7 @@ export type AiChatMessageUncheckedUpdateInput = {
   ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   responseTimeMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  feedbacks?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 export type AiChatMessageCreateManyInput = {
@@ -421,6 +428,11 @@ export type AiChatMessageSumOrderByAggregateInput = {
   responseTimeMs?: Prisma.SortOrder
 }
 
+export type AiChatMessageScalarRelationFilter = {
+  is?: Prisma.AiChatMessageWhereInput
+  isNot?: Prisma.AiChatMessageWhereInput
+}
+
 export type AiChatMessageCreateNestedManyWithoutAiChatSessionInput = {
   create?: Prisma.XOR<Prisma.AiChatMessageCreateWithoutAiChatSessionInput, Prisma.AiChatMessageUncheckedCreateWithoutAiChatSessionInput> | Prisma.AiChatMessageCreateWithoutAiChatSessionInput[] | Prisma.AiChatMessageUncheckedCreateWithoutAiChatSessionInput[]
   connectOrCreate?: Prisma.AiChatMessageCreateOrConnectWithoutAiChatSessionInput | Prisma.AiChatMessageCreateOrConnectWithoutAiChatSessionInput[]
@@ -463,6 +475,20 @@ export type AiChatMessageUncheckedUpdateManyWithoutAiChatSessionNestedInput = {
   deleteMany?: Prisma.AiChatMessageScalarWhereInput | Prisma.AiChatMessageScalarWhereInput[]
 }
 
+export type AiChatMessageCreateNestedOneWithoutFeedbacksInput = {
+  create?: Prisma.XOR<Prisma.AiChatMessageCreateWithoutFeedbacksInput, Prisma.AiChatMessageUncheckedCreateWithoutFeedbacksInput>
+  connectOrCreate?: Prisma.AiChatMessageCreateOrConnectWithoutFeedbacksInput
+  connect?: Prisma.AiChatMessageWhereUniqueInput
+}
+
+export type AiChatMessageUpdateOneRequiredWithoutFeedbacksNestedInput = {
+  create?: Prisma.XOR<Prisma.AiChatMessageCreateWithoutFeedbacksInput, Prisma.AiChatMessageUncheckedCreateWithoutFeedbacksInput>
+  connectOrCreate?: Prisma.AiChatMessageCreateOrConnectWithoutFeedbacksInput
+  upsert?: Prisma.AiChatMessageUpsertWithoutFeedbacksInput
+  connect?: Prisma.AiChatMessageWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AiChatMessageUpdateToOneWithWhereWithoutFeedbacksInput, Prisma.AiChatMessageUpdateWithoutFeedbacksInput>, Prisma.AiChatMessageUncheckedUpdateWithoutFeedbacksInput>
+}
+
 export type AiChatMessageCreateWithoutAiChatSessionInput = {
   id: string
   senderType: string
@@ -471,6 +497,7 @@ export type AiChatMessageCreateWithoutAiChatSessionInput = {
   ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   responseTimeMs?: number | null
   createdAt?: Date | string
+  feedbacks?: Prisma.AiMessageFeedbackCreateNestedManyWithoutMessageInput
 }
 
 export type AiChatMessageUncheckedCreateWithoutAiChatSessionInput = {
@@ -481,6 +508,7 @@ export type AiChatMessageUncheckedCreateWithoutAiChatSessionInput = {
   ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   responseTimeMs?: number | null
   createdAt?: Date | string
+  feedbacks?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutMessageInput
 }
 
 export type AiChatMessageCreateOrConnectWithoutAiChatSessionInput = {
@@ -523,6 +551,66 @@ export type AiChatMessageScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"AiChatMessage"> | Date | string
 }
 
+export type AiChatMessageCreateWithoutFeedbacksInput = {
+  id: string
+  senderType: string
+  content: string
+  audioUrl?: string | null
+  ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  responseTimeMs?: number | null
+  createdAt?: Date | string
+  aiChatSession: Prisma.AiChatSessionCreateNestedOneWithoutMessagesInput
+}
+
+export type AiChatMessageUncheckedCreateWithoutFeedbacksInput = {
+  id: string
+  aiChatSessionId: string
+  senderType: string
+  content: string
+  audioUrl?: string | null
+  ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  responseTimeMs?: number | null
+  createdAt?: Date | string
+}
+
+export type AiChatMessageCreateOrConnectWithoutFeedbacksInput = {
+  where: Prisma.AiChatMessageWhereUniqueInput
+  create: Prisma.XOR<Prisma.AiChatMessageCreateWithoutFeedbacksInput, Prisma.AiChatMessageUncheckedCreateWithoutFeedbacksInput>
+}
+
+export type AiChatMessageUpsertWithoutFeedbacksInput = {
+  update: Prisma.XOR<Prisma.AiChatMessageUpdateWithoutFeedbacksInput, Prisma.AiChatMessageUncheckedUpdateWithoutFeedbacksInput>
+  create: Prisma.XOR<Prisma.AiChatMessageCreateWithoutFeedbacksInput, Prisma.AiChatMessageUncheckedCreateWithoutFeedbacksInput>
+  where?: Prisma.AiChatMessageWhereInput
+}
+
+export type AiChatMessageUpdateToOneWithWhereWithoutFeedbacksInput = {
+  where?: Prisma.AiChatMessageWhereInput
+  data: Prisma.XOR<Prisma.AiChatMessageUpdateWithoutFeedbacksInput, Prisma.AiChatMessageUncheckedUpdateWithoutFeedbacksInput>
+}
+
+export type AiChatMessageUpdateWithoutFeedbacksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  senderType?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  audioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  responseTimeMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiChatSession?: Prisma.AiChatSessionUpdateOneRequiredWithoutMessagesNestedInput
+}
+
+export type AiChatMessageUncheckedUpdateWithoutFeedbacksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  aiChatSessionId?: Prisma.StringFieldUpdateOperationsInput | string
+  senderType?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  audioUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  responseTimeMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type AiChatMessageCreateManyAiChatSessionInput = {
   id: string
   senderType: string
@@ -541,6 +629,7 @@ export type AiChatMessageUpdateWithoutAiChatSessionInput = {
   ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   responseTimeMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  feedbacks?: Prisma.AiMessageFeedbackUpdateManyWithoutMessageNestedInput
 }
 
 export type AiChatMessageUncheckedUpdateWithoutAiChatSessionInput = {
@@ -551,6 +640,7 @@ export type AiChatMessageUncheckedUpdateWithoutAiChatSessionInput = {
   ragSources?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   responseTimeMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  feedbacks?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutMessageNestedInput
 }
 
 export type AiChatMessageUncheckedUpdateManyWithoutAiChatSessionInput = {
@@ -564,6 +654,35 @@ export type AiChatMessageUncheckedUpdateManyWithoutAiChatSessionInput = {
 }
 
 
+/**
+ * Count Type AiChatMessageCountOutputType
+ */
+
+export type AiChatMessageCountOutputType = {
+  feedbacks: number
+}
+
+export type AiChatMessageCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  feedbacks?: boolean | AiChatMessageCountOutputTypeCountFeedbacksArgs
+}
+
+/**
+ * AiChatMessageCountOutputType without action
+ */
+export type AiChatMessageCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AiChatMessageCountOutputType
+   */
+  select?: Prisma.AiChatMessageCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * AiChatMessageCountOutputType without action
+ */
+export type AiChatMessageCountOutputTypeCountFeedbacksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AiMessageFeedbackWhereInput
+}
+
 
 export type AiChatMessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -574,7 +693,9 @@ export type AiChatMessageSelect<ExtArgs extends runtime.Types.Extensions.Interna
   ragSources?: boolean
   responseTimeMs?: boolean
   createdAt?: boolean
+  feedbacks?: boolean | Prisma.AiChatMessage$feedbacksArgs<ExtArgs>
   aiChatSession?: boolean | Prisma.AiChatSessionDefaultArgs<ExtArgs>
+  _count?: boolean | Prisma.AiChatMessageCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aiChatMessage"]>
 
 export type AiChatMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -614,7 +735,9 @@ export type AiChatMessageSelectScalar = {
 
 export type AiChatMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "aiChatSessionId" | "senderType" | "content" | "audioUrl" | "ragSources" | "responseTimeMs" | "createdAt", ExtArgs["result"]["aiChatMessage"]>
 export type AiChatMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  feedbacks?: boolean | Prisma.AiChatMessage$feedbacksArgs<ExtArgs>
   aiChatSession?: boolean | Prisma.AiChatSessionDefaultArgs<ExtArgs>
+  _count?: boolean | Prisma.AiChatMessageCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AiChatMessageIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   aiChatSession?: boolean | Prisma.AiChatSessionDefaultArgs<ExtArgs>
@@ -626,6 +749,7 @@ export type AiChatMessageIncludeUpdateManyAndReturn<ExtArgs extends runtime.Type
 export type $AiChatMessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AiChatMessage"
   objects: {
+    feedbacks: Prisma.$AiMessageFeedbackPayload<ExtArgs>[]
     aiChatSession: Prisma.$AiChatSessionPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1031,6 +1155,7 @@ readonly fields: AiChatMessageFieldRefs;
  */
 export interface Prisma__AiChatMessageClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  feedbacks<T extends Prisma.AiChatMessage$feedbacksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiChatMessage$feedbacksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiChatSession<T extends Prisma.AiChatSessionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiChatSessionDefaultArgs<ExtArgs>>): Prisma.Prisma__AiChatSessionClient<runtime.Types.Result.GetResult<Prisma.$AiChatSessionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1467,6 +1592,30 @@ export type AiChatMessageDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many AiChatMessages to delete.
    */
   limit?: number
+}
+
+/**
+ * AiChatMessage.feedbacks
+ */
+export type AiChatMessage$feedbacksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AiMessageFeedback
+   */
+  select?: Prisma.AiMessageFeedbackSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AiMessageFeedback
+   */
+  omit?: Prisma.AiMessageFeedbackOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AiMessageFeedbackInclude<ExtArgs> | null
+  where?: Prisma.AiMessageFeedbackWhereInput
+  orderBy?: Prisma.AiMessageFeedbackOrderByWithRelationInput | Prisma.AiMessageFeedbackOrderByWithRelationInput[]
+  cursor?: Prisma.AiMessageFeedbackWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AiMessageFeedbackScalarFieldEnum | Prisma.AiMessageFeedbackScalarFieldEnum[]
 }
 
 /**

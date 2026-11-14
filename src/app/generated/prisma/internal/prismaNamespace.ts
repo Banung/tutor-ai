@@ -399,7 +399,8 @@ export const ModelName = {
   AiChatSession: 'AiChatSession',
   AiChatMessage: 'AiChatMessage',
   TutorPromptConfig: 'TutorPromptConfig',
-  AiResponseRun: 'AiResponseRun'
+  AiResponseRun: 'AiResponseRun',
+  AiMessageFeedback: 'AiMessageFeedback'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -415,7 +416,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "course" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun"
+    modelProps: "user" | "session" | "account" | "verification" | "course" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1603,6 +1604,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AiMessageFeedback: {
+      payload: Prisma.$AiMessageFeedbackPayload<ExtArgs>
+      fields: Prisma.AiMessageFeedbackFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiMessageFeedbackFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiMessageFeedbackFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        findFirst: {
+          args: Prisma.AiMessageFeedbackFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiMessageFeedbackFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        findMany: {
+          args: Prisma.AiMessageFeedbackFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>[]
+        }
+        create: {
+          args: Prisma.AiMessageFeedbackCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        createMany: {
+          args: Prisma.AiMessageFeedbackCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiMessageFeedbackCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>[]
+        }
+        delete: {
+          args: Prisma.AiMessageFeedbackDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        update: {
+          args: Prisma.AiMessageFeedbackUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiMessageFeedbackDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiMessageFeedbackUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiMessageFeedbackUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiMessageFeedbackUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+        }
+        aggregate: {
+          args: Prisma.AiMessageFeedbackAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiMessageFeedback>
+        }
+        groupBy: {
+          args: Prisma.AiMessageFeedbackGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiMessageFeedbackGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiMessageFeedbackCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiMessageFeedbackCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1902,6 +1977,21 @@ export const AiResponseRunScalarFieldEnum = {
 export type AiResponseRunScalarFieldEnum = (typeof AiResponseRunScalarFieldEnum)[keyof typeof AiResponseRunScalarFieldEnum]
 
 
+export const AiMessageFeedbackScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  messageId: 'messageId',
+  runId: 'runId',
+  value: 'value',
+  reason: 'reason',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiMessageFeedbackScalarFieldEnum = (typeof AiMessageFeedbackScalarFieldEnum)[keyof typeof AiMessageFeedbackScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2165,6 +2255,7 @@ export type GlobalOmitConfig = {
   aiChatMessage?: Prisma.AiChatMessageOmit
   tutorPromptConfig?: Prisma.TutorPromptConfigOmit
   aiResponseRun?: Prisma.AiResponseRunOmit
+  aiMessageFeedback?: Prisma.AiMessageFeedbackOmit
 }
 
 /* Types for Logging */

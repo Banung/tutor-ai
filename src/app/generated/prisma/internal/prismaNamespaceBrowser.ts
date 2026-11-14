@@ -66,7 +66,8 @@ export const ModelName = {
   AiChatSession: 'AiChatSession',
   AiChatMessage: 'AiChatMessage',
   TutorPromptConfig: 'TutorPromptConfig',
-  AiResponseRun: 'AiResponseRun'
+  AiResponseRun: 'AiResponseRun',
+  AiMessageFeedback: 'AiMessageFeedback'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -343,6 +344,21 @@ export const AiResponseRunScalarFieldEnum = {
 } as const
 
 export type AiResponseRunScalarFieldEnum = (typeof AiResponseRunScalarFieldEnum)[keyof typeof AiResponseRunScalarFieldEnum]
+
+
+export const AiMessageFeedbackScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  messageId: 'messageId',
+  runId: 'runId',
+  value: 'value',
+  reason: 'reason',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiMessageFeedbackScalarFieldEnum = (typeof AiMessageFeedbackScalarFieldEnum)[keyof typeof AiMessageFeedbackScalarFieldEnum]
 
 
 export const SortOrder = {

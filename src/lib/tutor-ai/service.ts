@@ -111,9 +111,11 @@ function serializeMessage(message: {
   ragSources: Prisma.JsonValue | null;
   responseTimeMs: number | null;
   createdAt: Date;
+  feedbacks?: { id: string; value: string; reason: string | null; note: string | null; runId: string | null; updatedAt: Date }[];
 }) {
   return {
     id: message.id,
+    feedback: message.feedbacks?.[0] ? { ...message.feedbacks[0], updatedAt: message.feedbacks[0].updatedAt.toISOString() } : null,
     senderType: message.senderType,
     content: message.content,
     ragSources: message.ragSources,
@@ -267,6 +269,7 @@ async function getSessionOrThrow(input: {
           content: true,
           ragSources: true,
           responseTimeMs: true,
+          feedbacks: { where: { userId: input.userId }, take: 1, select: { id: true, value: true, reason: true, note: true, runId: true, updatedAt: true } },
           createdAt: true,
         },
       },

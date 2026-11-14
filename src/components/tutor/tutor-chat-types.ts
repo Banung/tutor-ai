@@ -1,3 +1,5 @@
+import type { TutorFeedback } from "@/lib/tutor-ai/feedback-schema";
+
 export type TutorMaterial = {
   id: string;
   title: string;
@@ -18,6 +20,7 @@ export type TutorChatSessionSummary = {
 };
 
 export type TutorMessage = {
+  feedback?: TutorFeedback | null;
   id: string;
   senderType: "user" | "ai" | string;
   content: string;

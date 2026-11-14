@@ -308,6 +308,7 @@ export type AiResponseRunWhereInput = {
   startedAt?: Prisma.DateTimeFilter<"AiResponseRun"> | Date | string
   finishedAt?: Prisma.DateTimeNullableFilter<"AiResponseRun"> | Date | string | null
   durationMs?: Prisma.IntNullableFilter<"AiResponseRun"> | number | null
+  feedbacks?: Prisma.AiMessageFeedbackListRelationFilter
   aiChatSession?: Prisma.XOR<Prisma.AiChatSessionScalarRelationFilter, Prisma.AiChatSessionWhereInput>
 }
 
@@ -330,6 +331,7 @@ export type AiResponseRunOrderByWithRelationInput = {
   startedAt?: Prisma.SortOrder
   finishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   durationMs?: Prisma.SortOrderInput | Prisma.SortOrder
+  feedbacks?: Prisma.AiMessageFeedbackOrderByRelationAggregateInput
   aiChatSession?: Prisma.AiChatSessionOrderByWithRelationInput
 }
 
@@ -356,6 +358,7 @@ export type AiResponseRunWhereUniqueInput = Prisma.AtLeast<{
   startedAt?: Prisma.DateTimeFilter<"AiResponseRun"> | Date | string
   finishedAt?: Prisma.DateTimeNullableFilter<"AiResponseRun"> | Date | string | null
   durationMs?: Prisma.IntNullableFilter<"AiResponseRun"> | number | null
+  feedbacks?: Prisma.AiMessageFeedbackListRelationFilter
   aiChatSession?: Prisma.XOR<Prisma.AiChatSessionScalarRelationFilter, Prisma.AiChatSessionWhereInput>
 }, "id" | "answerMessageId" | "aiChatSessionId_requestId">
 
@@ -427,6 +430,7 @@ export type AiResponseRunCreateInput = {
   startedAt?: Date | string
   finishedAt?: Date | string | null
   durationMs?: number | null
+  feedbacks?: Prisma.AiMessageFeedbackCreateNestedManyWithoutRunInput
   aiChatSession: Prisma.AiChatSessionCreateNestedOneWithoutResponseRunsInput
 }
 
@@ -449,6 +453,7 @@ export type AiResponseRunUncheckedCreateInput = {
   startedAt?: Date | string
   finishedAt?: Date | string | null
   durationMs?: number | null
+  feedbacks?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutRunInput
 }
 
 export type AiResponseRunUpdateInput = {
@@ -469,6 +474,7 @@ export type AiResponseRunUpdateInput = {
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedbacks?: Prisma.AiMessageFeedbackUpdateManyWithoutRunNestedInput
   aiChatSession?: Prisma.AiChatSessionUpdateOneRequiredWithoutResponseRunsNestedInput
 }
 
@@ -491,6 +497,7 @@ export type AiResponseRunUncheckedUpdateInput = {
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedbacks?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutRunNestedInput
 }
 
 export type AiResponseRunCreateManyInput = {
@@ -635,6 +642,11 @@ export type AiResponseRunSumOrderByAggregateInput = {
   durationMs?: Prisma.SortOrder
 }
 
+export type AiResponseRunNullableScalarRelationFilter = {
+  is?: Prisma.AiResponseRunWhereInput | null
+  isNot?: Prisma.AiResponseRunWhereInput | null
+}
+
 export type AiResponseRunCreateNestedManyWithoutAiChatSessionInput = {
   create?: Prisma.XOR<Prisma.AiResponseRunCreateWithoutAiChatSessionInput, Prisma.AiResponseRunUncheckedCreateWithoutAiChatSessionInput> | Prisma.AiResponseRunCreateWithoutAiChatSessionInput[] | Prisma.AiResponseRunUncheckedCreateWithoutAiChatSessionInput[]
   connectOrCreate?: Prisma.AiResponseRunCreateOrConnectWithoutAiChatSessionInput | Prisma.AiResponseRunCreateOrConnectWithoutAiChatSessionInput[]
@@ -677,6 +689,22 @@ export type AiResponseRunUncheckedUpdateManyWithoutAiChatSessionNestedInput = {
   deleteMany?: Prisma.AiResponseRunScalarWhereInput | Prisma.AiResponseRunScalarWhereInput[]
 }
 
+export type AiResponseRunCreateNestedOneWithoutFeedbacksInput = {
+  create?: Prisma.XOR<Prisma.AiResponseRunCreateWithoutFeedbacksInput, Prisma.AiResponseRunUncheckedCreateWithoutFeedbacksInput>
+  connectOrCreate?: Prisma.AiResponseRunCreateOrConnectWithoutFeedbacksInput
+  connect?: Prisma.AiResponseRunWhereUniqueInput
+}
+
+export type AiResponseRunUpdateOneWithoutFeedbacksNestedInput = {
+  create?: Prisma.XOR<Prisma.AiResponseRunCreateWithoutFeedbacksInput, Prisma.AiResponseRunUncheckedCreateWithoutFeedbacksInput>
+  connectOrCreate?: Prisma.AiResponseRunCreateOrConnectWithoutFeedbacksInput
+  upsert?: Prisma.AiResponseRunUpsertWithoutFeedbacksInput
+  disconnect?: Prisma.AiResponseRunWhereInput | boolean
+  delete?: Prisma.AiResponseRunWhereInput | boolean
+  connect?: Prisma.AiResponseRunWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AiResponseRunUpdateToOneWithWhereWithoutFeedbacksInput, Prisma.AiResponseRunUpdateWithoutFeedbacksInput>, Prisma.AiResponseRunUncheckedUpdateWithoutFeedbacksInput>
+}
+
 export type AiResponseRunCreateWithoutAiChatSessionInput = {
   id: string
   requestId: string
@@ -695,6 +723,7 @@ export type AiResponseRunCreateWithoutAiChatSessionInput = {
   startedAt?: Date | string
   finishedAt?: Date | string | null
   durationMs?: number | null
+  feedbacks?: Prisma.AiMessageFeedbackCreateNestedManyWithoutRunInput
 }
 
 export type AiResponseRunUncheckedCreateWithoutAiChatSessionInput = {
@@ -715,6 +744,7 @@ export type AiResponseRunUncheckedCreateWithoutAiChatSessionInput = {
   startedAt?: Date | string
   finishedAt?: Date | string | null
   durationMs?: number | null
+  feedbacks?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutRunInput
 }
 
 export type AiResponseRunCreateOrConnectWithoutAiChatSessionInput = {
@@ -767,6 +797,106 @@ export type AiResponseRunScalarWhereInput = {
   durationMs?: Prisma.IntNullableFilter<"AiResponseRun"> | number | null
 }
 
+export type AiResponseRunCreateWithoutFeedbacksInput = {
+  id: string
+  requestId: string
+  retryOfRunId?: string | null
+  requestHash: string
+  status?: string
+  stage?: string
+  question: string
+  responseMode: string
+  userMessageId?: string | null
+  answerMessageId?: string | null
+  configuration?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  evidence?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  tokenUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorCategory?: string | null
+  startedAt?: Date | string
+  finishedAt?: Date | string | null
+  durationMs?: number | null
+  aiChatSession: Prisma.AiChatSessionCreateNestedOneWithoutResponseRunsInput
+}
+
+export type AiResponseRunUncheckedCreateWithoutFeedbacksInput = {
+  id: string
+  aiChatSessionId: string
+  requestId: string
+  retryOfRunId?: string | null
+  requestHash: string
+  status?: string
+  stage?: string
+  question: string
+  responseMode: string
+  userMessageId?: string | null
+  answerMessageId?: string | null
+  configuration?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  evidence?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  tokenUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorCategory?: string | null
+  startedAt?: Date | string
+  finishedAt?: Date | string | null
+  durationMs?: number | null
+}
+
+export type AiResponseRunCreateOrConnectWithoutFeedbacksInput = {
+  where: Prisma.AiResponseRunWhereUniqueInput
+  create: Prisma.XOR<Prisma.AiResponseRunCreateWithoutFeedbacksInput, Prisma.AiResponseRunUncheckedCreateWithoutFeedbacksInput>
+}
+
+export type AiResponseRunUpsertWithoutFeedbacksInput = {
+  update: Prisma.XOR<Prisma.AiResponseRunUpdateWithoutFeedbacksInput, Prisma.AiResponseRunUncheckedUpdateWithoutFeedbacksInput>
+  create: Prisma.XOR<Prisma.AiResponseRunCreateWithoutFeedbacksInput, Prisma.AiResponseRunUncheckedCreateWithoutFeedbacksInput>
+  where?: Prisma.AiResponseRunWhereInput
+}
+
+export type AiResponseRunUpdateToOneWithWhereWithoutFeedbacksInput = {
+  where?: Prisma.AiResponseRunWhereInput
+  data: Prisma.XOR<Prisma.AiResponseRunUpdateWithoutFeedbacksInput, Prisma.AiResponseRunUncheckedUpdateWithoutFeedbacksInput>
+}
+
+export type AiResponseRunUpdateWithoutFeedbacksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  requestId?: Prisma.StringFieldUpdateOperationsInput | string
+  retryOfRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestHash?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  stage?: Prisma.StringFieldUpdateOperationsInput | string
+  question?: Prisma.StringFieldUpdateOperationsInput | string
+  responseMode?: Prisma.StringFieldUpdateOperationsInput | string
+  userMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  answerMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  configuration?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  evidence?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  tokenUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  aiChatSession?: Prisma.AiChatSessionUpdateOneRequiredWithoutResponseRunsNestedInput
+}
+
+export type AiResponseRunUncheckedUpdateWithoutFeedbacksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  aiChatSessionId?: Prisma.StringFieldUpdateOperationsInput | string
+  requestId?: Prisma.StringFieldUpdateOperationsInput | string
+  retryOfRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestHash?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  stage?: Prisma.StringFieldUpdateOperationsInput | string
+  question?: Prisma.StringFieldUpdateOperationsInput | string
+  responseMode?: Prisma.StringFieldUpdateOperationsInput | string
+  userMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  answerMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  configuration?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  evidence?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  tokenUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  errorCategory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
 export type AiResponseRunCreateManyAiChatSessionInput = {
   id: string
   requestId: string
@@ -805,6 +935,7 @@ export type AiResponseRunUpdateWithoutAiChatSessionInput = {
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedbacks?: Prisma.AiMessageFeedbackUpdateManyWithoutRunNestedInput
 }
 
 export type AiResponseRunUncheckedUpdateWithoutAiChatSessionInput = {
@@ -825,6 +956,7 @@ export type AiResponseRunUncheckedUpdateWithoutAiChatSessionInput = {
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   finishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  feedbacks?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutRunNestedInput
 }
 
 export type AiResponseRunUncheckedUpdateManyWithoutAiChatSessionInput = {
@@ -848,6 +980,35 @@ export type AiResponseRunUncheckedUpdateManyWithoutAiChatSessionInput = {
 }
 
 
+/**
+ * Count Type AiResponseRunCountOutputType
+ */
+
+export type AiResponseRunCountOutputType = {
+  feedbacks: number
+}
+
+export type AiResponseRunCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  feedbacks?: boolean | AiResponseRunCountOutputTypeCountFeedbacksArgs
+}
+
+/**
+ * AiResponseRunCountOutputType without action
+ */
+export type AiResponseRunCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AiResponseRunCountOutputType
+   */
+  select?: Prisma.AiResponseRunCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * AiResponseRunCountOutputType without action
+ */
+export type AiResponseRunCountOutputTypeCountFeedbacksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AiMessageFeedbackWhereInput
+}
+
 
 export type AiResponseRunSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -868,7 +1029,9 @@ export type AiResponseRunSelect<ExtArgs extends runtime.Types.Extensions.Interna
   startedAt?: boolean
   finishedAt?: boolean
   durationMs?: boolean
+  feedbacks?: boolean | Prisma.AiResponseRun$feedbacksArgs<ExtArgs>
   aiChatSession?: boolean | Prisma.AiChatSessionDefaultArgs<ExtArgs>
+  _count?: boolean | Prisma.AiResponseRunCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aiResponseRun"]>
 
 export type AiResponseRunSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -938,7 +1101,9 @@ export type AiResponseRunSelectScalar = {
 
 export type AiResponseRunOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "aiChatSessionId" | "requestId" | "retryOfRunId" | "requestHash" | "status" | "stage" | "question" | "responseMode" | "userMessageId" | "answerMessageId" | "configuration" | "evidence" | "tokenUsage" | "errorCategory" | "startedAt" | "finishedAt" | "durationMs", ExtArgs["result"]["aiResponseRun"]>
 export type AiResponseRunInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  feedbacks?: boolean | Prisma.AiResponseRun$feedbacksArgs<ExtArgs>
   aiChatSession?: boolean | Prisma.AiChatSessionDefaultArgs<ExtArgs>
+  _count?: boolean | Prisma.AiResponseRunCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AiResponseRunIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   aiChatSession?: boolean | Prisma.AiChatSessionDefaultArgs<ExtArgs>
@@ -950,6 +1115,7 @@ export type AiResponseRunIncludeUpdateManyAndReturn<ExtArgs extends runtime.Type
 export type $AiResponseRunPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AiResponseRun"
   objects: {
+    feedbacks: Prisma.$AiMessageFeedbackPayload<ExtArgs>[]
     aiChatSession: Prisma.$AiChatSessionPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1365,6 +1531,7 @@ readonly fields: AiResponseRunFieldRefs;
  */
 export interface Prisma__AiResponseRunClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  feedbacks<T extends Prisma.AiResponseRun$feedbacksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiResponseRun$feedbacksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiChatSession<T extends Prisma.AiChatSessionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiChatSessionDefaultArgs<ExtArgs>>): Prisma.Prisma__AiChatSessionClient<runtime.Types.Result.GetResult<Prisma.$AiChatSessionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1811,6 +1978,30 @@ export type AiResponseRunDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many AiResponseRuns to delete.
    */
   limit?: number
+}
+
+/**
+ * AiResponseRun.feedbacks
+ */
+export type AiResponseRun$feedbacksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AiMessageFeedback
+   */
+  select?: Prisma.AiMessageFeedbackSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AiMessageFeedback
+   */
+  omit?: Prisma.AiMessageFeedbackOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AiMessageFeedbackInclude<ExtArgs> | null
+  where?: Prisma.AiMessageFeedbackWhereInput
+  orderBy?: Prisma.AiMessageFeedbackOrderByWithRelationInput | Prisma.AiMessageFeedbackOrderByWithRelationInput[]
+  cursor?: Prisma.AiMessageFeedbackWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AiMessageFeedbackScalarFieldEnum | Prisma.AiMessageFeedbackScalarFieldEnum[]
 }
 
 /**
