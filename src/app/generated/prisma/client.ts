@@ -126,3 +126,8 @@ export type AiResponseRun = Prisma.AiResponseRunModel
  *
  */
 export type AiMessageFeedback = Prisma.AiMessageFeedbackModel
+/**
+ * Model AiFeedbackReviewEvent
+ *
+ */
+export type AiFeedbackReviewEvent = Prisma.AiFeedbackReviewEventModel

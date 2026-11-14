@@ -20,11 +20,25 @@ export type AiMessageFeedbackModel = runtime.Types.Result.DefaultSelection<Prism
 
 export type AggregateAiMessageFeedback = {
   _count: AiMessageFeedbackCountAggregateOutputType | null
+  _avg: AiMessageFeedbackAvgAggregateOutputType | null
+  _sum: AiMessageFeedbackSumAggregateOutputType | null
   _min: AiMessageFeedbackMinAggregateOutputType | null
   _max: AiMessageFeedbackMaxAggregateOutputType | null
 }
 
+export type AiMessageFeedbackAvgAggregateOutputType = {
+  reviewRevision: number | null
+}
+
+export type AiMessageFeedbackSumAggregateOutputType = {
+  reviewRevision: number | null
+}
+
 export type AiMessageFeedbackMinAggregateOutputType = {
+  reviewStatus: string | null
+  reviewRevision: number | null
+  reviewerId: string | null
+  reviewedAt: Date | null
   id: string | null
   userId: string | null
   messageId: string | null
@@ -37,6 +51,10 @@ export type AiMessageFeedbackMinAggregateOutputType = {
 }
 
 export type AiMessageFeedbackMaxAggregateOutputType = {
+  reviewStatus: string | null
+  reviewRevision: number | null
+  reviewerId: string | null
+  reviewedAt: Date | null
   id: string | null
   userId: string | null
   messageId: string | null
@@ -49,6 +67,10 @@ export type AiMessageFeedbackMaxAggregateOutputType = {
 }
 
 export type AiMessageFeedbackCountAggregateOutputType = {
+  reviewStatus: number
+  reviewRevision: number
+  reviewerId: number
+  reviewedAt: number
   id: number
   userId: number
   messageId: number
@@ -62,7 +84,19 @@ export type AiMessageFeedbackCountAggregateOutputType = {
 }
 
 
+export type AiMessageFeedbackAvgAggregateInputType = {
+  reviewRevision?: true
+}
+
+export type AiMessageFeedbackSumAggregateInputType = {
+  reviewRevision?: true
+}
+
 export type AiMessageFeedbackMinAggregateInputType = {
+  reviewStatus?: true
+  reviewRevision?: true
+  reviewerId?: true
+  reviewedAt?: true
   id?: true
   userId?: true
   messageId?: true
@@ -75,6 +109,10 @@ export type AiMessageFeedbackMinAggregateInputType = {
 }
 
 export type AiMessageFeedbackMaxAggregateInputType = {
+  reviewStatus?: true
+  reviewRevision?: true
+  reviewerId?: true
+  reviewedAt?: true
   id?: true
   userId?: true
   messageId?: true
@@ -87,6 +125,10 @@ export type AiMessageFeedbackMaxAggregateInputType = {
 }
 
 export type AiMessageFeedbackCountAggregateInputType = {
+  reviewStatus?: true
+  reviewRevision?: true
+  reviewerId?: true
+  reviewedAt?: true
   id?: true
   userId?: true
   messageId?: true
@@ -137,6 +179,18 @@ export type AiMessageFeedbackAggregateArgs<ExtArgs extends runtime.Types.Extensi
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: AiMessageFeedbackAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   *
+   * Select which fields to sum
+  **/
+  _sum?: AiMessageFeedbackSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   *
    * Select which fields to find the minimum value
   **/
   _min?: AiMessageFeedbackMinAggregateInputType
@@ -167,11 +221,17 @@ export type AiMessageFeedbackGroupByArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   _count?: AiMessageFeedbackCountAggregateInputType | true
+  _avg?: AiMessageFeedbackAvgAggregateInputType
+  _sum?: AiMessageFeedbackSumAggregateInputType
   _min?: AiMessageFeedbackMinAggregateInputType
   _max?: AiMessageFeedbackMaxAggregateInputType
 }
 
 export type AiMessageFeedbackGroupByOutputType = {
+  reviewStatus: string
+  reviewRevision: number
+  reviewerId: string | null
+  reviewedAt: Date | null
   id: string
   userId: string
   messageId: string
@@ -182,6 +242,8 @@ export type AiMessageFeedbackGroupByOutputType = {
   createdAt: Date
   updatedAt: Date
   _count: AiMessageFeedbackCountAggregateOutputType | null
+  _avg: AiMessageFeedbackAvgAggregateOutputType | null
+  _sum: AiMessageFeedbackSumAggregateOutputType | null
   _min: AiMessageFeedbackMinAggregateOutputType | null
   _max: AiMessageFeedbackMaxAggregateOutputType | null
 }
@@ -205,6 +267,10 @@ export type AiMessageFeedbackWhereInput = {
   AND?: Prisma.AiMessageFeedbackWhereInput | Prisma.AiMessageFeedbackWhereInput[]
   OR?: Prisma.AiMessageFeedbackWhereInput[]
   NOT?: Prisma.AiMessageFeedbackWhereInput | Prisma.AiMessageFeedbackWhereInput[]
+  reviewStatus?: Prisma.StringFilter<"AiMessageFeedback"> | string
+  reviewRevision?: Prisma.IntFilter<"AiMessageFeedback"> | number
+  reviewerId?: Prisma.StringNullableFilter<"AiMessageFeedback"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"AiMessageFeedback"> | Date | string | null
   id?: Prisma.StringFilter<"AiMessageFeedback"> | string
   userId?: Prisma.StringFilter<"AiMessageFeedback"> | string
   messageId?: Prisma.StringFilter<"AiMessageFeedback"> | string
@@ -215,11 +281,17 @@ export type AiMessageFeedbackWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"AiMessageFeedback"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiMessageFeedback"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  reviewer?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  reviewEvents?: Prisma.AiFeedbackReviewEventListRelationFilter
   message?: Prisma.XOR<Prisma.AiChatMessageScalarRelationFilter, Prisma.AiChatMessageWhereInput>
   run?: Prisma.XOR<Prisma.AiResponseRunNullableScalarRelationFilter, Prisma.AiResponseRunWhereInput> | null
 }
 
 export type AiMessageFeedbackOrderByWithRelationInput = {
+  reviewStatus?: Prisma.SortOrder
+  reviewRevision?: Prisma.SortOrder
+  reviewerId?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
@@ -230,6 +302,8 @@ export type AiMessageFeedbackOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
+  reviewer?: Prisma.UserOrderByWithRelationInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventOrderByRelationAggregateInput
   message?: Prisma.AiChatMessageOrderByWithRelationInput
   run?: Prisma.AiResponseRunOrderByWithRelationInput
 }
@@ -240,6 +314,10 @@ export type AiMessageFeedbackWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.AiMessageFeedbackWhereInput | Prisma.AiMessageFeedbackWhereInput[]
   OR?: Prisma.AiMessageFeedbackWhereInput[]
   NOT?: Prisma.AiMessageFeedbackWhereInput | Prisma.AiMessageFeedbackWhereInput[]
+  reviewStatus?: Prisma.StringFilter<"AiMessageFeedback"> | string
+  reviewRevision?: Prisma.IntFilter<"AiMessageFeedback"> | number
+  reviewerId?: Prisma.StringNullableFilter<"AiMessageFeedback"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"AiMessageFeedback"> | Date | string | null
   userId?: Prisma.StringFilter<"AiMessageFeedback"> | string
   messageId?: Prisma.StringFilter<"AiMessageFeedback"> | string
   runId?: Prisma.StringNullableFilter<"AiMessageFeedback"> | string | null
@@ -249,11 +327,17 @@ export type AiMessageFeedbackWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"AiMessageFeedback"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiMessageFeedback"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  reviewer?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  reviewEvents?: Prisma.AiFeedbackReviewEventListRelationFilter
   message?: Prisma.XOR<Prisma.AiChatMessageScalarRelationFilter, Prisma.AiChatMessageWhereInput>
   run?: Prisma.XOR<Prisma.AiResponseRunNullableScalarRelationFilter, Prisma.AiResponseRunWhereInput> | null
 }, "id" | "userId_messageId">
 
 export type AiMessageFeedbackOrderByWithAggregationInput = {
+  reviewStatus?: Prisma.SortOrder
+  reviewRevision?: Prisma.SortOrder
+  reviewerId?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
@@ -264,14 +348,20 @@ export type AiMessageFeedbackOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.AiMessageFeedbackCountOrderByAggregateInput
+  _avg?: Prisma.AiMessageFeedbackAvgOrderByAggregateInput
   _max?: Prisma.AiMessageFeedbackMaxOrderByAggregateInput
   _min?: Prisma.AiMessageFeedbackMinOrderByAggregateInput
+  _sum?: Prisma.AiMessageFeedbackSumOrderByAggregateInput
 }
 
 export type AiMessageFeedbackScalarWhereWithAggregatesInput = {
   AND?: Prisma.AiMessageFeedbackScalarWhereWithAggregatesInput | Prisma.AiMessageFeedbackScalarWhereWithAggregatesInput[]
   OR?: Prisma.AiMessageFeedbackScalarWhereWithAggregatesInput[]
   NOT?: Prisma.AiMessageFeedbackScalarWhereWithAggregatesInput | Prisma.AiMessageFeedbackScalarWhereWithAggregatesInput[]
+  reviewStatus?: Prisma.StringWithAggregatesFilter<"AiMessageFeedback"> | string
+  reviewRevision?: Prisma.IntWithAggregatesFilter<"AiMessageFeedback"> | number
+  reviewerId?: Prisma.StringNullableWithAggregatesFilter<"AiMessageFeedback"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AiMessageFeedback"> | Date | string | null
   id?: Prisma.StringWithAggregatesFilter<"AiMessageFeedback"> | string
   userId?: Prisma.StringWithAggregatesFilter<"AiMessageFeedback"> | string
   messageId?: Prisma.StringWithAggregatesFilter<"AiMessageFeedback"> | string
@@ -284,6 +374,9 @@ export type AiMessageFeedbackScalarWhereWithAggregatesInput = {
 }
 
 export type AiMessageFeedbackCreateInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewedAt?: Date | string | null
   id?: string
   value: string
   reason?: string | null
@@ -291,11 +384,17 @@ export type AiMessageFeedbackCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAiMessageFeedbackInput
+  reviewer?: Prisma.UserCreateNestedOneWithoutFeedbackReviewsInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventCreateNestedManyWithoutFeedbackInput
   message: Prisma.AiChatMessageCreateNestedOneWithoutFeedbacksInput
   run?: Prisma.AiResponseRunCreateNestedOneWithoutFeedbacksInput
 }
 
 export type AiMessageFeedbackUncheckedCreateInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewerId?: string | null
+  reviewedAt?: Date | string | null
   id?: string
   userId: string
   messageId: string
@@ -305,9 +404,13 @@ export type AiMessageFeedbackUncheckedCreateInput = {
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedCreateNestedManyWithoutFeedbackInput
 }
 
 export type AiMessageFeedbackUpdateInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -315,11 +418,17 @@ export type AiMessageFeedbackUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAiMessageFeedbackNestedInput
+  reviewer?: Prisma.UserUpdateOneWithoutFeedbackReviewsNestedInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventUpdateManyWithoutFeedbackNestedInput
   message?: Prisma.AiChatMessageUpdateOneRequiredWithoutFeedbacksNestedInput
   run?: Prisma.AiResponseRunUpdateOneWithoutFeedbacksNestedInput
 }
 
 export type AiMessageFeedbackUncheckedUpdateInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   messageId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -329,9 +438,14 @@ export type AiMessageFeedbackUncheckedUpdateInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedUpdateManyWithoutFeedbackNestedInput
 }
 
 export type AiMessageFeedbackCreateManyInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewerId?: string | null
+  reviewedAt?: Date | string | null
   id?: string
   userId: string
   messageId: string
@@ -344,6 +458,9 @@ export type AiMessageFeedbackCreateManyInput = {
 }
 
 export type AiMessageFeedbackUpdateManyMutationInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -353,6 +470,10 @@ export type AiMessageFeedbackUpdateManyMutationInput = {
 }
 
 export type AiMessageFeedbackUncheckedUpdateManyInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   messageId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -380,6 +501,10 @@ export type AiMessageFeedbackUserIdMessageIdCompoundUniqueInput = {
 }
 
 export type AiMessageFeedbackCountOrderByAggregateInput = {
+  reviewStatus?: Prisma.SortOrder
+  reviewRevision?: Prisma.SortOrder
+  reviewerId?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
@@ -391,7 +516,15 @@ export type AiMessageFeedbackCountOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type AiMessageFeedbackAvgOrderByAggregateInput = {
+  reviewRevision?: Prisma.SortOrder
+}
+
 export type AiMessageFeedbackMaxOrderByAggregateInput = {
+  reviewStatus?: Prisma.SortOrder
+  reviewRevision?: Prisma.SortOrder
+  reviewerId?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
@@ -404,6 +537,10 @@ export type AiMessageFeedbackMaxOrderByAggregateInput = {
 }
 
 export type AiMessageFeedbackMinOrderByAggregateInput = {
+  reviewStatus?: Prisma.SortOrder
+  reviewRevision?: Prisma.SortOrder
+  reviewerId?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
@@ -415,6 +552,15 @@ export type AiMessageFeedbackMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
+export type AiMessageFeedbackSumOrderByAggregateInput = {
+  reviewRevision?: Prisma.SortOrder
+}
+
+export type AiMessageFeedbackScalarRelationFilter = {
+  is?: Prisma.AiMessageFeedbackWhereInput
+  isNot?: Prisma.AiMessageFeedbackWhereInput
+}
+
 export type AiMessageFeedbackCreateNestedManyWithoutUserInput = {
   create?: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutUserInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutUserInput> | Prisma.AiMessageFeedbackCreateWithoutUserInput[] | Prisma.AiMessageFeedbackUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.AiMessageFeedbackCreateOrConnectWithoutUserInput | Prisma.AiMessageFeedbackCreateOrConnectWithoutUserInput[]
@@ -422,10 +568,24 @@ export type AiMessageFeedbackCreateNestedManyWithoutUserInput = {
   connect?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
 }
 
+export type AiMessageFeedbackCreateNestedManyWithoutReviewerInput = {
+  create?: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewerInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput> | Prisma.AiMessageFeedbackCreateWithoutReviewerInput[] | Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput[]
+  connectOrCreate?: Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewerInput | Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewerInput[]
+  createMany?: Prisma.AiMessageFeedbackCreateManyReviewerInputEnvelope
+  connect?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+}
+
 export type AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput = {
   create?: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutUserInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutUserInput> | Prisma.AiMessageFeedbackCreateWithoutUserInput[] | Prisma.AiMessageFeedbackUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.AiMessageFeedbackCreateOrConnectWithoutUserInput | Prisma.AiMessageFeedbackCreateOrConnectWithoutUserInput[]
   createMany?: Prisma.AiMessageFeedbackCreateManyUserInputEnvelope
+  connect?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+}
+
+export type AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput = {
+  create?: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewerInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput> | Prisma.AiMessageFeedbackCreateWithoutReviewerInput[] | Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput[]
+  connectOrCreate?: Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewerInput | Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewerInput[]
+  createMany?: Prisma.AiMessageFeedbackCreateManyReviewerInputEnvelope
   connect?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
 }
 
@@ -443,6 +603,20 @@ export type AiMessageFeedbackUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.AiMessageFeedbackScalarWhereInput | Prisma.AiMessageFeedbackScalarWhereInput[]
 }
 
+export type AiMessageFeedbackUpdateManyWithoutReviewerNestedInput = {
+  create?: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewerInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput> | Prisma.AiMessageFeedbackCreateWithoutReviewerInput[] | Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput[]
+  connectOrCreate?: Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewerInput | Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewerInput[]
+  upsert?: Prisma.AiMessageFeedbackUpsertWithWhereUniqueWithoutReviewerInput | Prisma.AiMessageFeedbackUpsertWithWhereUniqueWithoutReviewerInput[]
+  createMany?: Prisma.AiMessageFeedbackCreateManyReviewerInputEnvelope
+  set?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+  disconnect?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+  delete?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+  connect?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+  update?: Prisma.AiMessageFeedbackUpdateWithWhereUniqueWithoutReviewerInput | Prisma.AiMessageFeedbackUpdateWithWhereUniqueWithoutReviewerInput[]
+  updateMany?: Prisma.AiMessageFeedbackUpdateManyWithWhereWithoutReviewerInput | Prisma.AiMessageFeedbackUpdateManyWithWhereWithoutReviewerInput[]
+  deleteMany?: Prisma.AiMessageFeedbackScalarWhereInput | Prisma.AiMessageFeedbackScalarWhereInput[]
+}
+
 export type AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput = {
   create?: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutUserInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutUserInput> | Prisma.AiMessageFeedbackCreateWithoutUserInput[] | Prisma.AiMessageFeedbackUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.AiMessageFeedbackCreateOrConnectWithoutUserInput | Prisma.AiMessageFeedbackCreateOrConnectWithoutUserInput[]
@@ -454,6 +628,20 @@ export type AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput = {
   connect?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
   update?: Prisma.AiMessageFeedbackUpdateWithWhereUniqueWithoutUserInput | Prisma.AiMessageFeedbackUpdateWithWhereUniqueWithoutUserInput[]
   updateMany?: Prisma.AiMessageFeedbackUpdateManyWithWhereWithoutUserInput | Prisma.AiMessageFeedbackUpdateManyWithWhereWithoutUserInput[]
+  deleteMany?: Prisma.AiMessageFeedbackScalarWhereInput | Prisma.AiMessageFeedbackScalarWhereInput[]
+}
+
+export type AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput = {
+  create?: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewerInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput> | Prisma.AiMessageFeedbackCreateWithoutReviewerInput[] | Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput[]
+  connectOrCreate?: Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewerInput | Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewerInput[]
+  upsert?: Prisma.AiMessageFeedbackUpsertWithWhereUniqueWithoutReviewerInput | Prisma.AiMessageFeedbackUpsertWithWhereUniqueWithoutReviewerInput[]
+  createMany?: Prisma.AiMessageFeedbackCreateManyReviewerInputEnvelope
+  set?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+  disconnect?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+  delete?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+  connect?: Prisma.AiMessageFeedbackWhereUniqueInput | Prisma.AiMessageFeedbackWhereUniqueInput[]
+  update?: Prisma.AiMessageFeedbackUpdateWithWhereUniqueWithoutReviewerInput | Prisma.AiMessageFeedbackUpdateWithWhereUniqueWithoutReviewerInput[]
+  updateMany?: Prisma.AiMessageFeedbackUpdateManyWithWhereWithoutReviewerInput | Prisma.AiMessageFeedbackUpdateManyWithWhereWithoutReviewerInput[]
   deleteMany?: Prisma.AiMessageFeedbackScalarWhereInput | Prisma.AiMessageFeedbackScalarWhereInput[]
 }
 
@@ -541,18 +729,41 @@ export type AiMessageFeedbackUncheckedUpdateManyWithoutRunNestedInput = {
   deleteMany?: Prisma.AiMessageFeedbackScalarWhereInput | Prisma.AiMessageFeedbackScalarWhereInput[]
 }
 
+export type AiMessageFeedbackCreateNestedOneWithoutReviewEventsInput = {
+  create?: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewEventsInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewEventsInput>
+  connectOrCreate?: Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewEventsInput
+  connect?: Prisma.AiMessageFeedbackWhereUniqueInput
+}
+
+export type AiMessageFeedbackUpdateOneRequiredWithoutReviewEventsNestedInput = {
+  create?: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewEventsInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewEventsInput>
+  connectOrCreate?: Prisma.AiMessageFeedbackCreateOrConnectWithoutReviewEventsInput
+  upsert?: Prisma.AiMessageFeedbackUpsertWithoutReviewEventsInput
+  connect?: Prisma.AiMessageFeedbackWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AiMessageFeedbackUpdateToOneWithWhereWithoutReviewEventsInput, Prisma.AiMessageFeedbackUpdateWithoutReviewEventsInput>, Prisma.AiMessageFeedbackUncheckedUpdateWithoutReviewEventsInput>
+}
+
 export type AiMessageFeedbackCreateWithoutUserInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewedAt?: Date | string | null
   id?: string
   value: string
   reason?: string | null
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  reviewer?: Prisma.UserCreateNestedOneWithoutFeedbackReviewsInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventCreateNestedManyWithoutFeedbackInput
   message: Prisma.AiChatMessageCreateNestedOneWithoutFeedbacksInput
   run?: Prisma.AiResponseRunCreateNestedOneWithoutFeedbacksInput
 }
 
 export type AiMessageFeedbackUncheckedCreateWithoutUserInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewerId?: string | null
+  reviewedAt?: Date | string | null
   id?: string
   messageId: string
   runId?: string | null
@@ -561,6 +772,7 @@ export type AiMessageFeedbackUncheckedCreateWithoutUserInput = {
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedCreateNestedManyWithoutFeedbackInput
 }
 
 export type AiMessageFeedbackCreateOrConnectWithoutUserInput = {
@@ -570,6 +782,48 @@ export type AiMessageFeedbackCreateOrConnectWithoutUserInput = {
 
 export type AiMessageFeedbackCreateManyUserInputEnvelope = {
   data: Prisma.AiMessageFeedbackCreateManyUserInput | Prisma.AiMessageFeedbackCreateManyUserInput[]
+  skipDuplicates?: boolean
+}
+
+export type AiMessageFeedbackCreateWithoutReviewerInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewedAt?: Date | string | null
+  id?: string
+  value: string
+  reason?: string | null
+  note?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutAiMessageFeedbackInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventCreateNestedManyWithoutFeedbackInput
+  message: Prisma.AiChatMessageCreateNestedOneWithoutFeedbacksInput
+  run?: Prisma.AiResponseRunCreateNestedOneWithoutFeedbacksInput
+}
+
+export type AiMessageFeedbackUncheckedCreateWithoutReviewerInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewedAt?: Date | string | null
+  id?: string
+  userId: string
+  messageId: string
+  runId?: string | null
+  value: string
+  reason?: string | null
+  note?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedCreateNestedManyWithoutFeedbackInput
+}
+
+export type AiMessageFeedbackCreateOrConnectWithoutReviewerInput = {
+  where: Prisma.AiMessageFeedbackWhereUniqueInput
+  create: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewerInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput>
+}
+
+export type AiMessageFeedbackCreateManyReviewerInputEnvelope = {
+  data: Prisma.AiMessageFeedbackCreateManyReviewerInput | Prisma.AiMessageFeedbackCreateManyReviewerInput[]
   skipDuplicates?: boolean
 }
 
@@ -593,6 +847,10 @@ export type AiMessageFeedbackScalarWhereInput = {
   AND?: Prisma.AiMessageFeedbackScalarWhereInput | Prisma.AiMessageFeedbackScalarWhereInput[]
   OR?: Prisma.AiMessageFeedbackScalarWhereInput[]
   NOT?: Prisma.AiMessageFeedbackScalarWhereInput | Prisma.AiMessageFeedbackScalarWhereInput[]
+  reviewStatus?: Prisma.StringFilter<"AiMessageFeedback"> | string
+  reviewRevision?: Prisma.IntFilter<"AiMessageFeedback"> | number
+  reviewerId?: Prisma.StringNullableFilter<"AiMessageFeedback"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"AiMessageFeedback"> | Date | string | null
   id?: Prisma.StringFilter<"AiMessageFeedback"> | string
   userId?: Prisma.StringFilter<"AiMessageFeedback"> | string
   messageId?: Prisma.StringFilter<"AiMessageFeedback"> | string
@@ -604,7 +862,26 @@ export type AiMessageFeedbackScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"AiMessageFeedback"> | Date | string
 }
 
+export type AiMessageFeedbackUpsertWithWhereUniqueWithoutReviewerInput = {
+  where: Prisma.AiMessageFeedbackWhereUniqueInput
+  update: Prisma.XOR<Prisma.AiMessageFeedbackUpdateWithoutReviewerInput, Prisma.AiMessageFeedbackUncheckedUpdateWithoutReviewerInput>
+  create: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewerInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewerInput>
+}
+
+export type AiMessageFeedbackUpdateWithWhereUniqueWithoutReviewerInput = {
+  where: Prisma.AiMessageFeedbackWhereUniqueInput
+  data: Prisma.XOR<Prisma.AiMessageFeedbackUpdateWithoutReviewerInput, Prisma.AiMessageFeedbackUncheckedUpdateWithoutReviewerInput>
+}
+
+export type AiMessageFeedbackUpdateManyWithWhereWithoutReviewerInput = {
+  where: Prisma.AiMessageFeedbackScalarWhereInput
+  data: Prisma.XOR<Prisma.AiMessageFeedbackUpdateManyMutationInput, Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerInput>
+}
+
 export type AiMessageFeedbackCreateWithoutMessageInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewedAt?: Date | string | null
   id?: string
   value: string
   reason?: string | null
@@ -612,10 +889,16 @@ export type AiMessageFeedbackCreateWithoutMessageInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAiMessageFeedbackInput
+  reviewer?: Prisma.UserCreateNestedOneWithoutFeedbackReviewsInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventCreateNestedManyWithoutFeedbackInput
   run?: Prisma.AiResponseRunCreateNestedOneWithoutFeedbacksInput
 }
 
 export type AiMessageFeedbackUncheckedCreateWithoutMessageInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewerId?: string | null
+  reviewedAt?: Date | string | null
   id?: string
   userId: string
   runId?: string | null
@@ -624,6 +907,7 @@ export type AiMessageFeedbackUncheckedCreateWithoutMessageInput = {
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedCreateNestedManyWithoutFeedbackInput
 }
 
 export type AiMessageFeedbackCreateOrConnectWithoutMessageInput = {
@@ -653,6 +937,9 @@ export type AiMessageFeedbackUpdateManyWithWhereWithoutMessageInput = {
 }
 
 export type AiMessageFeedbackCreateWithoutRunInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewedAt?: Date | string | null
   id?: string
   value: string
   reason?: string | null
@@ -660,10 +947,16 @@ export type AiMessageFeedbackCreateWithoutRunInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutAiMessageFeedbackInput
+  reviewer?: Prisma.UserCreateNestedOneWithoutFeedbackReviewsInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventCreateNestedManyWithoutFeedbackInput
   message: Prisma.AiChatMessageCreateNestedOneWithoutFeedbacksInput
 }
 
 export type AiMessageFeedbackUncheckedCreateWithoutRunInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewerId?: string | null
+  reviewedAt?: Date | string | null
   id?: string
   userId: string
   messageId: string
@@ -672,6 +965,7 @@ export type AiMessageFeedbackUncheckedCreateWithoutRunInput = {
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedCreateNestedManyWithoutFeedbackInput
 }
 
 export type AiMessageFeedbackCreateOrConnectWithoutRunInput = {
@@ -700,7 +994,91 @@ export type AiMessageFeedbackUpdateManyWithWhereWithoutRunInput = {
   data: Prisma.XOR<Prisma.AiMessageFeedbackUpdateManyMutationInput, Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutRunInput>
 }
 
+export type AiMessageFeedbackCreateWithoutReviewEventsInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewedAt?: Date | string | null
+  id?: string
+  value: string
+  reason?: string | null
+  note?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutAiMessageFeedbackInput
+  reviewer?: Prisma.UserCreateNestedOneWithoutFeedbackReviewsInput
+  message: Prisma.AiChatMessageCreateNestedOneWithoutFeedbacksInput
+  run?: Prisma.AiResponseRunCreateNestedOneWithoutFeedbacksInput
+}
+
+export type AiMessageFeedbackUncheckedCreateWithoutReviewEventsInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewerId?: string | null
+  reviewedAt?: Date | string | null
+  id?: string
+  userId: string
+  messageId: string
+  runId?: string | null
+  value: string
+  reason?: string | null
+  note?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type AiMessageFeedbackCreateOrConnectWithoutReviewEventsInput = {
+  where: Prisma.AiMessageFeedbackWhereUniqueInput
+  create: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewEventsInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewEventsInput>
+}
+
+export type AiMessageFeedbackUpsertWithoutReviewEventsInput = {
+  update: Prisma.XOR<Prisma.AiMessageFeedbackUpdateWithoutReviewEventsInput, Prisma.AiMessageFeedbackUncheckedUpdateWithoutReviewEventsInput>
+  create: Prisma.XOR<Prisma.AiMessageFeedbackCreateWithoutReviewEventsInput, Prisma.AiMessageFeedbackUncheckedCreateWithoutReviewEventsInput>
+  where?: Prisma.AiMessageFeedbackWhereInput
+}
+
+export type AiMessageFeedbackUpdateToOneWithWhereWithoutReviewEventsInput = {
+  where?: Prisma.AiMessageFeedbackWhereInput
+  data: Prisma.XOR<Prisma.AiMessageFeedbackUpdateWithoutReviewEventsInput, Prisma.AiMessageFeedbackUncheckedUpdateWithoutReviewEventsInput>
+}
+
+export type AiMessageFeedbackUpdateWithoutReviewEventsInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  value?: Prisma.StringFieldUpdateOperationsInput | string
+  reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutAiMessageFeedbackNestedInput
+  reviewer?: Prisma.UserUpdateOneWithoutFeedbackReviewsNestedInput
+  message?: Prisma.AiChatMessageUpdateOneRequiredWithoutFeedbacksNestedInput
+  run?: Prisma.AiResponseRunUpdateOneWithoutFeedbacksNestedInput
+}
+
+export type AiMessageFeedbackUncheckedUpdateWithoutReviewEventsInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  messageId?: Prisma.StringFieldUpdateOperationsInput | string
+  runId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  value?: Prisma.StringFieldUpdateOperationsInput | string
+  reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type AiMessageFeedbackCreateManyUserInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewerId?: string | null
+  reviewedAt?: Date | string | null
   id?: string
   messageId: string
   runId?: string | null
@@ -711,18 +1089,58 @@ export type AiMessageFeedbackCreateManyUserInput = {
   updatedAt?: Date | string
 }
 
+export type AiMessageFeedbackCreateManyReviewerInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewedAt?: Date | string | null
+  id?: string
+  userId: string
+  messageId: string
+  runId?: string | null
+  value: string
+  reason?: string | null
+  note?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
 export type AiMessageFeedbackUpdateWithoutUserInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  reviewer?: Prisma.UserUpdateOneWithoutFeedbackReviewsNestedInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventUpdateManyWithoutFeedbackNestedInput
   message?: Prisma.AiChatMessageUpdateOneRequiredWithoutFeedbacksNestedInput
   run?: Prisma.AiResponseRunUpdateOneWithoutFeedbacksNestedInput
 }
 
 export type AiMessageFeedbackUncheckedUpdateWithoutUserInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  messageId?: Prisma.StringFieldUpdateOperationsInput | string
+  runId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  value?: Prisma.StringFieldUpdateOperationsInput | string
+  reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedUpdateManyWithoutFeedbackNestedInput
+}
+
+export type AiMessageFeedbackUncheckedUpdateManyWithoutUserInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   messageId?: Prisma.StringFieldUpdateOperationsInput | string
   runId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -733,8 +1151,44 @@ export type AiMessageFeedbackUncheckedUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type AiMessageFeedbackUncheckedUpdateManyWithoutUserInput = {
+export type AiMessageFeedbackUpdateWithoutReviewerInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  value?: Prisma.StringFieldUpdateOperationsInput | string
+  reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutAiMessageFeedbackNestedInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventUpdateManyWithoutFeedbackNestedInput
+  message?: Prisma.AiChatMessageUpdateOneRequiredWithoutFeedbacksNestedInput
+  run?: Prisma.AiResponseRunUpdateOneWithoutFeedbacksNestedInput
+}
+
+export type AiMessageFeedbackUncheckedUpdateWithoutReviewerInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  messageId?: Prisma.StringFieldUpdateOperationsInput | string
+  runId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  value?: Prisma.StringFieldUpdateOperationsInput | string
+  reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedUpdateManyWithoutFeedbackNestedInput
+}
+
+export type AiMessageFeedbackUncheckedUpdateManyWithoutReviewerInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   messageId?: Prisma.StringFieldUpdateOperationsInput | string
   runId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.StringFieldUpdateOperationsInput | string
@@ -745,6 +1199,10 @@ export type AiMessageFeedbackUncheckedUpdateManyWithoutUserInput = {
 }
 
 export type AiMessageFeedbackCreateManyMessageInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewerId?: string | null
+  reviewedAt?: Date | string | null
   id?: string
   userId: string
   runId?: string | null
@@ -756,6 +1214,9 @@ export type AiMessageFeedbackCreateManyMessageInput = {
 }
 
 export type AiMessageFeedbackUpdateWithoutMessageInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -763,10 +1224,16 @@ export type AiMessageFeedbackUpdateWithoutMessageInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAiMessageFeedbackNestedInput
+  reviewer?: Prisma.UserUpdateOneWithoutFeedbackReviewsNestedInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventUpdateManyWithoutFeedbackNestedInput
   run?: Prisma.AiResponseRunUpdateOneWithoutFeedbacksNestedInput
 }
 
 export type AiMessageFeedbackUncheckedUpdateWithoutMessageInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   runId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -775,9 +1242,14 @@ export type AiMessageFeedbackUncheckedUpdateWithoutMessageInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedUpdateManyWithoutFeedbackNestedInput
 }
 
 export type AiMessageFeedbackUncheckedUpdateManyWithoutMessageInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   runId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -789,6 +1261,10 @@ export type AiMessageFeedbackUncheckedUpdateManyWithoutMessageInput = {
 }
 
 export type AiMessageFeedbackCreateManyRunInput = {
+  reviewStatus?: string
+  reviewRevision?: number
+  reviewerId?: string | null
+  reviewedAt?: Date | string | null
   id?: string
   userId: string
   messageId: string
@@ -800,6 +1276,9 @@ export type AiMessageFeedbackCreateManyRunInput = {
 }
 
 export type AiMessageFeedbackUpdateWithoutRunInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   value?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -807,10 +1286,16 @@ export type AiMessageFeedbackUpdateWithoutRunInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutAiMessageFeedbackNestedInput
+  reviewer?: Prisma.UserUpdateOneWithoutFeedbackReviewsNestedInput
+  reviewEvents?: Prisma.AiFeedbackReviewEventUpdateManyWithoutFeedbackNestedInput
   message?: Prisma.AiChatMessageUpdateOneRequiredWithoutFeedbacksNestedInput
 }
 
 export type AiMessageFeedbackUncheckedUpdateWithoutRunInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   messageId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -819,9 +1304,14 @@ export type AiMessageFeedbackUncheckedUpdateWithoutRunInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  reviewEvents?: Prisma.AiFeedbackReviewEventUncheckedUpdateManyWithoutFeedbackNestedInput
 }
 
 export type AiMessageFeedbackUncheckedUpdateManyWithoutRunInput = {
+  reviewStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewRevision?: Prisma.IntFieldUpdateOperationsInput | number
+  reviewerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   messageId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -833,8 +1323,41 @@ export type AiMessageFeedbackUncheckedUpdateManyWithoutRunInput = {
 }
 
 
+/**
+ * Count Type AiMessageFeedbackCountOutputType
+ */
+
+export type AiMessageFeedbackCountOutputType = {
+  reviewEvents: number
+}
+
+export type AiMessageFeedbackCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  reviewEvents?: boolean | AiMessageFeedbackCountOutputTypeCountReviewEventsArgs
+}
+
+/**
+ * AiMessageFeedbackCountOutputType without action
+ */
+export type AiMessageFeedbackCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AiMessageFeedbackCountOutputType
+   */
+  select?: Prisma.AiMessageFeedbackCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * AiMessageFeedbackCountOutputType without action
+ */
+export type AiMessageFeedbackCountOutputTypeCountReviewEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AiFeedbackReviewEventWhereInput
+}
+
 
 export type AiMessageFeedbackSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  reviewStatus?: boolean
+  reviewRevision?: boolean
+  reviewerId?: boolean
+  reviewedAt?: boolean
   id?: boolean
   userId?: boolean
   messageId?: boolean
@@ -845,11 +1368,18 @@ export type AiMessageFeedbackSelect<ExtArgs extends runtime.Types.Extensions.Int
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  reviewer?: boolean | Prisma.AiMessageFeedback$reviewerArgs<ExtArgs>
+  reviewEvents?: boolean | Prisma.AiMessageFeedback$reviewEventsArgs<ExtArgs>
   message?: boolean | Prisma.AiChatMessageDefaultArgs<ExtArgs>
   run?: boolean | Prisma.AiMessageFeedback$runArgs<ExtArgs>
+  _count?: boolean | Prisma.AiMessageFeedbackCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aiMessageFeedback"]>
 
 export type AiMessageFeedbackSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  reviewStatus?: boolean
+  reviewRevision?: boolean
+  reviewerId?: boolean
+  reviewedAt?: boolean
   id?: boolean
   userId?: boolean
   messageId?: boolean
@@ -860,11 +1390,16 @@ export type AiMessageFeedbackSelectCreateManyAndReturn<ExtArgs extends runtime.T
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  reviewer?: boolean | Prisma.AiMessageFeedback$reviewerArgs<ExtArgs>
   message?: boolean | Prisma.AiChatMessageDefaultArgs<ExtArgs>
   run?: boolean | Prisma.AiMessageFeedback$runArgs<ExtArgs>
 }, ExtArgs["result"]["aiMessageFeedback"]>
 
 export type AiMessageFeedbackSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
+  reviewStatus?: boolean
+  reviewRevision?: boolean
+  reviewerId?: boolean
+  reviewedAt?: boolean
   id?: boolean
   userId?: boolean
   messageId?: boolean
@@ -875,11 +1410,16 @@ export type AiMessageFeedbackSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  reviewer?: boolean | Prisma.AiMessageFeedback$reviewerArgs<ExtArgs>
   message?: boolean | Prisma.AiChatMessageDefaultArgs<ExtArgs>
   run?: boolean | Prisma.AiMessageFeedback$runArgs<ExtArgs>
 }, ExtArgs["result"]["aiMessageFeedback"]>
 
 export type AiMessageFeedbackSelectScalar = {
+  reviewStatus?: boolean
+  reviewRevision?: boolean
+  reviewerId?: boolean
+  reviewedAt?: boolean
   id?: boolean
   userId?: boolean
   messageId?: boolean
@@ -891,19 +1431,24 @@ export type AiMessageFeedbackSelectScalar = {
   updatedAt?: boolean
 }
 
-export type AiMessageFeedbackOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "messageId" | "runId" | "value" | "reason" | "note" | "createdAt" | "updatedAt", ExtArgs["result"]["aiMessageFeedback"]>
+export type AiMessageFeedbackOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"reviewStatus" | "reviewRevision" | "reviewerId" | "reviewedAt" | "id" | "userId" | "messageId" | "runId" | "value" | "reason" | "note" | "createdAt" | "updatedAt", ExtArgs["result"]["aiMessageFeedback"]>
 export type AiMessageFeedbackInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  reviewer?: boolean | Prisma.AiMessageFeedback$reviewerArgs<ExtArgs>
+  reviewEvents?: boolean | Prisma.AiMessageFeedback$reviewEventsArgs<ExtArgs>
   message?: boolean | Prisma.AiChatMessageDefaultArgs<ExtArgs>
   run?: boolean | Prisma.AiMessageFeedback$runArgs<ExtArgs>
+  _count?: boolean | Prisma.AiMessageFeedbackCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AiMessageFeedbackIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  reviewer?: boolean | Prisma.AiMessageFeedback$reviewerArgs<ExtArgs>
   message?: boolean | Prisma.AiChatMessageDefaultArgs<ExtArgs>
   run?: boolean | Prisma.AiMessageFeedback$runArgs<ExtArgs>
 }
 export type AiMessageFeedbackIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  reviewer?: boolean | Prisma.AiMessageFeedback$reviewerArgs<ExtArgs>
   message?: boolean | Prisma.AiChatMessageDefaultArgs<ExtArgs>
   run?: boolean | Prisma.AiMessageFeedback$runArgs<ExtArgs>
 }
@@ -912,10 +1457,16 @@ export type $AiMessageFeedbackPayload<ExtArgs extends runtime.Types.Extensions.I
   name: "AiMessageFeedback"
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
+    reviewer: Prisma.$UserPayload<ExtArgs> | null
+    reviewEvents: Prisma.$AiFeedbackReviewEventPayload<ExtArgs>[]
     message: Prisma.$AiChatMessagePayload<ExtArgs>
     run: Prisma.$AiResponseRunPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    reviewStatus: string
+    reviewRevision: number
+    reviewerId: string | null
+    reviewedAt: Date | null
     id: string
     userId: string
     messageId: string
@@ -1008,8 +1559,8 @@ export interface AiMessageFeedbackDelegate<ExtArgs extends runtime.Types.Extensi
    * // Get first 10 AiMessageFeedbacks
    * const aiMessageFeedbacks = await prisma.aiMessageFeedback.findMany({ take: 10 })
    * 
-   * // Only select the `id`
-   * const aiMessageFeedbackWithIdOnly = await prisma.aiMessageFeedback.findMany({ select: { id: true } })
+   * // Only select the `reviewStatus`
+   * const aiMessageFeedbackWithReviewStatusOnly = await prisma.aiMessageFeedback.findMany({ select: { reviewStatus: true } })
    * 
    */
   findMany<T extends AiMessageFeedbackFindManyArgs>(args?: Prisma.SelectSubset<T, AiMessageFeedbackFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -1053,9 +1604,9 @@ export interface AiMessageFeedbackDelegate<ExtArgs extends runtime.Types.Extensi
    *   ]
    * })
    * 
-   * // Create many AiMessageFeedbacks and only return the `id`
-   * const aiMessageFeedbackWithIdOnly = await prisma.aiMessageFeedback.createManyAndReturn({
-   *   select: { id: true },
+   * // Create many AiMessageFeedbacks and only return the `reviewStatus`
+   * const aiMessageFeedbackWithReviewStatusOnly = await prisma.aiMessageFeedback.createManyAndReturn({
+   *   select: { reviewStatus: true },
    *   data: [
    *     // ... provide data here
    *   ]
@@ -1144,9 +1695,9 @@ export interface AiMessageFeedbackDelegate<ExtArgs extends runtime.Types.Extensi
    *   ]
    * })
    * 
-   * // Update zero or more AiMessageFeedbacks and only return the `id`
-   * const aiMessageFeedbackWithIdOnly = await prisma.aiMessageFeedback.updateManyAndReturn({
-   *   select: { id: true },
+   * // Update zero or more AiMessageFeedbacks and only return the `reviewStatus`
+   * const aiMessageFeedbackWithReviewStatusOnly = await prisma.aiMessageFeedback.updateManyAndReturn({
+   *   select: { reviewStatus: true },
    *   where: {
    *     // ... provide filter here
    *   },
@@ -1320,6 +1871,8 @@ readonly fields: AiMessageFeedbackFieldRefs;
 export interface Prisma__AiMessageFeedbackClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  reviewer<T extends Prisma.AiMessageFeedback$reviewerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiMessageFeedback$reviewerArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  reviewEvents<T extends Prisma.AiMessageFeedback$reviewEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiMessageFeedback$reviewEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiFeedbackReviewEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   message<T extends Prisma.AiChatMessageDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiChatMessageDefaultArgs<ExtArgs>>): Prisma.Prisma__AiChatMessageClient<runtime.Types.Result.GetResult<Prisma.$AiChatMessagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   run<T extends Prisma.AiMessageFeedback$runArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiMessageFeedback$runArgs<ExtArgs>>): Prisma.Prisma__AiResponseRunClient<runtime.Types.Result.GetResult<Prisma.$AiResponseRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
@@ -1351,6 +1904,10 @@ export interface Prisma__AiMessageFeedbackClient<T, Null = never, ExtArgs extend
  * Fields of the AiMessageFeedback model
  */
 export interface AiMessageFeedbackFieldRefs {
+  readonly reviewStatus: Prisma.FieldRef<"AiMessageFeedback", 'String'>
+  readonly reviewRevision: Prisma.FieldRef<"AiMessageFeedback", 'Int'>
+  readonly reviewerId: Prisma.FieldRef<"AiMessageFeedback", 'String'>
+  readonly reviewedAt: Prisma.FieldRef<"AiMessageFeedback", 'DateTime'>
   readonly id: Prisma.FieldRef<"AiMessageFeedback", 'String'>
   readonly userId: Prisma.FieldRef<"AiMessageFeedback", 'String'>
   readonly messageId: Prisma.FieldRef<"AiMessageFeedback", 'String'>
@@ -1758,6 +2315,49 @@ export type AiMessageFeedbackDeleteManyArgs<ExtArgs extends runtime.Types.Extens
    * Limit how many AiMessageFeedbacks to delete.
    */
   limit?: number
+}
+
+/**
+ * AiMessageFeedback.reviewer
+ */
+export type AiMessageFeedback$reviewerArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
+}
+
+/**
+ * AiMessageFeedback.reviewEvents
+ */
+export type AiMessageFeedback$reviewEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AiFeedbackReviewEvent
+   */
+  select?: Prisma.AiFeedbackReviewEventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AiFeedbackReviewEvent
+   */
+  omit?: Prisma.AiFeedbackReviewEventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AiFeedbackReviewEventInclude<ExtArgs> | null
+  where?: Prisma.AiFeedbackReviewEventWhereInput
+  orderBy?: Prisma.AiFeedbackReviewEventOrderByWithRelationInput | Prisma.AiFeedbackReviewEventOrderByWithRelationInput[]
+  cursor?: Prisma.AiFeedbackReviewEventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AiFeedbackReviewEventScalarFieldEnum | Prisma.AiFeedbackReviewEventScalarFieldEnum[]
 }
 
 /**

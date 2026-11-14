@@ -24,3 +24,5 @@ Apply the run-tracking migration first, then `20261114100000_add_ai_message_feed
 6. Confirm feedback references the answer's completed run; old answers can save with no run.
 
 Automated service tests cover upsert/retry, legacy answers, ownership filtering, denied admin/instructor roles, payload validation and limits. They use mocked database operations, not a real database or browser UI. Browser/manual verification is deferred as requested.
+
+Follow-up: the lecturer queue/status/history is implemented separately in [lecturer-feedback-review.md](lecturer-feedback-review.md). The scope and verification above describe the student-feedback base feature.

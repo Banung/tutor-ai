@@ -5,7 +5,7 @@ Tanggal: 14 November 2026. Acuan: **FSD Tutor AI v0.5, 6 November 2026, status D
 - Sumber primer yang dibaca: [FSD versi teks](</mnt/B47ED1067ED0C272/magang/pipp-brd/tutor-ai/FSD Tutor AI - Revisi Bahasa.txt>).
 - Dokumen asal: [FSD Revisi Bahasa DOCX](</mnt/B47ED1067ED0C272/magang/pipp-brd/tutor-ai/FSD Tutor AI - Revisi Bahasa.docx>).
 - Analisis terdahulu: [gap FR](</mnt/B47ED1067ED0C272/magang/pipp-brd/tutor-ai/research/analisis-gap-fr-tutor-ai.md>), berbasis kode 8832f46. Status di sini memperhitungkan perubahan AI dan feedback terbaru.
-- Cakupan pemeriksaan kode: branch lokal `feat/student-answer-feedback`, termasuk run tracking commit `394bef9` dan feedback yang masih berupa perubahan lokal. Tidak mengaudit branch `feat/admin` yang terpisah.
+- Cakupan pemeriksaan kode: branch lokal `feat/lecturer-feedback-review`, termasuk run tracking commit `394bef9`, feedback mahasiswa commit `86c4871`, dan implementasi antrean review dosen. Tidak mengaudit branch `feat/admin` yang terpisah.
 - **Sebagian** berarti ada implementasi namun masih ada gap; bukan lulus UAT. **Belum ditemukan** dibatasi ke branch/area yang diperiksa. Tidak ada klaim seluruh FR telah diterima.
 - User story adalah parafrasa. AC di bawah disalin dari bagian 9 FSD. Prioritas mengikuti FSD, bukan urutan delivery backlog.
 
@@ -25,12 +25,12 @@ Tanggal: 14 November 2026. Acuan: **FSD Tutor AI v0.5, 6 November 2026, status D
 | FR-010 / AC-010 | Dosen | Sebagai dosen, saya ingin membagikan dan mengganti kode kelas, agar akses peserta baru terkontrol tanpa mengeluarkan peserta lama. | Wajib | Sebagian |
 | FR-011 / AC-011 | Dosen | Sebagai dosen, saya ingin menautkan modul AR tervalidasi dan petunjuknya ke mata kuliah, agar peserta dapat menemukan praktikum yang relevan. | Di luar tahap ini | Ditunda |
 | FR-012 / AC-012 | Dosen | Sebagai dosen, saya ingin melihat partisipasi dan topik populer per periode pada kelasku, agar dapat mengenali kebutuhan belajar mahasiswa. | Wajib | Sebagian |
-| FR-013 / AC-013 | Dosen | Sebagai dosen, saya ingin meninjau jawaban ber-feedback negatif dan menyimpan koreksi, agar jawaban serupa berikutnya dapat diperbaiki. | Wajib | Belum ditemukan |
+| FR-013 / AC-013 | Dosen | Sebagai dosen, saya ingin meninjau jawaban ber-feedback negatif dan menyimpan koreksi, agar jawaban serupa berikutnya dapat diperbaiki. | Wajib | Sebagian; antrean review lokal |
 | FR-014 / AC-014 | Mahasiswa | Sebagai mahasiswa, saya ingin mencari dan menyaring katalog mata kuliah yang dipublikasikan, agar dapat menemukan kelas yang relevan. | Wajib | Sebagian |
 | FR-015 / AC-015 | Mahasiswa | Sebagai mahasiswa, saya ingin bergabung melalui kode atau tautan valid, agar kelas terhubung ke akunku tanpa pendaftaran ganda. | Wajib | Sebagian |
 | FR-016 / AC-016 | Mahasiswa | Sebagai mahasiswa, saya ingin bertanya dan melanjutkan percakapan yang menyertakan dokumen/halaman sumber, agar dapat memahami sekaligus memeriksa jawaban. | Wajib | Sebagian; diperkuat PR AI |
 | FR-017 / AC-017 | Mahasiswa | Sebagai mahasiswa, saya ingin membuka, mengganti judul, menghapus, menandai percakapan dan menambah catatan pribadi, agar dapat melanjutkan belajar. | Wajib | Sebagian |
-| FR-018 / AC-018 | Mahasiswa | Sebagai mahasiswa, saya ingin memberi atau mengubah penilaian dan catatan atas jawaban, agar jawaban yang kurang membantu dapat ditinjau dosen. | Disarankan | Sebagian; kode lokal FB-01–03 |
+| FR-018 / AC-018 | Mahasiswa | Sebagai mahasiswa, saya ingin memberi atau mengubah penilaian dan catatan atas jawaban, agar jawaban yang kurang membantu dapat ditinjau dosen. | Disarankan | Kode mahasiswa + antrean dosen lokal; belum UAT |
 | FR-019 / AC-019 | Mahasiswa | Sebagai mahasiswa, saya ingin membuka modul AR yang tersedia dari kelas, agar dapat mengikuti materi praktikum melalui aplikasi AR yang sesuai. | Di luar tahap ini | Ditunda; spesifikasi konflik |
 | FR-020 / AC-020 | Mahasiswa | Sebagai mahasiswa, saya ingin melihat skor dan kesalahan setelah latihan AR, agar dapat memperbaiki langkah praktikum. | Di luar tahap ini | Ditunda |
 | FR-021 / AC-021 | Mahasiswa | Sebagai mahasiswa, saya ingin melihat kelas, aktivitas pribadi dan saran belajar, agar tahu aktivitas serta langkah belajar selanjutnya. | Disarankan | Sebagian |
@@ -193,9 +193,9 @@ Tanggal: 14 November 2026. Acuan: **FSD Tutor AI v0.5, 6 November 2026, status D
 
 **AC-013 — FSD asli:** Jika terdapat jawaban dengan umpan balik negatif, saat dosen menyimpan koreksi, koreksi menjadi acuan jawaban berikutnya.
 
-**Status:** Belum ditemukan. **Prioritas FSD:** Wajib.
+**Status:** Sebagian; antrean review lokal. **Prioritas FSD:** Wajib.
 
-**Gap / pekerjaan berikutnya:** Antrean review, koreksi, riwayat revisi dan penerapan koreksi dalam retrieval belum dibuat. Bergantung feedback mahasiswa serta keputusan privasi.
+**Gap / pekerjaan berikutnya:** Antrean dosen, claim/status, akses per course, dan riwayat perubahan sudah dibuat di FB-04. Penulisan koreksi dan penerapannya dalam jawaban berikutnya (FB-05) belum dibuat; AC-013 belum terpenuhi.
 
 **Bukti / area kode:** [src/lib/tutor-ai/feedback.ts](</mnt/B47ED1067ED0C272/magang/pipp-brd/tutor-ai/tutor-ai/src/lib/tutor-ai/feedback.ts>).
 
@@ -253,9 +253,9 @@ Tanggal: 14 November 2026. Acuan: **FSD Tutor AI v0.5, 6 November 2026, status D
 
 **AC-018 — FSD asli:** Jika jawaban asisten tampil, saat mahasiswa menekan jempol ke bawah, umpan balik masuk ke daftar koreksi dosen.
 
-**Status:** Sebagian; kode lokal FB-01–03. **Prioritas FSD:** Disarankan.
+**Status:** Kode mahasiswa + antrean dosen lokal; belum UAT. **Prioritas FSD:** Disarankan.
 
-**Gap / pekerjaan berikutnya:** Model/API/UI mahasiswa telah dibuat; migration dan UAT database belum dijalankan. Antrean/rekap dosen belum ada, sehingga AC-018 dan BR-040 belum terpenuhi end to end.
+**Gap / pekerjaan berikutnya:** Model/API/UI mahasiswa serta antrean feedback negatif dosen telah dibuat. Status, peninjau dan riwayat perubahan tersedia; migration dan UAT database belum dijalankan sehingga AC-018/BR-040 belum dinyatakan lulus.
 
 **Bukti / area kode:** [docs/ai/student-feedback.md](</mnt/B47ED1067ED0C272/magang/pipp-brd/tutor-ai/tutor-ai/docs/ai/student-feedback.md>).
 
@@ -369,11 +369,11 @@ Tanggal: 14 November 2026. Acuan: **FSD Tutor AI v0.5, 6 November 2026, status D
 
 ## Yang tidak boleh dianggap sudah selesai
 
-1. **FR-018:** feedback mahasiswa bukan keseluruhan penerimaan. AC-018/BR-040 mensyaratkan feedback negatif masuk daftar koreksi dosen; FB-04 masih diperlukan. FR-013 kemudian menuntut koreksi memengaruhi jawaban berikutnya.
+1. **FR-018:** feedback mahasiswa bukan keseluruhan penerimaan. AC-018/BR-040 mensyaratkan feedback negatif masuk daftar koreksi dosen; FB-04 kini tersedia dalam kode lokal, tetapi migration dan UAT masih diperlukan. FR-013 kemudian menuntut koreksi memengaruhi jawaban berikutnya.
 2. **FR-024:** runner dengan 25 kasus bukan otomatis fitur evaluasi dosen/admin. Dataset per course, penilaian, pelaporan dan pemicu rerun masih diperlukan. Tidak ada klaim akurasi 90% sudah tercapai.
 3. **FR-009 dan FR-027 berbeda:** konfigurasi course milik dosen berbeda dari panduan jenjang/mode milik admin. Editor global tidak menutup FR-009.
 4. **FR-006 dan AR:** penugasan dosen tidak memenuhi seluruh AC yang masih mencantumkan relasi AR; scope yang ditunda perlu dipisahkan secara resmi.
-5. **Kode lokal bukan rilis:** migration run dan feedback belum diterapkan, feedback belum di-commit/PR, dan pengujian database nyata/UAT masih ditunda. Screenshot hanya memverifikasi tampilan komponen dengan data contoh.
+5. **Kode lokal bukan rilis:** migration run/feedback/review belum diterapkan, fitur belum di-PR/rilis, dan pengujian database nyata/UAT masih ditunda. Screenshot hanya memverifikasi tampilan komponen dengan data contoh.
 
 ## Elaborasi PRD/backlog dan keputusan di luar rumusan eksplisit FSD
 
@@ -407,6 +407,6 @@ Tanggal: 14 November 2026. Acuan: **FSD Tutor AI v0.5, 6 November 2026, status D
 1. Verifikasi dan delivery kode run tracking + feedback lokal: migration dev, akses, retry, simpan/edit/reload; perbarui status backlog.
 2. Baseline live FR-016/023/024/027 dengan materi contoh, lalu review dosen dan gate kualitas yang disepakati.
 3. Lengkapi FR-026 retry dosen dan FR-009 konfigurasi per course sesuai pembagian tim.
-4. Tutup alur FR-018 → FR-013: antrean feedback negatif, review/koreksi dan evaluasi ulang.
+4. Verifikasi antrean/review FB-04, lalu lanjut FR-013/FB-05: penulisan koreksi, penerapan terbatas per course dan evaluasi ulang.
 5. Lengkapi FR-024 sebagai fitur dosen/admin dan gap wajib pengelolaan/analitik/history sesuai keputusan scope. Scope admin adalah pekerjaan terpisah dari branch feedback mahasiswa.
 6. Stabilkan tahap 1 sebelum penyempurnaan FR-025 tahap 2; AR menunggu keputusan resmi.

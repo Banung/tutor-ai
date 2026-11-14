@@ -400,7 +400,8 @@ export const ModelName = {
   AiChatMessage: 'AiChatMessage',
   TutorPromptConfig: 'TutorPromptConfig',
   AiResponseRun: 'AiResponseRun',
-  AiMessageFeedback: 'AiMessageFeedback'
+  AiMessageFeedback: 'AiMessageFeedback',
+  AiFeedbackReviewEvent: 'AiFeedbackReviewEvent'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -416,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "course" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback"
+    modelProps: "user" | "session" | "account" | "verification" | "course" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback" | "aiFeedbackReviewEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1678,6 +1679,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AiFeedbackReviewEvent: {
+      payload: Prisma.$AiFeedbackReviewEventPayload<ExtArgs>
+      fields: Prisma.AiFeedbackReviewEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiFeedbackReviewEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiFeedbackReviewEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        findFirst: {
+          args: Prisma.AiFeedbackReviewEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiFeedbackReviewEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        findMany: {
+          args: Prisma.AiFeedbackReviewEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>[]
+        }
+        create: {
+          args: Prisma.AiFeedbackReviewEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        createMany: {
+          args: Prisma.AiFeedbackReviewEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiFeedbackReviewEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>[]
+        }
+        delete: {
+          args: Prisma.AiFeedbackReviewEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        update: {
+          args: Prisma.AiFeedbackReviewEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiFeedbackReviewEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiFeedbackReviewEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiFeedbackReviewEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiFeedbackReviewEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiFeedbackReviewEventPayload>
+        }
+        aggregate: {
+          args: Prisma.AiFeedbackReviewEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiFeedbackReviewEvent>
+        }
+        groupBy: {
+          args: Prisma.AiFeedbackReviewEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiFeedbackReviewEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiFeedbackReviewEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiFeedbackReviewEventCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1978,6 +2053,10 @@ export type AiResponseRunScalarFieldEnum = (typeof AiResponseRunScalarFieldEnum)
 
 
 export const AiMessageFeedbackScalarFieldEnum = {
+  reviewStatus: 'reviewStatus',
+  reviewRevision: 'reviewRevision',
+  reviewerId: 'reviewerId',
+  reviewedAt: 'reviewedAt',
   id: 'id',
   userId: 'userId',
   messageId: 'messageId',
@@ -1990,6 +2069,24 @@ export const AiMessageFeedbackScalarFieldEnum = {
 } as const
 
 export type AiMessageFeedbackScalarFieldEnum = (typeof AiMessageFeedbackScalarFieldEnum)[keyof typeof AiMessageFeedbackScalarFieldEnum]
+
+
+export const AiFeedbackReviewEventScalarFieldEnum = {
+  id: 'id',
+  feedbackId: 'feedbackId',
+  revision: 'revision',
+  eventType: 'eventType',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  actorId: 'actorId',
+  actorRole: 'actorRole',
+  actorName: 'actorName',
+  feedbackBefore: 'feedbackBefore',
+  feedbackAfter: 'feedbackAfter',
+  createdAt: 'createdAt'
+} as const
+
+export type AiFeedbackReviewEventScalarFieldEnum = (typeof AiFeedbackReviewEventScalarFieldEnum)[keyof typeof AiFeedbackReviewEventScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2256,6 +2353,7 @@ export type GlobalOmitConfig = {
   tutorPromptConfig?: Prisma.TutorPromptConfigOmit
   aiResponseRun?: Prisma.AiResponseRunOmit
   aiMessageFeedback?: Prisma.AiMessageFeedbackOmit
+  aiFeedbackReviewEvent?: Prisma.AiFeedbackReviewEventOmit
 }
 
 /* Types for Logging */

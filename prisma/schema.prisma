@@ -39,7 +39,8 @@ model User {
   enrollments        Enrollment[]
   courseSessionsMade CourseSession[]    @relation("CourseSessionCreator")
   materialsUploaded  Material[]
-  aiMessageFeedback  AiMessageFeedback[]
+  aiMessageFeedback  AiMessageFeedback[] @relation("FeedbackOwner")
+  feedbackReviews    AiMessageFeedback[] @relation("FeedbackReviewer")
   aiChatSessions     AiChatSession[]
 
   @@map("user")
@@ -372,6 +373,10 @@ model AiResponseRun {
 }
 
 model AiMessageFeedback {
+  reviewStatus   String @default("pending")
+  reviewRevision Int @default(1)
+  reviewerId     String?
+  reviewedAt     DateTime?
   id        String @id @default(cuid())
   userId    String
   messageId String
@@ -382,11 +387,34 @@ model AiMessageFeedback {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User @relation("FeedbackOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("FeedbackReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewEvents AiFeedbackReviewEvent[]
   message AiChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
   run     AiResponseRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
 
   @@unique([userId, messageId])
   @@index([runId])
+  @@index([value, reviewStatus, updatedAt])
   @@map("ai_message_feedback")
+}
+
+model AiFeedbackReviewEvent {
+  id             String @id @default(cuid())
+  feedbackId     String
+  revision       Int
+  eventType      String
+  fromStatus     String?
+  toStatus       String
+  actorId        String
+  actorRole      String
+  actorName      String?
+  feedbackBefore Json?
+  feedbackAfter  Json?
+  createdAt      DateTime @default(now())
+
+  feedback AiMessageFeedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@unique([feedbackId, revision])
+  @@map("ai_feedback_review_event")
 }

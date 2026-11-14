@@ -67,7 +67,8 @@ export const ModelName = {
   AiChatMessage: 'AiChatMessage',
   TutorPromptConfig: 'TutorPromptConfig',
   AiResponseRun: 'AiResponseRun',
-  AiMessageFeedback: 'AiMessageFeedback'
+  AiMessageFeedback: 'AiMessageFeedback',
+  AiFeedbackReviewEvent: 'AiFeedbackReviewEvent'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -347,6 +348,10 @@ export type AiResponseRunScalarFieldEnum = (typeof AiResponseRunScalarFieldEnum)
 
 
 export const AiMessageFeedbackScalarFieldEnum = {
+  reviewStatus: 'reviewStatus',
+  reviewRevision: 'reviewRevision',
+  reviewerId: 'reviewerId',
+  reviewedAt: 'reviewedAt',
   id: 'id',
   userId: 'userId',
   messageId: 'messageId',
@@ -359,6 +364,24 @@ export const AiMessageFeedbackScalarFieldEnum = {
 } as const
 
 export type AiMessageFeedbackScalarFieldEnum = (typeof AiMessageFeedbackScalarFieldEnum)[keyof typeof AiMessageFeedbackScalarFieldEnum]
+
+
+export const AiFeedbackReviewEventScalarFieldEnum = {
+  id: 'id',
+  feedbackId: 'feedbackId',
+  revision: 'revision',
+  eventType: 'eventType',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  actorId: 'actorId',
+  actorRole: 'actorRole',
+  actorName: 'actorName',
+  feedbackBefore: 'feedbackBefore',
+  feedbackAfter: 'feedbackAfter',
+  createdAt: 'createdAt'
+} as const
+
+export type AiFeedbackReviewEventScalarFieldEnum = (typeof AiFeedbackReviewEventScalarFieldEnum)[keyof typeof AiFeedbackReviewEventScalarFieldEnum]
 
 
 export const SortOrder = {
