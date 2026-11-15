@@ -5,7 +5,15 @@ import { feedbackReviewError, privateReviewHeaders } from "@/lib/tutor-ai/feedba
 type Context = { params: Promise<{ feedbackId: string }> };
 export async function GET(request: NextRequest, context: Context) {
   const { session, error } = await requireDosen(request); if (error) return error;
-  try { const { feedbackId } = await context.params; return NextResponse.json(await feedbackCorrections(session.user.id, feedbackId, { search: request.nextUrl.searchParams.get("search") ?? undefined, page: request.nextUrl.searchParams.get("page") ?? undefined }), { headers: privateReviewHeaders }); }
+  try {
+    const { feedbackId } = await context.params;
+    const params = request.nextUrl.searchParams;
+    return NextResponse.json(await feedbackCorrections(session.user.id, feedbackId, {
+      search: params.get("search") ?? undefined, page: params.get("page") ?? undefined,
+      materialId: params.get("materialId") ?? undefined, startPage: params.get("startPage") ?? undefined,
+      endPage: params.get("endPage") ?? undefined,
+    }), { headers: privateReviewHeaders });
+  }
   catch (error) { return feedbackReviewError(error); }
 }
 export async function POST(request: NextRequest, context: Context) {
