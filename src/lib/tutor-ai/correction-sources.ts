@@ -33,7 +33,7 @@ type CorrectionMaterial = Awaited<ReturnType<typeof loadCorrectionMaterials>>[nu
 async function loadCorrectionMaterials(courseId: string, materialIds: string[], db: Prisma.TransactionClient = prisma) {
   if (!materialIds.length) return [];
   return db.material.findMany({
-    where: { id: { in: materialIds }, courseId, ...eligibleCorrectionMaterial },
+    where: { id: { in: materialIds }, ...eligibleCorrectionMaterial, courseSession: { ...eligibleCorrectionMaterial.courseSession, courseId } },
     select: { id: true, title: true, fileName: true, storagePath: true, filePath: true, processingJobId: true,
       courseSessionId: true, pageCount: true, courseSession: { select: { title: true } },
       chunks: { orderBy: { chunkIndex: "asc" }, select: { id: true, content: true, pageNumber: true, chunkIndex: true } },
@@ -108,7 +108,7 @@ export async function correctionSourcesCurrent(courseId: string, snapshot: unkno
   if (!parsed.success) return false;
   if (!parsed.data.length) return true;
   try {
-    const legacySources = parsed.data.filter((source) => !("kind" in source));
+    const legacySources = parsed.data.flatMap((source) => "kind" in source ? [] : [source]);
     if (legacySources.length) {
       const current = await captureCorrectionSources(courseId, legacySources.map((source) => source.chunkId), db);
       if (fingerprint(current) !== fingerprint(legacySources)) return false;

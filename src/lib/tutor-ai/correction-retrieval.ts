@@ -49,7 +49,7 @@ export async function findApplicableCorrections(input: { courseId: string; selec
 
 type CorrectionChunkRow = {
   chunkId: string; materialId: string; sessionId: string; pageNumber: number; chunkIndex: number; content: string;
-  similarity: number | string; materialTitle: string; fileName: string; sessionTitle: string;
+  similarity: number | string; materialTitle: string; fileName: string; publicUrl: string | null; sessionTitle: string;
 };
 
 export async function correctionContextChunks(corrections: CorrectionContext[], input: {
@@ -69,7 +69,7 @@ export async function correctionContextChunks(corrections: CorrectionContext[], 
     SELECT c."id" AS "chunkId", c."materialId" AS "materialId", c."sessionId" AS "sessionId",
       c."pageNumber" AS "pageNumber", c."chunkIndex" AS "chunkIndex", c."content" AS "content",
       (1 - (c."embedding" <=> ${vector}::vector))::double precision AS "similarity",
-      m."title" AS "materialTitle", m."fileName" AS "fileName", s."title" AS "sessionTitle"
+      m."title" AS "materialTitle", m."fileName" AS "fileName", m."publicUrl" AS "publicUrl", s."title" AS "sessionTitle"
     FROM "material_chunk" c
     INNER JOIN "material" m ON m."id" = c."materialId"
     INNER JOIN "course_session" s ON s."id" = c."sessionId"

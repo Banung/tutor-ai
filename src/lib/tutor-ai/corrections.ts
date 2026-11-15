@@ -80,7 +80,7 @@ export async function feedbackCorrections(userId: string, feedbackId: string, qu
     prisma.materialChunk.findMany({ where: sourceWhere, orderBy: [{ materialId: "asc" }, { chunkIndex: "asc" }], skip: (parsed.data.page - 1) * 10, take: 10,
       select: { id: true, pageNumber: true, chunkIndex: true, content: true, material: { select: { title: true } } } }),
     prisma.materialChunk.count({ where: sourceWhere }),
-    prisma.material.findMany({ where: { courseId, ...eligibleCorrectionMaterial }, orderBy: { title: "asc" }, select: { id: true, title: true, pageCount: true } }),
+    prisma.material.findMany({ where: { ...eligibleCorrectionMaterial, courseSession: { ...eligibleCorrectionMaterial.courseSession, courseId } }, orderBy: { title: "asc" }, select: { id: true, title: true, pageCount: true } }),
     originalRunSuggestions(courseId, context.runId),
   ]);
   return { question: context.question ?? "", course: context.course, versions: await presentVersions(rows),
