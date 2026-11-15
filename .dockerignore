@@ -7,3 +7,4 @@ outputs
 compose.local.yaml
 *.log
 coverage
+gha-creds-*.json
