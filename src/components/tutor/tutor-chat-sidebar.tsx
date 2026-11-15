@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
+  FolderKanban,
   Loader2,
   MessageCircle,
   MoreHorizontal,
@@ -67,7 +70,12 @@ export type TutorChatSidebarProps = {
   handleRenameSession: () => Promise<void>;
   setDeleteSessionId: (id: string | null) => void;
   backHref: string;
+  courseId?: string;
+  courseBaseHref?: string;
+  currentCourseTitle?: string;
 };
+
+type StudentCourse = { id: string; title: string };
 
 export function TutorChatSidebar({
   sidebarOpen,
@@ -89,8 +97,38 @@ export function TutorChatSidebar({
   handleRenameSession,
   setDeleteSessionId,
   backHref,
+  courseId,
+  courseBaseHref,
+  currentCourseTitle,
 }: TutorChatSidebarProps) {
   const router = useRouter();
+  const [courses, setCourses] = useState<StudentCourse[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+
+  useEffect(() => {
+    if (!courseBaseHref) return;
+
+    let cancelled = false;
+    setLoadingCourses(true);
+    fetch("/api/mahasiswa/courses")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Gagal memuat mata kuliah");
+        return response.json();
+      })
+      .then((data: StudentCourse[]) => {
+        if (!cancelled && Array.isArray(data)) setCourses(data);
+      })
+      .catch(() => {
+        if (!cancelled) setCourses([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCourses(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [courseBaseHref]);
 
   return (
     <>
@@ -128,6 +166,59 @@ export function TutorChatSidebar({
             <TooltipContent side="right">{sidebarOpen ? "Tutup panel" : "Buka panel"}</TooltipContent>
           </Tooltip>
         </div>
+
+        {courseBaseHref && (
+          <div className="mt-3 px-3">
+            {sidebarOpen ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex min-h-14 w-full items-center gap-3 rounded-lg border bg-background px-3 text-left transition-colors hover:bg-muted">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-brand/15 text-brand">
+                      <FolderKanban className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Project</span>
+                      <span className="block truncate text-sm font-medium">{currentCourseTitle ?? "Pilih mata kuliah"}</span>
+                    </span>
+                    {loadingCourses ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mata kuliah</div>
+                  {courses.map((course) => (
+                    <DropdownMenuItem
+                      key={course.id}
+                      onClick={() => {
+                        if (course.id !== courseId) router.push(`${courseBaseHref}/${course.id}/tutor`);
+                      }}
+                      className="min-w-0"
+                    >
+                      <FolderKanban className="size-4 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">{course.title}</span>
+                      {course.id === courseId && <Check className="size-4 text-brand" />}
+                    </DropdownMenuItem>
+                  ))}
+                  {!loadingCourses && courses.length === 0 && (
+                    <div className="px-2 py-3 text-sm text-muted-foreground">Tidak ada mata kuliah tersedia.</div>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="flex h-11 w-full items-center justify-center rounded-lg text-brand transition-colors hover:bg-muted"
+                    aria-label={`Project: ${currentCourseTitle ?? "mata kuliah"}`}
+                  >
+                    <FolderKanban className="size-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{currentCourseTitle ?? "Project"}</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        )}
 
         {/* Menu Items — New Chat & Search */}
         <div className="mt-2 flex flex-col gap-2 px-3">
