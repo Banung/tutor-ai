@@ -15,12 +15,19 @@ export function getSocialAnswer(question: string, name: string): string | null {
 
 export function selectCitedSources<T>(answer: string, sources: T[]): T[] {
   const indices = new Set<number>();
-  for (const match of answer.matchAll(/\[Sumber\s+(\d+)\]/gi)) {
-    const index = Number(match[1]) - 1;
-    if (index < 0 || index >= sources.length) {
-      throw new Error("Rujukan sumber tidak valid. Silakan coba lagi.");
+  const citationGroups = answer.matchAll(
+    /\[((?:Sumber\s+\d+)(?:\s*,\s*(?:Sumber\s+)?\d+)*)\]/gi
+  );
+
+  for (const group of citationGroups) {
+    for (const citation of group[1].matchAll(/(?:Sumber\s+)?(\d+)/gi)) {
+      const index = Number(citation[1]) - 1;
+      if (index < 0 || index >= sources.length) {
+        throw new Error("Rujukan sumber tidak valid. Silakan coba lagi.");
+      }
+      indices.add(index);
     }
-    indices.add(index);
   }
+
   return [...indices].map((index) => sources[index]);
 }

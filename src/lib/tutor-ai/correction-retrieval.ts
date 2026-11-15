@@ -50,7 +50,7 @@ export function correctionContextChunks(corrections: CorrectionContext[]) {
   return corrections.flatMap((correction) => correction.sourceSnapshot.map((source) => ({
     chunkId: source.chunkId, materialId: source.materialId, sessionId: source.sessionId, pageNumber: source.pageNumber,
     chunkIndex: source.chunkIndex, content: source.content, similarity: correction.similarity,
-    materialTitle: source.materialTitle, fileName: source.fileName, sessionTitle: source.sessionTitle,
+    materialTitle: source.materialTitle, fileName: source.fileName, publicUrl: null, sessionTitle: source.sessionTitle,
   })));
 }
 
