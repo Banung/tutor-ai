@@ -108,6 +108,7 @@ export function TutorAiChatPage({
   courseId,
   backHref,
   tutorHref = `/courses/${courseId}/tutor`,
+  courseBaseHref,
   initialSessionId,
 }: TutorAiChatPageProps) {
   const router = useRouter();
@@ -288,24 +289,6 @@ export function TutorAiChatPage({
     previousLoadingRef.current = loadingSession;
   }, [activeSessionId, loadingSession, scrollToMessages]);
 
-  const handleSendWithScroll = async () => {
-    // First, let handleSend execute to add the new message to the state and set sending=true
-    await handleSend();
-    
-    // Wait a tick for React to render the new user message in the DOM
-    setTimeout(() => {
-      const messageEls = document.querySelectorAll('[id^="msg-"]');
-      const lastMessageEl = messageEls[messageEls.length - 1];
-      
-      if (lastMessageEl) {
-        // Scroll the user's new message to the top of the viewport (ala ChatGPT)
-        lastMessageEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-        scrollToMessages("smooth");
-      }
-    }, 50);
-  };
-
   // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -363,6 +346,9 @@ export function TutorAiChatPage({
         handleRenameSession={handleRenameSession}
         setDeleteSessionId={setDeleteSessionId}
         backHref={backHref}
+        courseId={courseId}
+        courseBaseHref={courseBaseHref}
+        currentCourseTitle={overview?.course.title}
       />
 
       {/* ==================== MAIN CHAT AREA ==================== */}
@@ -466,7 +452,7 @@ export function TutorAiChatPage({
                 recording={recording}
                 transcribing={transcribing}
                 recordingLevels={recordingLevels}
-                handleSend={handleSendWithScroll}
+                handleSend={handleSend}
                 handleStop={handleStop}
                 handleStartRecording={handleStartRecording}
                 handleCancelRecording={handleCancelRecording}
@@ -508,7 +494,7 @@ export function TutorAiChatPage({
             recording={recording}
             transcribing={transcribing}
             recordingLevels={recordingLevels}
-            handleSend={handleSendWithScroll}
+            handleSend={handleSend}
             handleStop={handleStop}
             handleStartRecording={handleStartRecording}
             handleCancelRecording={handleCancelRecording}
