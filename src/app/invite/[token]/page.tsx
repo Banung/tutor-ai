@@ -51,7 +51,7 @@ export default function CourseInvitationPage() {
           {error && <p className="text-sm text-destructive">{error}</p>}
           {!course && !error && <Loader2 className="size-5 animate-spin" />}
           {course && <Button onClick={joinCourse} disabled={busy}>{busy && <Loader2 className="animate-spin" data-icon="inline-start" />}Gabung ke Course</Button>}
-          {error.includes("login") && <Button variant="outline" onClick={() => router.push("/login")}>Login</Button>}
+          {error.includes("login") && <Button variant="outline" onClick={() => router.push(`/login?${new URLSearchParams({ returnTo: `/invite/${token}` })}`)}>Login</Button>}
         </CardContent>
       </Card>
     </main>
