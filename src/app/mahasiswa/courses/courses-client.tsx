@@ -44,6 +44,7 @@ interface MahasiswaCourse {
   creator: { id: string; name: string };
   instructors: { id: string; user: { id: string; name: string } }[];
   _count: { instructors: number; sessions: number };
+  isEnrolled?: boolean;
 }
 
 const GRID_OPTIONS = [
@@ -122,7 +123,7 @@ function EnrollCourseDialog({
       return;
     }
 
-    if (selectedCourse || query.trim().length < 2) {
+    if (selectedCourse) {
       setResults([]);
       setSearching(false);
       return;
@@ -131,7 +132,8 @@ function EnrollCourseDialog({
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
       setSearching(true);
-      const params = new URLSearchParams({ search: query.trim() });
+      const params = new URLSearchParams();
+      if (query.trim()) params.set("search", query.trim());
 
       fetch(`/api/mahasiswa/courses/available?${params}`, {
         signal: controller.signal,
@@ -206,7 +208,7 @@ function EnrollCourseDialog({
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="available-course-search"
-                placeholder="Ketik minimal 2 karakter..."
+                placeholder="Cari semua course lintas jurusan..."
                 value={query}
                 onChange={(event) => {
                   setQuery(event.target.value);
@@ -249,7 +251,7 @@ function EnrollCourseDialog({
                   <Loader2 className="animate-spin" data-icon="inline-start" />
                   Mencari course...
                 </div>
-              ) : query.trim().length >= 2 && results.length === 0 ? (
+              ) : results.length === 0 ? (
                 <div className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
                   Course tidak ditemukan atau sudah Anda ikuti.
                 </div>
@@ -259,10 +261,12 @@ function EnrollCourseDialog({
                     key={course.id}
                     type="button"
                     onClick={() => {
+                      if (course.isEnrolled) return;
                       setSelectedCourse(course);
                       setQuery(course.title);
                     }}
-                    className="flex w-full items-start gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-muted/40"
+                    disabled={course.isEnrolled}
+                    className="flex w-full items-start gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-muted/40 disabled:cursor-default disabled:opacity-70"
                   >
                     <BookOpen className="mt-0.5 size-5 shrink-0 text-brand" />
                     <div className="min-w-0 flex-1">
@@ -272,7 +276,7 @@ function EnrollCourseDialog({
                       </p>
                     </div>
                     <span className="shrink-0 text-xs text-muted-foreground">
-                      {course._count.sessions} sesi
+                      {course.isEnrolled ? "Sudah diikuti" : `${course._count.sessions} sesi`}
                     </span>
                   </button>
                 ))
