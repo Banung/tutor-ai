@@ -69,6 +69,7 @@ async function workLoop() {
       console.log(`Material processing completed for ${material.id}`);
     } catch (error) {
       console.error(`Material processing failed for ${material.id}`, error);
+      if (runOnce) process.exitCode = 1;
     }
 
     if (runOnce) break;
@@ -89,10 +90,16 @@ process.on("SIGTERM", () => void shutdown("SIGTERM"));
 
 process.on("uncaughtException", (error) => {
   console.error("Uncaught exception in material worker:", error);
+  process.exit(1);
 });
 
 process.on("unhandledRejection", (reason) => {
   console.error("Unhandled rejection in material worker:", reason);
+  process.exit(1);
 });
 
-void workLoop();
+void workLoop().catch(async (error) => {
+  console.error("Material worker failed:", error);
+  process.exitCode = 1;
+  await prisma.$disconnect();
+});
