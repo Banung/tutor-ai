@@ -22,3 +22,15 @@ test("correction evidence excluded from the context does not create source zero"
   ], numbers), [1]);
   assert.deepEqual(getCorrectionSourceNumbers([{ chunkId: "omitted" }], numbers), []);
 });
+
+test("page range corrections cite only matching documents in retained context", () => {
+  const chunks = [
+    { chunkId: "a1", materialId: "a", pageNumber: 2 },
+    { chunkId: "a2", materialId: "a", pageNumber: 3 },
+    { chunkId: "b1", materialId: "b", pageNumber: 2 },
+  ];
+  assert.deepEqual(getCorrectionSourceNumbers([
+    { kind: "page_range", materialId: "a", startPage: 2, endPage: 3 },
+    { kind: "page_range", materialId: "b", startPage: 5, endPage: 8 },
+  ], buildChunkSourceNumbers(chunks), chunks), [1]);
+});

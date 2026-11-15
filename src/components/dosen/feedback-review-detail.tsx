@@ -10,6 +10,7 @@ import { feedbackReasons } from "@/lib/tutor-ai/feedback-schema";
 import type { ReviewAction } from "@/lib/tutor-ai/feedback-review-schema";
 import type { FeedbackReviewDetail } from "./feedback-review-types";
 import { FeedbackCorrectionPanel } from "./feedback-correction-panel";
+import { FeedbackMarkdown } from "./feedback-markdown";
 import { ReviewStatusBadge, reviewDate, reviewResponse, reviewStatusLabel } from "./feedback-review-shared";
 
 export function FeedbackReviewDetailPanel({ feedbackId }: { feedbackId: string }) {
@@ -60,7 +61,7 @@ export function FeedbackReviewDetailPanel({ feedbackId }: { feedbackId: string }
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-6">
           <Card><CardHeader><CardTitle>Pertanyaan terkait</CardTitle></CardHeader><CardContent><p className="whitespace-pre-wrap break-words text-sm">{item.question ?? "Pertanyaan terkait tidak tersedia pada riwayat lama."}</p></CardContent></Card>
-          <Card><CardHeader><CardTitle>Jawaban Tutor AI</CardTitle><CardDescription>Jawaban asli yang mendapat feedback mahasiswa.</CardDescription></CardHeader><CardContent><p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{item.answer}</p></CardContent></Card>
+          <Card><CardHeader><CardTitle>Jawaban Tutor AI</CardTitle><CardDescription>Jawaban asli yang mendapat feedback mahasiswa.</CardDescription></CardHeader><CardContent><FeedbackMarkdown content={item.answer} /></CardContent></Card>
           <Card><CardHeader><CardTitle>Sumber jawaban</CardTitle></CardHeader><CardContent className="flex flex-col gap-4">{item.sources.length ? item.sources.map((source, index) => <div key={`${source.title}-${source.pageNumber}-${index}`} className="flex flex-col gap-1"><p className="text-sm font-medium">{source.title} · Halaman {source.pageNumber}</p>{source.snippet && <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{source.snippet}</p>}</div>) : <p className="text-sm text-muted-foreground">Tidak ada sumber tersimpan untuk jawaban ini.</p>}</CardContent></Card>
         </div>
         <div className="flex min-w-0 flex-col gap-6">

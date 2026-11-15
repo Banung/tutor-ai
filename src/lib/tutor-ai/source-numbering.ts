@@ -11,11 +11,19 @@ export function buildChunkSourceNumbers(chunks: { chunkId: string; materialId: s
 }
 
 export function getCorrectionSourceNumbers(
-  sources: { chunkId: string }[],
+  sources: ({ chunkId: string } | { kind: "page_range"; materialId: string; startPage: number; endPage: number })[],
   sourceNumbers: ReadonlyMap<string, number>,
+  chunks: { chunkId: string; materialId: string; pageNumber: number }[] = [],
 ) {
   const numbers = sources.flatMap((source) => {
-    const number = sourceNumbers.get(source.chunkId);
+    if ("kind" in source && source.kind === "page_range") {
+      return chunks.flatMap((chunk) => {
+        if (chunk.materialId !== source.materialId || chunk.pageNumber < source.startPage || chunk.pageNumber > source.endPage) return [];
+        const number = sourceNumbers.get(chunk.chunkId);
+        return number === undefined ? [] : [number];
+      });
+    }
+    const number = "chunkId" in source ? sourceNumbers.get(source.chunkId) : undefined;
     return number === undefined ? [] : [number];
   });
   return [...new Set(numbers)];

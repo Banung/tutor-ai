@@ -73,5 +73,6 @@ export type TutorAiChatPageProps = {
   courseId: string;
   backHref: string;
   tutorHref?: string;
+  courseBaseHref?: string;
   initialSessionId?: string;
 };

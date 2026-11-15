@@ -6,8 +6,9 @@ import { TutorAiServiceError } from "./error";
 import { getFeedbackReview } from "./feedback-review";
 import { feedbackTransaction } from "./feedback-transaction";
 import { assertActiveVersion, correctionQuestionKey, fingerprint } from "./correction-policy";
-import { captureCorrectionSources, correctionSourcesCurrent, eligibleCorrectionMaterial } from "./correction-sources";
+import { captureCorrectionSelections, correctionSourcesCurrent, eligibleCorrectionMaterial } from "./correction-sources";
 import { correctionActionSchema, correctionDraftSchema } from "./correction-schema";
+import { MAX_TUTOR_CONTEXT_CHUNKS } from "./retrieval-config";
 import { z } from "zod/v4";
 
 async function requireCorrectionLecturer(userId: string, courseId?: string, db: Prisma.TransactionClient = prisma) {
@@ -31,7 +32,37 @@ async function presentVersions(rows: Awaited<ReturnType<typeof prisma.aiAnswerCo
   }));
 }
 
-const sourceQuerySchema = z.object({ search: z.string().trim().max(100).default(""), page: z.coerce.number().int().min(1).max(10000).default(1) });
+const sourceQuerySchema = z.object({
+  search: z.string().trim().max(100).default(""), page: z.coerce.number().int().min(1).max(10000).default(1),
+  materialId: z.string().min(1).optional(),
+  startPage: z.coerce.number().int().min(1).optional(), endPage: z.coerce.number().int().min(1).optional(),
+}).superRefine((query, context) => {
+  if ((query.startPage === undefined) !== (query.endPage === undefined)) context.addIssue({ code: "custom", message: "Rentang halaman harus berisi halaman awal dan akhir." });
+  if (query.startPage !== undefined && query.endPage !== undefined && query.endPage < query.startPage) context.addIssue({ code: "custom", message: "Halaman akhir harus sesudah halaman awal." });
+});
+
+async function originalRunSuggestions(courseId: string, runId: string | null) {
+  if (!runId) return [];
+  const run = await prisma.aiResponseRun.findUnique({ where: { id: runId }, select: { evidence: true } });
+  if (!Array.isArray(run?.evidence)) return [];
+  const evidence = run.evidence.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const value = item as Record<string, unknown>;
+    if (typeof value.chunkId !== "string" || typeof value.similarity !== "number") return [];
+    return [{ chunkId: value.chunkId, similarity: value.similarity }];
+  }).slice(0, MAX_TUTOR_CONTEXT_CHUNKS);
+  if (!evidence.length) return [];
+  const rows = await prisma.materialChunk.findMany({
+    where: { id: { in: evidence.map((item) => item.chunkId) }, courseId, material: eligibleCorrectionMaterial },
+    select: { id: true, pageNumber: true, chunkIndex: true, content: true, material: { select: { title: true } } },
+  });
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return evidence.flatMap(({ chunkId, similarity }) => {
+    const row = byId.get(chunkId);
+    return row ? [{ id: row.id, title: row.material.title, pageNumber: row.pageNumber, chunkIndex: row.chunkIndex,
+      snippet: row.content.slice(0, 300), content: row.content, similarity }] : [];
+  });
+}
 export async function feedbackCorrections(userId: string, feedbackId: string, query: unknown = {}) {
   const parsed = sourceQuerySchema.safeParse(query);
   if (!parsed.success) throw new TutorAiServiceError("Filter sumber tidak valid.", 400);
@@ -39,28 +70,34 @@ export async function feedbackCorrections(userId: string, feedbackId: string, qu
   const courseId = context.course.id;
   const key = context.question ? correctionQuestionKey(context.question) : "";
   const sourceWhere: Prisma.MaterialChunkWhereInput = { courseId, material: eligibleCorrectionMaterial,
+    ...(parsed.data.materialId ? { materialId: parsed.data.materialId } : {}),
+    ...(parsed.data.startPage !== undefined && parsed.data.endPage !== undefined
+      ? { pageNumber: { gte: parsed.data.startPage, lte: parsed.data.endPage } } : {}),
     ...(parsed.data.search ? { OR: [{ content: { contains: parsed.data.search, mode: "insensitive" } }, { material: { title: { contains: parsed.data.search, mode: "insensitive" } } }] } : {}),
   };
-  const [rows, sources, totalSources] = await Promise.all([
+  const [rows, sources, totalSources, materials, suggestedSources] = await Promise.all([
     prisma.aiAnswerCorrection.findMany({ where: { courseId, OR: [{ feedbackId }, { questionKey: key }] }, orderBy: { createdAt: "desc" }, take: 50 }),
-    prisma.materialChunk.findMany({ where: sourceWhere, orderBy: [{ materialId: "asc" }, { chunkIndex: "asc" }], skip: (parsed.data.page - 1) * 30, take: 30,
-      select: { id: true, pageNumber: true, content: true, material: { select: { title: true } } } }),
+    prisma.materialChunk.findMany({ where: sourceWhere, orderBy: [{ materialId: "asc" }, { chunkIndex: "asc" }], skip: (parsed.data.page - 1) * 10, take: 10,
+      select: { id: true, pageNumber: true, chunkIndex: true, content: true, material: { select: { title: true } } } }),
     prisma.materialChunk.count({ where: sourceWhere }),
+    prisma.material.findMany({ where: { ...eligibleCorrectionMaterial, courseSession: { ...eligibleCorrectionMaterial.courseSession, courseId } }, orderBy: { title: "asc" }, select: { id: true, title: true, pageCount: true } }),
+    originalRunSuggestions(courseId, context.runId),
   ]);
   return { question: context.question ?? "", course: context.course, versions: await presentVersions(rows),
-    sources: sources.map((s) => ({ id: s.id, title: s.material.title, pageNumber: s.pageNumber, snippet: s.content.slice(0, 300) })),
-    sourcePage: parsed.data.page, totalSources, sourcePageSize: 30 };
+    sources: sources.map((s) => ({ id: s.id, title: s.material.title, pageNumber: s.pageNumber, chunkIndex: s.chunkIndex, snippet: s.content.slice(0, 300), content: s.content })),
+    suggestedSources, materials: materials.map((material) => ({ id: material.id, title: material.title, pageCount: material.pageCount ?? 0 })),
+    sourcePage: parsed.data.page, totalSources, sourcePageSize: 10 };
 }
 
 export async function createCorrectionDraft(userId: string, feedbackId: string, payload: unknown) {
   const parsed = correctionDraftSchema.safeParse(payload);
-  if (!parsed.success) throw new TutorAiServiceError("Isi pertanyaan, koreksi 10–2000 karakter, alasan dan 1–5 potongan sumber yang berbeda.", 400);
+  if (!parsed.success) throw new TutorAiServiceError("Isi pertanyaan, koreksi 10–2000 karakter, alasan, dan pilih potongan atau rentang halaman yang valid.", 400);
   const context = await getFeedbackReview(userId, feedbackId);
   const courseId = context.course.id;
-  const { sourceChunkIds, ...content } = parsed.data;
+  const { sourceChunkIds, sourceRanges, ...content } = parsed.data;
   return feedbackTransaction(async (tx) => {
     const author = await requireCorrectionLecturer(userId, courseId, tx);
-    const sources = await captureCorrectionSources(courseId, sourceChunkIds, tx);
+    const sources = await captureCorrectionSelections(courseId, sourceChunkIds, sourceRanges, tx);
     const questionKey = correctionQuestionKey(content.question);
     const previous = await tx.aiAnswerCorrection.findFirst({ where: { courseId, questionKey }, orderBy: { version: "desc" }, select: { version: true } });
     return tx.aiAnswerCorrection.create({ data: { ...content, courseId, feedbackId, questionKey,

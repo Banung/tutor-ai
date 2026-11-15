@@ -15,14 +15,16 @@ test("approval cannot overwrite an active version the lecturer has not acknowled
 test("draft validation requires bounded content, rationale and distinct sources", () => {
   const valid = { question: "Apa itu mean?", answer: "Mean adalah rata-rata aritmetika.", rationale: "Perbaikan definisi", sourceChunkIds: ["chunk-1"] };
   assert.equal(correctionDraftSchema.safeParse(valid).success, true);
-  for (const patch of [{ sourceChunkIds: [] }, { sourceChunkIds: ["x", "x"] }, { answer: "x" }, { approvedBy: "forged" }]) {
+  assert.equal(correctionDraftSchema.safeParse({ ...valid, sourceChunkIds: [] }).success, true);
+  for (const patch of [ { sourceChunkIds: ["x", "x"] }, { answer: "x" }, { approvedBy: "forged" }]) {
     assert.equal(correctionDraftSchema.safeParse({ ...valid, ...patch }).success, false);
   }
 });
 test("fingerprints change with content or processing lineage, malformed snapshots are rejected", () => {
   assert.notEqual(fingerprint({ content: "lama", jobId: "a" }), fingerprint({ content: "baru", jobId: "a" }));
   assert.notEqual(fingerprint({ content: "sama", jobId: "a" }), fingerprint({ content: "sama", jobId: "b" }));
-  assert.equal(correctionSourcesSchema.safeParse([]).success, false);
+  assert.equal(correctionSourcesSchema.safeParse([]).success, true);
+  assert.equal(correctionSourcesSchema.safeParse([{ kind: "page_range" }]).success, false);
 });
 
 test("retrieval ignores weak or ambiguous correction matches and bounds context to one version", async () => {
