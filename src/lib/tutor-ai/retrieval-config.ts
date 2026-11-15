@@ -1,0 +1,2 @@
+export const MAX_TUTOR_CONTEXT_CHUNKS = 8;
+export const MIN_TUTOR_CONTEXT_SIMILARITY = 0.5;
