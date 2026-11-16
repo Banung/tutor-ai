@@ -352,13 +352,6 @@ export function useTutorChat({
       messages: [...session.messages, pendingMessage, streamingAiMessage],
     });
 
-    requestAnimationFrame(() => {
-      const el = document.getElementById(`msg-${pendingMessage.id}`);
-      if (el) {
-        el.scrollIntoView({ block: "start", behavior: "smooth" });
-      }
-    });
-
     let realSessionId = session.id;
     const isNewSession = session.id.startsWith("new-");
 

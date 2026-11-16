@@ -961,9 +961,6 @@ export const TutorChatMessages = memo(function TutorChatMessages({
         {/* Clearance for floating input area */}
         <div className="h-28" aria-hidden="true" />
         <div ref={messagesEndRef} />
-
-        {/* Spacer: provides scroll room so user's message can appear at top when sending */}
-        {sending && <div className="min-h-[60vh]" aria-hidden="true" />}
       </div>
       <CitationPreviewSheet preview={citationPreview} onOpenChange={setCitationPreview} />
     </div>
