@@ -13,6 +13,7 @@ import {
   CalendarDays,
   FileText,
   GraduationCap,
+  MessageCircle,
   Search,
   X,
 } from "lucide-react";
@@ -79,6 +80,20 @@ function CourseCard({ course }: { course: MahasiswaCourse }) {
             {course._count.sessions} Sesi
           </span>
         </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="mt-1 w-full gap-2 border-brand/30 hover:bg-brand/10 hover:text-foreground"
+          aria-label={`Tanya Tutor AI tentang ${course.title}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            router.push(`/mahasiswa/courses/${course.id}/tutor`);
+          }}
+        >
+          <MessageCircle className="size-4" />
+          Tanya Tutor AI
+        </Button>
       </CardContent>
     </Card>
   );
@@ -217,7 +232,7 @@ export default function MahasiswaDashboardPage() {
         <Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           id="mahasiswa-search-course"
-          placeholder="Cari course yang Anda ikuti..."
+          placeholder="Cari mata kuliah yang Anda ikuti..."
           value={searchQuery}
           onChange={(event) => {
             setSearchQuery(event.target.value);
@@ -252,7 +267,7 @@ export default function MahasiswaDashboardPage() {
 
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight">Course Saya</h2>
+          <h2 className="text-xl font-bold tracking-tight">Mata Kuliah Saya</h2>
           {hasMoreCourses && (
             <Button
               variant="ghost"

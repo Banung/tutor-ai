@@ -632,6 +632,7 @@ export type TutorChatMessagesProps = {
   activeSession: TutorChatSession | null;
   loadingSession: boolean;
   sending: boolean;
+  sendingStage?: "preparing" | "generating" | null;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -642,6 +643,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   activeSession,
   loadingSession,
   sending,
+  sendingStage,
   scrollContainerRef,
   messagesEndRef,
 }: TutorChatMessagesProps) {
@@ -954,16 +956,15 @@ export const TutorChatMessages = memo(function TutorChatMessages({
           <div className="flex justify-start">
             <div className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
-              Tutor AI sedang menjawab...
+              {sendingStage === "generating"
+                ? "Tutor AI sedang menyusun jawaban..."
+                : "Tutor AI sedang menyiapkan materi..."}
             </div>
           </div>
         )}
         {/* Clearance for floating input area */}
         <div className="h-28" aria-hidden="true" />
         <div ref={messagesEndRef} />
-
-        {/* Spacer: provides scroll room so user's message can appear at top when sending */}
-        {sending && <div className="min-h-[60vh]" aria-hidden="true" />}
       </div>
       <CitationPreviewSheet preview={citationPreview} onOpenChange={setCitationPreview} />
     </div>

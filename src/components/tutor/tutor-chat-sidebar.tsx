@@ -177,7 +177,7 @@ export function TutorChatSidebar({
                       <FolderKanban className="size-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Project</span>
+                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Mata kuliah</span>
                       <span className="block truncate text-sm font-medium">{currentCourseTitle ?? "Pilih mata kuliah"}</span>
                     </span>
                     {loadingCourses ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
@@ -209,12 +209,12 @@ export function TutorChatSidebar({
                   <button
                     onClick={() => setSidebarOpen(true)}
                     className="flex h-11 w-full items-center justify-center rounded-lg text-brand transition-colors hover:bg-muted"
-                    aria-label={`Project: ${currentCourseTitle ?? "mata kuliah"}`}
+                    aria-label={`Mata kuliah: ${currentCourseTitle ?? "pilih mata kuliah"}`}
                   >
                     <FolderKanban className="size-4" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">{currentCourseTitle ?? "Project"}</TooltipContent>
+                <TooltipContent side="right">{currentCourseTitle ?? "Mata kuliah"}</TooltipContent>
               </Tooltip>
             )}
           </div>

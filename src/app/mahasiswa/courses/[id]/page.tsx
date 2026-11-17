@@ -12,6 +12,7 @@ import {
   CalendarDays,
   GraduationCap,
   Users,
+  MessageCircle,
 } from "lucide-react";
 import { TutorFloatingButton } from "@/components/tutor/tutor-floating-button";
 import { MahasiswaSessionCard } from "./session-card";
@@ -91,15 +92,21 @@ export default function MahasiswaCourseDetailPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => router.push("/mahasiswa/courses")}
-        className="-ml-2 self-start text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft data-icon="inline-start" />
-        Kembali ke Courses
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push("/mahasiswa/courses")}
+          className="-ml-2 self-start text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft data-icon="inline-start" />
+          Kembali ke mata kuliah
+        </Button>
+        <Button onClick={() => router.push(`/mahasiswa/courses/${courseId}/tutor`)}>
+          <MessageCircle data-icon="inline-start" />
+          Tanya Tutor AI
+        </Button>
+      </div>
 
       <div className="flex flex-col gap-6">
         <div className="relative min-h-[360px] overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -225,7 +232,7 @@ export default function MahasiswaCourseDetailPage() {
         )}
       </div>
 
-      <TutorFloatingButton href={`/courses/${courseId}/tutor`} />
+      <TutorFloatingButton href={`/mahasiswa/courses/${courseId}/tutor`} />
     </div>
   );
 }

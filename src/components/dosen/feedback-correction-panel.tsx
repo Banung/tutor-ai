@@ -46,7 +46,7 @@ export function FeedbackCorrectionPanel({ feedbackId }: { feedbackId: string }) 
     return () => controller.abort();
   }, [endpoint, sourceFilters, page, refresh]);
   function reload() { setRefresh((n) => n + 1); }
-  return <section className="flex flex-col gap-5" aria-label="Koreksi jawaban dosen">
+  return <section id="feedback-correction" className="flex scroll-mt-6 flex-col gap-5" aria-label="Koreksi jawaban dosen">
     <div className="flex flex-col gap-2"><h2 className="text-xl font-semibold">Koreksi jawaban</h2><p className="text-sm text-muted-foreground">Simpan versi baru, periksa sumbernya, lalu setujui secara terpisah. Koreksi hanya berlaku pada mata kuliah ini.</p></div>
     {error && <p role="alert" className="text-sm text-destructive">{error} <Button variant="ghost" onClick={reload}>Muat ulang koreksi</Button></p>}
     {!data && !error && <Skeleton className="h-64 rounded-xl" />}
