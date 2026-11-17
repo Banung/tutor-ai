@@ -51,6 +51,7 @@ const userSelect = {
   major: true,
   faculty: true,
   bio: true,
+  isActive: true,
   createdAt: true,
 } as const;
 
@@ -87,6 +88,9 @@ export async function listUsers(filter: UserFilter) {
   }
   if (filter.academicLevel) {
     where.academicLevel = filter.academicLevel;
+  }
+  if (filter.isActive !== undefined) {
+    where.isActive = filter.isActive;
   }
   if (filter.search) {
     where.OR = [
@@ -217,6 +221,7 @@ export async function createUser(
           major: data.major ?? null,
           faculty: data.faculty ?? null,
           bio: data.bio ?? null,
+          isActive: data.isActive ?? true,
         },
         select: userSelect,
       });
@@ -281,6 +286,7 @@ export async function updateUser(
             academicLevel: true,
             nip: true,
             nidn: true,
+            isActive: true,
           },
         }),
       ]);
@@ -298,6 +304,13 @@ export async function updateUser(
       if (roleChanged && actorId === id) {
         throw new UserServiceError(
           "Tidak dapat mengubah peran akun sendiri.",
+          403
+        );
+      }
+
+      if (data.isActive === false && actorId === id) {
+        throw new UserServiceError(
+          "Tidak dapat menonaktifkan akun sendiri.",
           403
         );
       }
@@ -372,6 +385,7 @@ export async function updateUser(
           ...(data.major !== undefined && { major: data.major }),
           ...(data.faculty !== undefined && { faculty: data.faculty }),
           ...(data.bio !== undefined && { bio: data.bio }),
+          ...(data.isActive !== undefined && { isActive: data.isActive }),
         },
         select: userSelect,
       });

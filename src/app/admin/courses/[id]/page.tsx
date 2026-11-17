@@ -45,8 +45,26 @@ import { toast } from "sonner";
 
 interface Instructor {
   id: string;
-  user: { id: string; name: string; email: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    nip: string | null;
+    nidn: string | null;
+    isActive: boolean;
+  };
   assignedAt: string;
+}
+
+interface MappingLog {
+  id: string;
+  courseId: string;
+  userId: string;
+  userName: string | null;
+  actorId: string;
+  actorName: string | null;
+  action: string;
+  createdAt: string;
 }
 
 interface CourseDetail {
@@ -70,6 +88,7 @@ interface CourseDetail {
   createdAt: string;
   creator: { id: string; name: string };
   instructors: Instructor[];
+  mappingLogs: MappingLog[];
   _count: { enrollments: number };
 }
 
@@ -92,6 +111,17 @@ interface Dosen {
   id: string;
   name: string;
   email: string;
+  nip: string | null;
+  nidn: string | null;
+  isActive: boolean;
+}
+
+function apiErrorMessage(data: unknown, fallback: string) {
+  if (data && typeof data === "object" && "error" in data) {
+    const err = (data as { error?: unknown }).error;
+    if (typeof err === "string") return err;
+  }
+  return fallback;
 }
 
 interface Mahasiswa {
@@ -140,6 +170,7 @@ export default function CourseDetailPage() {
   // Archive
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [togglingAr, setTogglingAr] = useState(false);
 
   // Publication
   const [publicationAction, setPublicationAction] = useState<
@@ -195,22 +226,39 @@ export default function CourseDetailPage() {
     if (selectedDosenIds.length === 0) return;
     setAssigning(true);
     try {
-      const promises = selectedDosenIds.map(id => 
-        fetch(`/api/admin/courses/${courseId}/instructors`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: id }),
-        }).then(res => {
-            if (!res.ok) throw new Error("Gagal");
-            return res.json();
+      const results = await Promise.allSettled(
+        selectedDosenIds.map(async (id) => {
+          const res = await fetch(`/api/admin/courses/${courseId}/instructors`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: id }),
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok) {
+            throw new Error(apiErrorMessage(data, "Gagal menugaskan dosen"));
+          }
+          return data;
         })
       );
-      const results = await Promise.allSettled(promises);
-      const successCount = results.filter(r => r.status === "fulfilled").length;
-      
+      const successCount = results.filter((r) => r.status === "fulfilled").length;
+      const failures = results.filter(
+        (r): r is PromiseRejectedResult => r.status === "rejected"
+      );
+
       if (successCount > 0) toast.success(`${successCount} Dosen berhasil ditambahkan`);
-      if (successCount < selectedDosenIds.length) toast.error("Beberapa dosen gagal ditambahkan");
-      
+      if (failures.length > 0) {
+        const messages = [
+          ...new Set(
+            failures.map((f) =>
+              f.reason instanceof Error
+                ? f.reason.message
+                : "Gagal menugaskan dosen"
+            )
+          ),
+        ];
+        toast.error(messages.join("; "));
+      }
+
       setAssignOpen(false);
       fetchCourse();
     } catch {
@@ -228,7 +276,10 @@ export default function CourseDetailPage() {
         `/api/admin/courses/${courseId}/instructors?userId=${removeInstructor.user.id}`,
         { method: "DELETE" }
       );
-      if (!res.ok) throw new Error("Gagal menghapus dosen");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(apiErrorMessage(data, "Gagal menghapus dosen"));
+      }
       toast.success("Dosen berhasil dihapus dari course");
       setRemoveInstructor(null);
       fetchCourse();
@@ -236,6 +287,34 @@ export default function CourseDetailPage() {
       toast.error(err instanceof Error ? err.message : "Gagal menghapus dosen");
     } finally {
       setRemoving(false);
+    }
+  }
+
+  async function handleToggleArModule() {
+    if (!course || course.catalogStatus === "ARCHIVED" || togglingAr) return;
+    setTogglingAr(true);
+    try {
+      const res = await fetch(`/api/admin/courses/${courseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hasArModule: !course.hasArModule }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(apiErrorMessage(data, "Gagal mengubah ketersediaan Modul AR"));
+      }
+      toast.success(
+        course.hasArModule
+          ? "Modul AR ditandai belum tersedia"
+          : "Modul AR ditandai tersedia"
+      );
+      fetchCourse();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal mengubah ketersediaan Modul AR"
+      );
+    } finally {
+      setTogglingAr(false);
     }
   }
 
@@ -513,6 +592,16 @@ export default function CourseDetailPage() {
                 {course.hasArModule ? "Tersedia" : "Belum tersedia"}
               </p>
               <p className="text-sm text-muted-foreground">Metadata katalog</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 gap-2"
+                onClick={handleToggleArModule}
+                disabled={course.catalogStatus === "ARCHIVED" || togglingAr}
+              >
+                {togglingAr && <Loader2 className="animate-spin" data-icon="inline-start" />}
+                {course.hasArModule ? "Tandai belum tersedia" : "Tandai tersedia"}
+              </Button>
             </CardContent>
           </Card>
           <Card className="border-border/50 sm:col-span-2">
@@ -611,13 +700,15 @@ export default function CourseDetailPage() {
         </div>
 
         {/* Instructors Tab Table */}
-        <TabsContent value="instructors" className="mt-0">
+        <TabsContent value="instructors" className="mt-0 space-y-4">
           <div className="rounded-xl border bg-card">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="pl-6">Nama</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>NIP / NIDN</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Ditugaskan</TableHead>
                   <TableHead className="w-[80px] text-right pr-6">Aksi</TableHead>
                 </TableRow>
@@ -625,7 +716,7 @@ export default function CourseDetailPage() {
               <TableBody>
                 {course.instructors.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">
                       Belum ada dosen yang ditugaskan
                     </TableCell>
                   </TableRow>
@@ -637,6 +728,14 @@ export default function CourseDetailPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground max-w-[200px] truncate" title={inst.user.email}>
                         {inst.user.email}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {inst.user.nip ?? inst.user.nidn ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={inst.user.isActive ? "default" : "secondary"}>
+                          {inst.user.isActive ? "Aktif" : "Nonaktif"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {new Date(inst.assignedAt).toLocaleDateString("id-ID", {
@@ -661,6 +760,58 @@ export default function CourseDetailPage() {
               </TableBody>
             </Table>
           </div>
+
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardDescription className="text-xs font-semibold uppercase tracking-wider">
+                Riwayat Pemetaan Dosen
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {course.mappingLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Belum ada riwayat pemetaan dosen.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Aksi</TableHead>
+                      <TableHead>Nama Dosen</TableHead>
+                      <TableHead>Admin Pelaku</TableHead>
+                      <TableHead>Waktu</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {course.mappingLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          <Badge variant={log.action === "ASSIGNED" ? "default" : "secondary"}>
+                            {log.action === "ASSIGNED" ? "Ditugaskan" : "Dihapus"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[200px] truncate" title={log.userName ?? undefined}>
+                          {log.userName ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground max-w-[200px] truncate" title={log.actorName ?? undefined}>
+                          {log.actorName ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString("id-ID", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Enrollments Tab */}
@@ -755,7 +906,13 @@ export default function CourseDetailPage() {
         searchInput={dosenSearchInput}
         onSearchInputChange={setDosenSearchInput}
         onSearch={setDosenSearchQuery}
-        availableItems={availableDosen.map(d => ({ id: d.id, name: d.name, email: d.email }))}
+        availableItems={availableDosen.map(d => ({
+          id: d.id,
+          name: d.name,
+          email: d.email,
+          badge: d.nip ?? d.nidn ?? null,
+          subText: d.isActive ? d.email : `${d.email} · Nonaktif`,
+        }))}
         selectedIds={selectedDosenIds}
         onSelectedIdsChange={setSelectedDosenIds}
         emptyStateIcon={<Users className="size-12" />}

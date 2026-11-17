@@ -79,6 +79,7 @@ export const createUserSchema = z
     npm: identifierSchema,
     nip: identifierSchema,
     nidn: identifierSchema,
+    isActive: z.boolean().optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -106,12 +107,17 @@ export const updateUserSchema = z
     major: baseProfileFields.major,
     faculty: baseProfileFields.faculty,
     bio: baseProfileFields.bio,
+    isActive: z.boolean().optional(),
   })
   .strict();
 
 export const userFilterSchema = z.object({
   role: z.enum(ROLES).optional(),
   academicLevel: z.enum(ACADEMIC_LEVELS).optional(),
+  isActive: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === "true")),
   search: z
     .string()
     .optional()

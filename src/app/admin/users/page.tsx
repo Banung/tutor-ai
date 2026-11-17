@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -91,6 +92,7 @@ interface User {
   major: string | null;
   faculty: string | null;
   bio: string | null;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -173,6 +175,29 @@ function UserFormFields({
         {lockRole && (
           <p className="text-xs text-muted-foreground">
             Peran akun sendiri tidak dapat diubah.
+          </p>
+        )}
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="isActive">Status Akun</Label>
+        <Select
+          value={form.isActive ?? "true"}
+          disabled={lockRole}
+          onValueChange={(v) => setForm({ ...form, isActive: v })}
+        >
+          <SelectTrigger id="isActive">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="true">Aktif</SelectItem>
+              <SelectItem value="false">Nonaktif</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        {lockRole && (
+          <p className="text-xs text-muted-foreground">
+            Status akun sendiri tidak dapat diubah.
           </p>
         )}
       </div>
@@ -306,7 +331,7 @@ export default function UsersPage() {
   function openCreate() {
     setEditingUser(null);
     setPartialNotice(null);
-    setForm({ role: "mahasiswa" });
+    setForm({ role: "mahasiswa", isActive: "true" });
     setDialogOpen(true);
   }
 
@@ -323,6 +348,7 @@ export default function UsersPage() {
       academicLevel: user.academicLevel || "",
       major: user.major || "",
       faculty: user.faculty || "",
+      isActive: String(user.isActive ?? true),
     });
     setDialogOpen(true);
   }
@@ -330,7 +356,10 @@ export default function UsersPage() {
   async function handleSubmit() {
     setSubmitting(true);
     try {
-      const body: Record<string, unknown> = { ...form };
+      const body: Record<string, unknown> = {
+        ...form,
+        isActive: form.isActive !== "false",
+      };
       // Clean empty strings to null for optional fields
       for (const key of ["npm", "nip", "nidn", "academicLevel", "major", "faculty", "bio"]) {
         if (body[key] === "") body[key] = null;
@@ -373,6 +402,7 @@ export default function UsersPage() {
               major: form.major || null,
               faculty: form.faculty || null,
               bio: form.bio || null,
+              isActive: form.isActive !== "false",
               createdAt: "",
             });
             setPartialNotice(
@@ -493,6 +523,7 @@ export default function UsersPage() {
               <TableHead>Nama</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Jenjang</TableHead>
               <TableHead>Jurusan</TableHead>
               <TableHead className="w-[80px] text-right pr-6">Aksi</TableHead>
@@ -502,7 +533,7 @@ export default function UsersPage() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-5 w-full" />
                     </TableCell>
@@ -511,7 +542,7 @@ export default function UsersPage() {
               ))
             ) : users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   Tidak ada user ditemukan
                 </TableCell>
               </TableRow>
@@ -529,6 +560,11 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell className="capitalize font-medium">
                     {user.role}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.isActive ? "default" : "secondary"}>
+                      {user.isActive ? "Aktif" : "Nonaktif"}
+                    </Badge>
                   </TableCell>
                   <TableCell>{user.academicLevel ?? "—"}</TableCell>
                   <TableCell>{user.major ?? "—"}</TableCell>

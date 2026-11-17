@@ -18,7 +18,7 @@ function toErrorResponse(err: unknown, scope: string) {
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  const { error } = await requireAdmin(request);
+  const { error, session } = await requireAdmin(request);
   if (error) return error;
 
   const { id: courseId } = await context.params;
@@ -33,7 +33,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const instructor = await courseService.assignInstructor(courseId, result.data.userId);
+    const instructor = await courseService.assignInstructor(
+      courseId,
+      result.data.userId,
+      session!.user.id
+    );
     return NextResponse.json(instructor, { status: 201 });
   } catch (err) {
     return toErrorResponse(err, "admin.courses.instructors.assign");
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
-  const { error } = await requireAdmin(request);
+  const { error, session } = await requireAdmin(request);
   if (error) return error;
 
   const { id: courseId } = await context.params;
@@ -53,7 +57,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    await courseService.removeInstructor(courseId, userId);
+    await courseService.removeInstructor(courseId, userId, session!.user.id);
     return NextResponse.json({ success: true });
   } catch (err) {
     return toErrorResponse(err, "admin.courses.instructors.remove");

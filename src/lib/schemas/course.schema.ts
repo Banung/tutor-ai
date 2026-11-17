@@ -51,9 +51,11 @@ export const updateCourseSchema = z
   })
   .strict();
 
-export const assignInstructorSchema = z.object({
-  userId: z.string().min(1, "User ID wajib diisi"),
-});
+export const assignInstructorSchema = z
+  .object({
+    userId: z.string().min(1, "User ID wajib diisi"),
+  })
+  .strict();
 
 export const publicationActionSchema = z
   .object({

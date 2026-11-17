@@ -34,6 +34,8 @@ export class CourseServiceError extends Error {
 export const PUBLICATION_INCOMPLETE_MESSAGE =
   "Lengkapi data sebelum mempublikasikan entri.";
 
+export const INACTIVE_LECTURER_MESSAGE = "Dosen tidak aktif tidak dapat dipetakan.";
+
 const COURSE_CODE_PATTERN = /^[A-Z0-9]{4,12}$/;
 
 /**
@@ -249,7 +251,16 @@ export async function getCourseById(id: string) {
       },
       instructors: {
         include: {
-          user: { select: { id: true, name: true, email: true } },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              nip: true,
+              nidn: true,
+              isActive: true,
+            },
+          },
         },
       },
       _count: {
@@ -259,7 +270,11 @@ export async function getCourseById(id: string) {
   });
 
   if (!course) return null;
-  return ensureCourseCover(course);
+  const [withCover, mappingLogs] = await Promise.all([
+    ensureCourseCover(course),
+    listCourseInstructorMappingLogs(id),
+  ]);
+  return { ...withCover, mappingLogs };
 }
 
 export async function createCourse(data: AdminCreateCourseInput, adminId: string) {
@@ -593,8 +608,12 @@ export async function deleteCourse(id: string) {
 export async function assignInstructor(
   courseId: string,
   userId: string,
+  actorIdOrTimeout: string | number = "system",
   txTimeoutMs?: number
 ) {
+  const actorId = typeof actorIdOrTimeout === "string" ? actorIdOrTimeout : "system";
+  const timeout = typeof actorIdOrTimeout === "number" ? actorIdOrTimeout : txTimeoutMs;
+
   // Lock order: the target user row first, then read/insert the assignment.
   // Role changes take the same user-row lock, so a demotion and an assignment
   // cannot interleave. No course row lock is taken here, so this cannot cycle
@@ -609,7 +628,7 @@ export async function assignInstructor(
 
     const user = await tx.user.findUnique({
       where: { id: userId },
-      select: { id: true, role: true },
+      select: { id: true, role: true, isActive: true, nip: true, nidn: true },
     });
     if (!user) {
       throw new CourseServiceError("User tidak ditemukan", 404);
@@ -619,6 +638,25 @@ export async function assignInstructor(
         "Hanya user dengan role dosen yang dapat ditugaskan sebagai pengajar",
         400
       );
+    }
+    if (user.isActive === false) {
+      throw new CourseServiceError(INACTIVE_LECTURER_MESSAGE, 400);
+    }
+
+    if (user.nip || user.nidn) {
+      const inactiveReference = await tx.lecturerReference?.findFirst({
+        where: {
+          OR: [
+            ...(user.nip ? [{ nip: user.nip }] : []),
+            ...(user.nidn ? [{ nidn: user.nidn }] : []),
+          ],
+          isActive: false,
+        },
+        select: { id: true },
+      });
+      if (inactiveReference) {
+        throw new CourseServiceError(INACTIVE_LECTURER_MESSAGE, 400);
+      }
     }
 
     const course = await tx.course.findUnique({
@@ -636,15 +674,25 @@ export async function assignInstructor(
       throw new CourseServiceError("Dosen sudah ditugaskan ke course ini", 409);
     }
 
+    let assignment;
     try {
-      return await tx.courseInstructor.create({
+      assignment = await tx.courseInstructor.create({
         data: {
           id: crypto.randomUUID(),
           courseId,
           userId,
         },
         include: {
-          user: { select: { id: true, name: true, email: true } },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              nip: true,
+              nidn: true,
+              isActive: true,
+            },
+          },
         },
       });
     } catch (error) {
@@ -653,10 +701,26 @@ export async function assignInstructor(
       }
       throw error;
     }
-  }, txTimeoutMs ? { timeout: txTimeoutMs } : undefined);
+
+    await tx.courseInstructorMappingLog?.create({
+      data: {
+        id: crypto.randomUUID(),
+        courseId,
+        userId,
+        actorId,
+        action: "ASSIGNED",
+      },
+    });
+
+    return assignment;
+  }, timeout ? { timeout } : undefined);
 }
 
-export async function removeInstructor(courseId: string, userId: string) {
+export async function removeInstructor(
+  courseId: string,
+  userId: string,
+  actorId = "system"
+) {
   // Locking convention: instructor membership changes take a row lock on the parent
   // course. FR-002 publication must acquire the same lock before its completeness check
   // and status transition so the two operations serialize.
@@ -694,8 +758,46 @@ export async function removeInstructor(courseId: string, userId: string) {
     }
 
     await tx.courseInstructor.delete({ where: { id: existing.id } });
+    await tx.courseInstructorMappingLog?.create({
+      data: {
+        id: crypto.randomUUID(),
+        courseId,
+        userId,
+        actorId,
+        action: "REMOVED",
+      },
+    });
     return { success: true };
   });
+}
+
+export async function listCourseInstructorMappingLogs(courseId: string) {
+  const logs =
+    (await prisma.courseInstructorMappingLog?.findMany({
+      where: { courseId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    })) ?? [];
+
+  const ids = [...new Set(logs.flatMap((log) => [log.userId, log.actorId]))];
+  const users = ids.length
+    ? await prisma.user.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const names = new Map(users.map((user) => [user.id, user.name]));
+
+  return logs.map((log) => ({
+    id: log.id,
+    courseId: log.courseId,
+    userId: log.userId,
+    userName: names.get(log.userId) ?? null,
+    actorId: log.actorId,
+    actorName: names.get(log.actorId) ?? null,
+    action: log.action,
+    createdAt: log.createdAt,
+  }));
 }
 
 export async function listAdminCourseSessions(courseId: string) {
@@ -944,10 +1046,53 @@ export async function getCourseStats() {
 }
 
 export async function getDosenList() {
-  return prisma.user.findMany({
+  const dosen = await prisma.user.findMany({
     where: { role: "dosen" },
-    select: { id: true, name: true, email: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      nip: true,
+      nidn: true,
+      isActive: true,
+    },
     orderBy: { name: "asc" },
+  });
+
+  const or = [
+    ...dosen.flatMap((d) => (d.nip ? [{ nip: d.nip }] : [])),
+    ...dosen.flatMap((d) => (d.nidn ? [{ nidn: d.nidn }] : [])),
+  ];
+  const references = or.length
+    ? (await prisma.lecturerReference?.findMany({
+        where: { OR: or },
+        select: { id: true, nip: true, nidn: true, isActive: true },
+      })) ?? []
+    : [];
+
+  const byNip = new Map<string, (typeof references)[number]>();
+  const byNidn = new Map<string, (typeof references)[number]>();
+  for (const reference of references) {
+    if (reference.nip) byNip.set(reference.nip, reference);
+    if (reference.nidn) byNidn.set(reference.nidn, reference);
+  }
+
+  return dosen.map((d) => {
+    const reference =
+      (d.nip ? byNip.get(d.nip) : undefined) ??
+      (d.nidn ? byNidn.get(d.nidn) : undefined) ??
+      null;
+    const referenceIsActive = reference?.isActive ?? null;
+    return {
+      id: d.id,
+      name: d.name,
+      email: d.email,
+      nip: d.nip,
+      nidn: d.nidn,
+      isActive: d.isActive && referenceIsActive !== false,
+      userIsActive: d.isActive,
+      referenceIsActive,
+    };
   });
 }
 

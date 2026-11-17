@@ -386,6 +386,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   User: 'User',
   UserRoleAudit: 'UserRoleAudit',
+  CourseInstructorMappingLog: 'CourseInstructorMappingLog',
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
@@ -422,7 +423,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userRoleAudit" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "academicCourseReference" | "lecturerReference" | "academicImportBatch" | "academicImportRowOutcome" | "course" | "courseCatalogStatusLog" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
+    modelProps: "user" | "userRoleAudit" | "courseInstructorMappingLog" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "academicCourseReference" | "lecturerReference" | "academicImportBatch" | "academicImportRowOutcome" | "course" | "courseCatalogStatusLog" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -571,6 +572,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserRoleAuditCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserRoleAuditCountAggregateOutputType> | number
+        }
+      }
+    }
+    CourseInstructorMappingLog: {
+      payload: Prisma.$CourseInstructorMappingLogPayload<ExtArgs>
+      fields: Prisma.CourseInstructorMappingLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CourseInstructorMappingLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CourseInstructorMappingLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload>
+        }
+        findFirst: {
+          args: Prisma.CourseInstructorMappingLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CourseInstructorMappingLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload>
+        }
+        findMany: {
+          args: Prisma.CourseInstructorMappingLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload>[]
+        }
+        create: {
+          args: Prisma.CourseInstructorMappingLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload>
+        }
+        createMany: {
+          args: Prisma.CourseInstructorMappingLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CourseInstructorMappingLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload>[]
+        }
+        delete: {
+          args: Prisma.CourseInstructorMappingLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload>
+        }
+        update: {
+          args: Prisma.CourseInstructorMappingLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.CourseInstructorMappingLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CourseInstructorMappingLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CourseInstructorMappingLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.CourseInstructorMappingLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseInstructorMappingLogPayload>
+        }
+        aggregate: {
+          args: Prisma.CourseInstructorMappingLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCourseInstructorMappingLog>
+        }
+        groupBy: {
+          args: Prisma.CourseInstructorMappingLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CourseInstructorMappingLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CourseInstructorMappingLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CourseInstructorMappingLogCountAggregateOutputType> | number
         }
       }
     }
@@ -2174,6 +2249,7 @@ export const UserScalarFieldEnum = {
   emailVerified: 'emailVerified',
   image: 'image',
   role: 'role',
+  isActive: 'isActive',
   academicLevel: 'academicLevel',
   npm: 'npm',
   nip: 'nip',
@@ -2198,6 +2274,18 @@ export const UserRoleAuditScalarFieldEnum = {
 } as const
 
 export type UserRoleAuditScalarFieldEnum = (typeof UserRoleAuditScalarFieldEnum)[keyof typeof UserRoleAuditScalarFieldEnum]
+
+
+export const CourseInstructorMappingLogScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  userId: 'userId',
+  actorId: 'actorId',
+  action: 'action',
+  createdAt: 'createdAt'
+} as const
+
+export type CourseInstructorMappingLogScalarFieldEnum = (typeof CourseInstructorMappingLogScalarFieldEnum)[keyof typeof CourseInstructorMappingLogScalarFieldEnum]
 
 
 export const SessionScalarFieldEnum = {
@@ -2852,6 +2940,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   userRoleAudit?: Prisma.UserRoleAuditOmit
+  courseInstructorMappingLog?: Prisma.CourseInstructorMappingLogOmit
   session?: Prisma.SessionOmit
   account?: Prisma.AccountOmit
   verification?: Prisma.VerificationOmit

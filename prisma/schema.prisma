@@ -20,6 +20,7 @@ model User {
 
   // Custom fields
   role          String  @default("mahasiswa") // admin | dosen | mahasiswa
+  isActive      Boolean @default(true) // false = dinonaktifkan, tidak bisa login
   academicLevel String? // S1 | S2 | S3 — hanya untuk mahasiswa
   npm           String? @unique // Nomor Pokok Mahasiswa — hanya untuk mahasiswa
   nip           String? @unique // Nomor Induk Pegawai — hanya untuk dosen
@@ -57,6 +58,20 @@ model UserRoleAudit {
 
   @@index([userId, createdAt])
   @@map("user_role_audit")
+}
+
+// Instructor mapping history. No foreign keys: history survives account/course deletion.
+model CourseInstructorMappingLog {
+  id        String   @id
+  courseId  String
+  userId    String
+  actorId   String
+  action    String // add | remove
+  createdAt DateTime @default(now())
+
+  @@index([courseId, createdAt])
+  @@index([userId, createdAt])
+  @@map("course_instructor_mapping_log")
 }
 
 model Session {

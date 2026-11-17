@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   UserRoleAudit: 'UserRoleAudit',
+  CourseInstructorMappingLog: 'CourseInstructorMappingLog',
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
@@ -99,6 +100,7 @@ export const UserScalarFieldEnum = {
   emailVerified: 'emailVerified',
   image: 'image',
   role: 'role',
+  isActive: 'isActive',
   academicLevel: 'academicLevel',
   npm: 'npm',
   nip: 'nip',
@@ -123,6 +125,18 @@ export const UserRoleAuditScalarFieldEnum = {
 } as const
 
 export type UserRoleAuditScalarFieldEnum = (typeof UserRoleAuditScalarFieldEnum)[keyof typeof UserRoleAuditScalarFieldEnum]
+
+
+export const CourseInstructorMappingLogScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  userId: 'userId',
+  actorId: 'actorId',
+  action: 'action',
+  createdAt: 'createdAt'
+} as const
+
+export type CourseInstructorMappingLogScalarFieldEnum = (typeof CourseInstructorMappingLogScalarFieldEnum)[keyof typeof CourseInstructorMappingLogScalarFieldEnum]
 
 
 export const SessionScalarFieldEnum = {
