@@ -43,13 +43,13 @@ export async function feedbackCorrections(userId: string, feedbackId: string, qu
   };
   const [rows, sources, totalSources] = await Promise.all([
     prisma.aiAnswerCorrection.findMany({ where: { courseId, OR: [{ feedbackId }, { questionKey: key }] }, orderBy: { createdAt: "desc" }, take: 50 }),
-    prisma.materialChunk.findMany({ where: sourceWhere, orderBy: [{ materialId: "asc" }, { chunkIndex: "asc" }], skip: (parsed.data.page - 1) * 30, take: 30,
-      select: { id: true, pageNumber: true, content: true, material: { select: { title: true } } } }),
+    prisma.materialChunk.findMany({ where: sourceWhere, orderBy: [{ materialId: "asc" }, { chunkIndex: "asc" }], skip: (parsed.data.page - 1) * 10, take: 10,
+      select: { id: true, pageNumber: true, chunkIndex: true, content: true, material: { select: { title: true } } } }),
     prisma.materialChunk.count({ where: sourceWhere }),
   ]);
   return { question: context.question ?? "", course: context.course, versions: await presentVersions(rows),
-    sources: sources.map((s) => ({ id: s.id, title: s.material.title, pageNumber: s.pageNumber, snippet: s.content.slice(0, 300) })),
-    sourcePage: parsed.data.page, totalSources, sourcePageSize: 30 };
+    sources: sources.map((s) => ({ id: s.id, title: s.material.title, pageNumber: s.pageNumber, chunkIndex: s.chunkIndex, snippet: s.content.slice(0, 300), content: s.content })),
+    sourcePage: parsed.data.page, totalSources, sourcePageSize: 10 };
 }
 
 export async function createCorrectionDraft(userId: string, feedbackId: string, payload: unknown) {

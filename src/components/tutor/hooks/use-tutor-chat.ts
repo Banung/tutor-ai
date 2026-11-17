@@ -49,6 +49,7 @@ export function useTutorChat({
   const [loadingSession, setLoadingSession] = useState(false);
   const [creatingChat] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sendingStage, setSendingStage] = useState<"preparing" | "generating" | null>(null);
   const [savingContext, setSavingContext] = useState(false);
 
   const sendingRef = useRef(false);
@@ -325,6 +326,7 @@ export function useTutorChat({
 
     setInput("");
     setSending(true);
+    setSendingStage("preparing");
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
@@ -377,6 +379,7 @@ export function useTutorChat({
         toast.error(err instanceof Error ? err.message : "Gagal membuat sesi baru");
         setInput(question);
         setSending(false);
+        setSendingStage(null);
         setActiveSession(session);
         return;
       }
@@ -497,6 +500,11 @@ export function useTutorChat({
           return;
         }
 
+        if (type === "run") {
+          setSendingStage("generating");
+          return;
+        }
+
         if (type === "metadata") {
           ragSources = data.ragSources;
           responseTimeMs = data.responseTimeMs ?? null;
@@ -549,6 +557,7 @@ export function useTutorChat({
     } finally {
       abortControllerRef.current = null;
       setSending(false);
+      setSendingStage(null);
     }
   }
 
@@ -560,6 +569,7 @@ export function useTutorChat({
     loadingSession,
     creatingChat,
     sending,
+    sendingStage,
     savingContext,
     
     renamingSessionId,

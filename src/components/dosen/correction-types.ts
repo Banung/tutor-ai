@@ -8,7 +8,7 @@ export type CorrectionVersion = {
 };
 export type CorrectionEditorData = {
   question: string; course: { id: string; title: string }; versions: CorrectionVersion[];
-  sources: Array<{ id: string; title: string; pageNumber: number; snippet: string }>;
+  sources: Array<{ id: string; title: string; pageNumber: number; chunkIndex: number; snippet: string; content: string }>;
   totalSources: number; sourcePage: number; sourcePageSize: number;
 };
 export type CourseCorrectionsData = {

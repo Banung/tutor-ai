@@ -16,6 +16,7 @@ import {
   X,
   Users,
   FileText,
+  MessageSquareWarning,
 } from "lucide-react";
 
 /* ─── Types ────────────────────────────────────────── */
@@ -189,6 +190,8 @@ export default function DosenDashboardPage() {
   const [courses, setCourses] = useState<DosenCourse[]>([]);
   const [stats, setStats] = useState<DosenStats | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [pendingFeedbackCount, setPendingFeedbackCount] = useState<number | null>(null);
+  const [pendingFeedbackLoading, setPendingFeedbackLoading] = useState(true);
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -218,15 +221,29 @@ export default function DosenDashboardPage() {
       .catch(console.error);
   }, []);
 
+  const fetchPendingFeedbackCount = useCallback(() => {
+    fetch("/api/dosen/feedback?status=pending&page=1")
+      .then((response) => {
+        if (!response.ok) throw new Error("Gagal memuat feedback");
+        return response.json();
+      })
+      .then((data: { total?: unknown }) => {
+        setPendingFeedbackCount(typeof data.total === "number" ? data.total : null);
+      })
+      .catch(() => setPendingFeedbackCount(null))
+      .finally(() => setPendingFeedbackLoading(false));
+  }, []);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       fetchCourses();
       fetchStats();
       fetchActivities();
+      fetchPendingFeedbackCount();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [fetchCourses, fetchStats, fetchActivities]);
+  }, [fetchCourses, fetchStats, fetchActivities, fetchPendingFeedbackCount]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -277,6 +294,32 @@ export default function DosenDashboardPage() {
         ))}
       </div>
 
+      <Card className="border-brand/20 bg-brand/[0.03]">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+              <MessageSquareWarning className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold">Feedback perlu ditinjau</p>
+              <p className="text-sm text-muted-foreground">
+                {pendingFeedbackLoading
+                  ? "Memuat antrean feedback…"
+                  : pendingFeedbackCount === null
+                    ? "Antrean feedback belum tersedia."
+                    : pendingFeedbackCount === 0
+                      ? "Tidak ada feedback baru yang menunggu."
+                      : `${pendingFeedbackCount} feedback menunggu tinjauan.`}
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" onClick={() => router.push("/dosen/feedback")}>
+            Buka antrean
+            <ArrowRight data-icon="inline-end" />
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Search Bar */}
       <div
         ref={searchRef}
@@ -310,7 +353,7 @@ export default function DosenDashboardPage() {
       {/* Course Cards */}
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight">Course Saya</h2>
+          <h2 className="text-xl font-bold tracking-tight">Mata Kuliah Saya</h2>
           {hasMoreCourses && (
             <Button variant="ghost" size="sm" onClick={() => router.push("/dosen/courses")} className="gap-1.5 text-brand hover:text-brand/80 hover:bg-brand/5">
               Lihat Semua

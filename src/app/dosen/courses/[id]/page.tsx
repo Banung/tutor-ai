@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft, Plus, GraduationCap, Users, KeyRound, Copy, CalendarDays,
+  ArrowLeft, ArrowRight, Plus, GraduationCap, Users, KeyRound, Copy, CalendarDays, Check,
   FileText, Upload, Loader2, Trash2, Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -60,6 +60,7 @@ export default function DosenCourseDetailPage() {
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [showStudents, setShowStudents] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sessionForm, setSessionForm] = useState({ title: "", description: "" });
@@ -88,7 +89,12 @@ export default function DosenCourseDetailPage() {
     setLoadingSessions(true);
     fetch(`/api/dosen/courses/${courseId}/sessions`)
       .then((response) => response.json())
-      .then((data) => { if (Array.isArray(data)) setSessions(data); })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setSessions(data);
+          setSessionsLoaded(true);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoadingSessions(false));
   }, [courseId]);
@@ -318,6 +324,12 @@ export default function DosenCourseDetailPage() {
     );
   }
 
+  const activeSessions = sessions.filter((session) => session.isActive);
+  const activeMaterialCount = activeSessions.reduce(
+    (count, session) => count + session.materials.filter((material) => material.isActive).length,
+    0
+  );
+
   return (
     <div className="flex flex-col gap-8">
       <Button variant="ghost" size="sm" onClick={() => router.push("/dosen/courses")} className="self-start -ml-2 text-muted-foreground hover:text-foreground">
@@ -419,7 +431,53 @@ export default function DosenCourseDetailPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-5">
+      {sessionsLoaded && !loadingSessions && activeMaterialCount === 0 && (
+        <Card className="border-brand/25 bg-brand/[0.03]">
+          <CardHeader>
+            <CardTitle className="text-base">Siapkan Tutor AI untuk mata kuliah ini</CardTitle>
+            <CardDescription>
+              Tambahkan materi aktif agar mahasiswa bisa bertanya dengan jawaban yang merujuk ke bahan ajar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <ol className="flex flex-col gap-2 text-sm">
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <Check className="size-4 text-emerald-600" />
+                Mata kuliah sudah dibuat
+              </li>
+              <li className="flex items-center gap-2">
+                {activeSessions.length > 0 ? (
+                  <Check className="size-4 text-emerald-600" />
+                ) : (
+                  <span className="size-4 rounded-full border" />
+                )}
+                Buat sesi perkuliahan
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="size-4 rounded-full border" />
+                Tambahkan PDF, tautan, atau materi teks
+              </li>
+            </ol>
+            <Button
+              className="shrink-0 bg-brand text-black hover:bg-brand/90"
+              onClick={() => {
+                if (activeSessions.length === 0) {
+                  resetDialog();
+                  setDialogOpen(true);
+                } else {
+                  setExpandedSessions((previous) => Array.from(new Set([...previous, activeSessions[0].id])));
+                  document.getElementById("course-sessions")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
+            >
+              {activeSessions.length === 0 ? "Buat sesi pertama" : "Tambah materi"}
+              <ArrowRight data-icon="inline-end" />
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <div id="course-sessions" className="flex scroll-mt-6 flex-col gap-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold tracking-tight">Sesi Perkuliahan</h2>
