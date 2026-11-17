@@ -22,6 +22,7 @@ import { SessionCard } from "./session-card";
 import { StudentListDialog } from "./student-list-dialog";
 import { CourseKeyConfirmDialog } from "./course-key-confirm-dialog";
 import { StatusToggleButton } from "./status-toggle-button";
+import { CourseInvitationButton } from "@/components/courses/course-invitation-button";
 import type { CourseDetail, SessionItem } from "./types";
 
 type ContentType = "file" | "link" | "text";
@@ -384,7 +385,7 @@ export default function DosenCourseDetailPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-border/70 shadow-sm">
             <CardHeader className="pb-2">
               <CardDescription className="text-xs font-semibold uppercase tracking-wider">Enrollment Key</CardDescription>
@@ -401,6 +402,12 @@ export default function DosenCourseDetailPage() {
                 <Copy className="size-3.5 text-muted-foreground" />
               </button>
             </CardContent>
+          </Card>
+          <Card className="border-border/70 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs font-semibold uppercase tracking-wider">Undangan</CardDescription>
+            </CardHeader>
+            <CardContent><CourseInvitationButton courseId={course.id} /></CardContent>
           </Card>
           <Card className="border-border/70 shadow-sm">
             <CardHeader className="pb-2">

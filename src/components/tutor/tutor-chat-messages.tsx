@@ -14,6 +14,7 @@ import {
   Check,
   ChevronRight,
   Copy,
+  ExternalLink,
   FileText,
   Loader2,
   Square,
@@ -32,6 +33,13 @@ import { toast } from "sonner";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   Tooltip,
   TooltipContent,
@@ -63,6 +71,89 @@ function getUniqueSources(sources: RagSource[]) {
     seen.add(key);
     return true;
   });
+}
+
+type CitationEvidence = {
+  source: RagSource;
+  sourceNumber: number;
+};
+
+type CitationSourceGroup = {
+  materialId: string;
+  materialTitle: string;
+  fileName: string;
+  publicUrl: string | null;
+  sessionTitle: string;
+  evidence: CitationEvidence[];
+  sourceNumbers: number[];
+};
+
+function groupCitationSources(sources: RagSource[]): CitationSourceGroup[] {
+  const groups = new Map<string, CitationSourceGroup>();
+
+  sources.forEach((source, index) => {
+    const sourceNumber = source.sourceNumber ?? index + 1;
+    const key = source.materialId || `source-${sourceNumber}`;
+    let group = groups.get(key);
+
+    if (!group) {
+      group = {
+        materialId: source.materialId,
+        materialTitle: source.materialTitle,
+        fileName: source.fileName,
+        publicUrl: source.publicUrl ?? null,
+        sessionTitle: source.sessionTitle,
+        evidence: [],
+        sourceNumbers: [],
+      };
+      groups.set(key, group);
+    }
+
+    if (!group.evidence.some(({ source: item }) => item.chunkId === source.chunkId)) {
+      group.evidence.push({ source, sourceNumber });
+    }
+    if (!group.sourceNumbers.includes(sourceNumber)) {
+      group.sourceNumbers.push(sourceNumber);
+    }
+  });
+
+  return [...groups.values()];
+}
+
+function linkifySourceCitations(markdown: string) {
+  const codeSegment = /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`)/g;
+
+  return markdown.split(codeSegment).map((segment, index) => {
+    if (index % 2 === 1) return segment;
+
+    return segment.replace(
+      /\[((?:Sumber\s+\d+)(?:\s*,\s*(?:Sumber\s+)?\d+)*)\]/gi,
+      (citation, group: string) => {
+        const sourceNumbers = [...group.matchAll(/(?:Sumber\s+)?(\d+)/gi)]
+          .map((match) => Number(match[1]));
+        const uniqueSourceNumbers = [...new Set(sourceNumbers)];
+
+        if (uniqueSourceNumbers.length === 0) return citation;
+
+        return uniqueSourceNumbers
+          .map((sourceNumber) => `[Sumber ${sourceNumber}](#tutor-source-${sourceNumber})`)
+          .join(", ");
+      }
+    );
+  }).join("");
+}
+
+function getPdfPageUrl(publicUrl: string | null, pageNumber: number) {
+  if (!publicUrl || !Number.isInteger(pageNumber) || pageNumber < 1) return null;
+
+  try {
+    const url = new URL(publicUrl);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    url.hash = `page=${pageNumber}`;
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 
@@ -215,10 +306,16 @@ function chooseTutorVoice(voices: SpeechSynthesisVoice[], lang: "id" | "en") {
   return voices.find(v => v.lang.startsWith(lang)) || voices[0] || null;
 }
 
-function MessageSources({ sources }: { sources: RagSource[] }) {
+function MessageSources({
+  sourceGroups,
+  onOpenSource,
+}: {
+  sourceGroups: CitationSourceGroup[];
+  onOpenSource: (sourceNumber: number) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
-  if (sources.length === 0) return null;
+  if (sourceGroups.length === 0) return null;
 
   return (
     <div className="mt-5 border-t border-border/50 pt-3">
@@ -232,32 +329,135 @@ function MessageSources({ sources }: { sources: RagSource[] }) {
             isOpen && "rotate-90 text-brand"
           )}
         />
-        <span>Sumber ({sources.length})</span>
+        <span>Sumber ({sourceGroups.length})</span>
       </button>
 
       {isOpen && (
         <div className="mt-2.5 flex flex-col gap-3 pl-2 animate-in fade-in-50 slide-in-from-top-1 duration-200">
-          {sources.map((source) => (
-            <div
-              key={source.chunkId}
-              className="flex flex-col gap-1 px-1 py-1 text-xs text-muted-foreground"
-            >
-              <div className="flex items-center gap-1.5 font-medium text-foreground">
-                <FileText className="size-3.5 shrink-0 text-brand" />
-                <span className="truncate">
-                  {source.materialTitle} - hal. {source.pageNumber}
+          {sourceGroups.map((group) => {
+            const pages = [...new Set(group.evidence.map(({ source }) => source.pageNumber))]
+              .sort((left, right) => left - right);
+            const firstEvidence = group.evidence[0];
+
+            return (
+              <button
+                key={group.materialId || group.materialTitle}
+                type="button"
+                onClick={() => onOpenSource(firstEvidence?.sourceNumber ?? group.sourceNumbers[0] ?? 1)}
+                className="flex w-full flex-col gap-1 rounded-lg px-2 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/70"
+              >
+                <span className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
+                  <FileText className="size-3.5 shrink-0 text-brand" />
+                  <span className="truncate">{group.materialTitle}</span>
                 </span>
-              </div>
-              {source.snippet && (
-                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground/80 italic">
-                  &quot;{source.snippet}&quot;
-                </p>
-              )}
-            </div>
-          ))}
+                <span className="pl-5 text-[11px] text-muted-foreground">
+                  {pages.length > 0 ? `Hal. ${pages.join(", ")}` : "Kutipan materi"}
+                </span>
+                {firstEvidence?.source.snippet && (
+                  <span className="line-clamp-2 pl-5 text-[11px] leading-relaxed italic text-muted-foreground/80">
+                    &quot;{firstEvidence.source.snippet}&quot;
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
+  );
+}
+
+type CitationPreviewState = {
+  group: CitationSourceGroup;
+  focusedChunkId: string;
+};
+
+function CitationPreviewSheet({
+  preview,
+  onOpenChange,
+}: {
+  preview: CitationPreviewState | null;
+  onOpenChange: (preview: CitationPreviewState | null) => void;
+}) {
+  const group = preview?.group;
+  const evidence = group?.evidence ?? [];
+  const orderedEvidence = preview
+    ? [
+        ...evidence.filter(({ source }) => source.chunkId === preview.focusedChunkId),
+        ...evidence.filter(({ source }) => source.chunkId !== preview.focusedChunkId),
+      ]
+    : [];
+
+  return (
+    <Sheet
+      open={Boolean(preview)}
+      onOpenChange={(open) => {
+        if (!open) onOpenChange(null);
+      }}
+    >
+      <SheetContent side="right" className="w-[min(92vw,28rem)] gap-0 p-0 sm:max-w-[28rem]">
+        <SheetHeader className="border-b border-border px-5 py-5 pr-14">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand">
+            Pratinjau sumber
+          </p>
+          <SheetTitle className="break-words text-left leading-snug">
+            {group?.materialTitle ?? "Sumber materi"}
+          </SheetTitle>
+          <SheetDescription className="break-all text-left text-xs">
+            {group?.fileName ?? ""}
+            {group?.sessionTitle ? ` · ${group.sessionTitle}` : ""}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="border-b border-border/70 px-5 py-3">
+            <p className="text-sm font-medium text-foreground">Kutipan yang mendukung jawaban</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {evidence.length} potongan dari {new Set(evidence.map(({ source }) => source.pageNumber)).size} halaman PDF
+            </p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            <div className="flex flex-col gap-3">
+              {orderedEvidence.map(({ source }) => {
+                const pdfPageUrl = getPdfPageUrl(group?.publicUrl ?? null, source.pageNumber);
+                const isFocused = source.chunkId === preview?.focusedChunkId;
+
+                return (
+                  <article
+                    key={source.chunkId}
+                    className={cn(
+                      "rounded-xl border p-4 transition-colors",
+                      isFocused ? "border-brand/35 bg-brand/5" : "border-border/70 bg-card"
+                    )}
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold text-foreground">
+                        Halaman PDF {source.pageNumber}
+                      </p>
+                      {pdfPageUrl && (
+                        <a
+                          href={pdfPageUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-brand underline-offset-4 hover:underline"
+                        >
+                          Buka halaman
+                          <ExternalLink className="size-3" />
+                        </a>
+                      )}
+                    </div>
+                    <blockquote className="border-l-2 border-brand/35 pl-3 text-sm leading-relaxed text-muted-foreground">
+                      {source.snippet || "Kutipan teks tidak tersedia untuk potongan ini."}
+                    </blockquote>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -454,6 +654,11 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   const isStreamingEmpty = sending && lastMessage?.senderType === "ai" && !lastMessage.content;
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [citationPreview, setCitationPreview] = useState<CitationPreviewState | null>(null);
+
+  useEffect(() => {
+    setCitationPreview(null);
+  }, [activeSession?.id]);
 
   const cancelCurrentSpeech = useCallback(() => {
     if (!("speechSynthesis" in window)) return;
@@ -586,7 +791,22 @@ export const TutorChatMessages = memo(function TutorChatMessages({
           activeSession.messages.map((message) => {
             const isUser = message.senderType === "user";
             const sources = getUniqueSources(getMessageSources(message));
+            const sourceGroups = groupCitationSources(sources);
             const isStreaming = sending && message.id.startsWith("streaming-");
+
+            const openSource = (sourceNumber: number) => {
+              const group = sourceGroups.find((item) => item.sourceNumbers.includes(sourceNumber));
+              if (!group) return;
+
+              const focusedEvidence = group.evidence.find((item) => item.sourceNumber === sourceNumber)
+                ?? group.evidence[0];
+              if (!focusedEvidence) return;
+
+              setCitationPreview({
+                group,
+                focusedChunkId: focusedEvidence.source.chunkId,
+              });
+            };
 
             // Skip rendering empty streaming messages — show spinner below instead
             if (isStreaming && !message.content) return null;
@@ -617,11 +837,37 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                           remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
                           rehypePlugins={[rehypeRaw, rehypeKatex]}
                           components={{
+                            a: ({ href, title, children }) => {
+                              const citationMatch = href?.match(/^#tutor-source-(\d+)$/);
+                              if (citationMatch) {
+                                const sourceNumber = Number(citationMatch[1]);
+                                const hasSource = sourceGroups.some((group) =>
+                                  group.sourceNumbers.includes(sourceNumber)
+                                );
+
+                                if (!hasSource) {
+                                  return <span className="text-muted-foreground">{children}</span>;
+                                }
+
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => openSource(sourceNumber)}
+                                    aria-label={`Buka pratinjau Sumber ${sourceNumber}`}
+                                    className="inline-flex cursor-pointer items-baseline rounded bg-brand/10 px-1.5 py-0.5 text-[0.92em] font-medium text-brand underline decoration-brand/35 underline-offset-2 transition-colors hover:bg-brand/15 hover:decoration-brand"
+                                  >
+                                    {children}
+                                  </button>
+                                );
+                              }
+
+                              return <a href={href} title={title}>{children}</a>;
+                            },
                             pre: MarkdownPre,
                             table: MarkdownTable,
                           }}
                         >
-                          {message.content}
+                          {linkifySourceCitations(message.content)}
                         </ReactMarkdown>
                         {isStreaming && (
                           <span className="inline-block h-4 w-0.5 animate-pulse bg-brand align-text-bottom" />
@@ -697,7 +943,9 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                     </>
                   )}
 
-                  {!isUser && !isStreaming && <MessageSources sources={sources} />}
+                  {!isUser && !isStreaming && (
+                    <MessageSources sourceGroups={sourceGroups} onOpenSource={openSource} />
+                  )}
                 </div>
               </div>
             );
@@ -718,6 +966,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
         <div className="h-28" aria-hidden="true" />
         <div ref={messagesEndRef} />
       </div>
+      <CitationPreviewSheet preview={citationPreview} onOpenChange={setCitationPreview} />
     </div>
   );
 });

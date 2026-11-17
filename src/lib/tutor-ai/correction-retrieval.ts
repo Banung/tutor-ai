@@ -1,6 +1,7 @@
 import { Prisma } from "@/app/generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { MATERIAL_EMBEDDING_MODEL, MATERIAL_EMBEDDING_DIMENSIONS } from "@/lib/material-processing/config";
+import { MAX_TUTOR_CONTEXT_CHUNKS, MIN_TUTOR_CONTEXT_SIMILARITY } from "./retrieval-config";
 import { toPgVector } from "./gemini";
 import { correctionQuestionKey } from "./correction-policy";
 import { correctionSourcesSchema, type CorrectionSource } from "./correction-schema";
@@ -46,12 +47,43 @@ export async function findApplicableCorrections(input: { courseId: string; selec
   return selectCorrectionContext(valid);
 }
 
-export function correctionContextChunks(corrections: CorrectionContext[]) {
-  return corrections.flatMap((correction) => correction.sourceSnapshot.map((source) => ({
-    chunkId: source.chunkId, materialId: source.materialId, sessionId: source.sessionId, pageNumber: source.pageNumber,
-    chunkIndex: source.chunkIndex, content: source.content, similarity: correction.similarity,
-    materialTitle: source.materialTitle, fileName: source.fileName, sessionTitle: source.sessionTitle,
-  })));
+type CorrectionChunkRow = {
+  chunkId: string; materialId: string; sessionId: string; pageNumber: number; chunkIndex: number; content: string;
+  similarity: number | string; materialTitle: string; fileName: string; publicUrl: string | null; sessionTitle: string;
+};
+
+export async function correctionContextChunks(corrections: CorrectionContext[], input: {
+  courseId: string; selectedMaterialIds: string[]; questionEmbedding: number[];
+}): Promise<CorrectionChunkRow[]> {
+  if (!corrections.length || !input.selectedMaterialIds.length) return [];
+  const chunkIds = [...new Set(corrections.flatMap((correction) => correction.sourceSnapshot.flatMap((source) =>
+    !("kind" in source) || source.kind === "chunk" ? [source.chunkId] : [])))];
+  const pageRanges = corrections.flatMap((correction) => correction.sourceSnapshot.flatMap((source) =>
+    "kind" in source && source.kind === "page_range" ? [source] : []));
+  const sourceFilters: Prisma.Sql[] = [];
+  if (chunkIds.length) sourceFilters.push(Prisma.sql`c."id" IN (${Prisma.join(chunkIds)})`);
+  for (const range of pageRanges) sourceFilters.push(Prisma.sql`(c."materialId" = ${range.materialId} AND c."pageNumber" >= ${range.startPage} AND c."pageNumber" <= ${range.endPage})`);
+  if (!sourceFilters.length) return [];
+  const vector = toPgVector(input.questionEmbedding);
+  return prisma.$queryRaw<CorrectionChunkRow[]>`
+    SELECT c."id" AS "chunkId", c."materialId" AS "materialId", c."sessionId" AS "sessionId",
+      c."pageNumber" AS "pageNumber", c."chunkIndex" AS "chunkIndex", c."content" AS "content",
+      (1 - (c."embedding" <=> ${vector}::vector))::double precision AS "similarity",
+      m."title" AS "materialTitle", m."fileName" AS "fileName", m."publicUrl" AS "publicUrl", s."title" AS "sessionTitle"
+    FROM "material_chunk" c
+    INNER JOIN "material" m ON m."id" = c."materialId"
+    INNER JOIN "course_session" s ON s."id" = c."sessionId"
+    WHERE c."courseId" = ${input.courseId}
+      AND c."embedding" IS NOT NULL
+      AND m."isActive" = true AND m."isProcessed" = true AND m."processingStatus" = 'ready'
+      AND m."materialType" = 'file' AND m."embeddingModel" = ${MATERIAL_EMBEDDING_MODEL}
+      AND m."embeddingDimensions" = ${MATERIAL_EMBEDDING_DIMENSIONS} AND m."id" IN (${Prisma.join(input.selectedMaterialIds)})
+      AND s."isActive" = true
+      AND (${Prisma.join(sourceFilters, " OR ")})
+      AND (1 - (c."embedding" <=> ${vector}::vector)) >= ${MIN_TUTOR_CONTEXT_SIMILARITY}
+    ORDER BY c."embedding" <=> ${vector}::vector
+    LIMIT ${MAX_TUTOR_CONTEXT_CHUNKS}
+  `;
 }
 
 export async function assertCorrectionsCurrent(courseId: string, corrections: CorrectionContext[], db: Prisma.TransactionClient = prisma) {

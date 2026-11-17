@@ -9,6 +9,8 @@ export type CorrectionVersion = {
 export type CorrectionEditorData = {
   question: string; course: { id: string; title: string }; versions: CorrectionVersion[];
   sources: Array<{ id: string; title: string; pageNumber: number; chunkIndex: number; snippet: string; content: string }>;
+  suggestedSources: Array<{ id: string; title: string; pageNumber: number; chunkIndex: number; snippet: string; content: string; similarity: number }>;
+  materials: Array<{ id: string; title: string; pageCount: number }>;
   totalSources: number; sourcePage: number; sourcePageSize: number;
 };
 export type CourseCorrectionsData = {

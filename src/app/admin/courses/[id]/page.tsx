@@ -37,6 +37,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CourseInvitationButton } from "@/components/courses/course-invitation-button";
 
 interface Instructor {
   id: string;
@@ -333,7 +334,7 @@ export default function CourseDetailPage() {
       </div>
 
       {/* Info Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="overflow-hidden border-border/50">
           <CardHeader className="pb-2">
             <CardDescription className="text-xs font-semibold uppercase tracking-wider">Enrollment Key</CardDescription>
@@ -350,6 +351,12 @@ export default function CourseDetailPage() {
               <Copy className="size-3.5 text-muted-foreground" />
             </button>
           </CardContent>
+        </Card>
+        <Card className="overflow-hidden border-border/50">
+          <CardHeader className="pb-2">
+            <CardDescription className="text-xs font-semibold uppercase tracking-wider">Undangan</CardDescription>
+          </CardHeader>
+          <CardContent><CourseInvitationButton courseId={course.id} /></CardContent>
         </Card>
         <Card className="overflow-hidden border-border/50">
           <CardHeader className="pb-2">

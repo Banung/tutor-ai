@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getInvitationReturnPath } from '@/lib/invitation-return-path';
 import { authClient } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -63,7 +64,8 @@ export function LoginForm() {
         mahasiswa: '/mahasiswa',
       };
       const redirectTo = roleRedirectMap[userWithRole?.role ?? ''] ?? '/dashboard';
-      router.push(redirectTo);
+      const returnTo = getInvitationReturnPath(new URLSearchParams(window.location.search).get('returnTo'));
+      router.push(returnTo ?? redirectTo);
     } catch {
       setFormError('An error occurred during login. Please try again.');
     } finally {

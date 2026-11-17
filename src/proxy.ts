@@ -1,3 +1,4 @@
+import { getInvitationReturnPath } from "@/lib/invitation-return-path";
 import { auth } from "@/lib/auth";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -32,7 +33,7 @@ export default async function proxy(request: NextRequest) {
     // Authenticated users on login page → redirect by role
     if (session && isAuthPage) {
         const redirectTo = role ? ROLE_REDIRECT_MAP[role] ?? "/dashboard" : "/dashboard";
-        return NextResponse.redirect(new URL(redirectTo, request.url));
+        return NextResponse.redirect(new URL(getInvitationReturnPath(request.nextUrl.searchParams.get("returnTo")) ?? redirectTo, request.url));
     }
 
     // Role-based protection for /admin

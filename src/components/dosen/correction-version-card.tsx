@@ -17,6 +17,15 @@ export function CorrectionVersionCard({ version, onChanged, onCopy, courseTitle 
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const approvingWithoutSources = action === "approve" && version.sourceSnapshot.length === 0;
+  const actionTitle = action === "withdraw"
+    ? "Cabut koreksi aktif"
+    : approvingWithoutSources ? "Setujui koreksi tanpa materi?" : "Setujui koreksi jawaban";
+  const actionDescription = action === "withdraw"
+    ? "Koreksi berhenti dipakai untuk jawaban berikutnya. Versi dan riwayat jawaban lama tetap tersimpan."
+    : approvingWithoutSources
+      ? "Versi ini tidak melampirkan materi pendukung. Tutor hanya akan menggunakannya jika pencarian pada materi terpilih menemukan bukti yang relevan; tanpa bukti, koreksi diabaikan. Yakin ingin mengaktifkan?"
+      : "Koreksi yang disetujui dapat menjadi konteks jawaban berikutnya pada mata kuliah ini. Pastikan sumber mendukung isinya.";
   async function submit() {
     if (!action || pending) return;
     setPending(true); setError(null);
@@ -34,7 +43,13 @@ export function CorrectionVersionCard({ version, onChanged, onCopy, courseTitle 
     <CardHeader><div className="flex flex-wrap items-start justify-between gap-2"><CardTitle>Versi {version.version} · {version.question}</CardTitle><Badge variant={version.effectiveStatus === "needs_review" ? "destructive" : "outline"}>{correctionStatusLabels[version.effectiveStatus] ?? version.effectiveStatus}</Badge></div><CardDescription>{courseTitle ? `${courseTitle} · ` : ""}{version.authorName} · {reviewDate(version.createdAt)}</CardDescription></CardHeader>
     <CardContent className="flex flex-col gap-4">
       <FeedbackMarkdown content={version.answer} /><p className="text-sm text-muted-foreground">Alasan: {version.rationale}</p>
-      <ul className="flex list-inside list-disc flex-col gap-1 text-sm">{version.sourceSnapshot.map((source) => <li key={source.chunkId}>{source.materialTitle} · Halaman {source.pageNumber}</li>)}</ul>
+      {version.sourceSnapshot.length > 0
+        ? <ul className="flex list-inside list-disc flex-col gap-1 text-sm">{version.sourceSnapshot.map((source) => {
+          if ("kind" in source && source.kind === "page_range") return <li key={`${source.materialId}-${source.startPage}-${source.endPage}`}>{source.materialTitle} · Halaman {source.startPage}–{source.endPage}</li>;
+          const chunkDescription = "chunkIndex" in source ? ` · Potongan ${source.chunkIndex + 1}` : "";
+          return <li key={source.chunkId}>{source.materialTitle} · Halaman {source.pageNumber}{chunkDescription}</li>;
+        })}</ul>
+        : <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">Tidak ada sumber materi terlampir. Tutor hanya akan memakai koreksi ini jika materi terpilih menyediakan bukti yang relevan.</p>}
       {version.approvedAt && <p className="text-sm text-muted-foreground">Disetujui {version.approvedByName} · {reviewDate(version.approvedAt)}</p>}
       {version.withdrawnAt && <p className="text-sm text-muted-foreground">Dicabut {version.withdrawnByName} · {reviewDate(version.withdrawnAt)} · {version.withdrawalReason}</p>}
       {!version.sourceCurrent && <p role="status" className="text-sm text-muted-foreground">Sumber berubah, tidak aktif, atau belum siap. Koreksi ini tidak digunakan tutor. Buat versi baru dengan sumber terkini.</p>}
@@ -46,12 +61,12 @@ export function CorrectionVersionCard({ version, onChanged, onCopy, courseTitle 
       {onCopy && <Button variant="outline" disabled={pending} onClick={() => onCopy(version)}>Salin ke versi baru</Button>}
       {!onCopy && version.feedbackId && <Button asChild variant="ghost"><Link href={`/dosen/feedback/${version.feedbackId}`}>Buka feedback asal</Link></Button>}
     </CardFooter>
-    <Dialog open={action !== null} onOpenChange={(open) => { if (!open && !pending) setAction(null); }}><DialogContent className="max-h-[85vh] overflow-y-auto"><DialogHeader><DialogTitle>{action === "approve" ? "Setujui koreksi jawaban" : "Cabut koreksi aktif"}</DialogTitle><DialogDescription>{action === "approve" ? "Koreksi yang disetujui dapat menjadi konteks jawaban berikutnya pada mata kuliah ini. Pastikan sumber mendukung isinya." : "Koreksi berhenti dipakai untuk jawaban berikutnya. Versi dan riwayat jawaban lama tetap tersimpan."}</DialogDescription></DialogHeader>
+    <Dialog open={action !== null} onOpenChange={(open) => { if (!open && !pending) setAction(null); }}><DialogContent className="max-h-[85vh] overflow-y-auto"><DialogHeader><DialogTitle>{actionTitle}</DialogTitle><DialogDescription>{actionDescription}</DialogDescription></DialogHeader>
       <FeedbackMarkdown content={version.answer} />
       {action === "approve" && version.activeVersion && <div className="flex flex-col gap-2"><p className="text-sm font-medium">Akan menggantikan versi aktif {version.activeVersion.version}:</p><FeedbackMarkdown content={version.activeVersion.answer} className="text-muted-foreground" /></div>}
       {action === "withdraw" && <FieldGroup><Field><FieldLabel htmlFor={`withdraw-${version.id}`}>Alasan pencabutan</FieldLabel><Textarea id={`withdraw-${version.id}`} value={reason} maxLength={500} disabled={pending} onChange={(event) => setReason(event.target.value)} /></Field></FieldGroup>}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <DialogFooter><Button variant="outline" disabled={pending} onClick={() => setAction(null)}>Batal</Button><Button disabled={pending || (action === "withdraw" && reason.trim().length < 3)} onClick={() => void submit()}>{pending ? "Memproses…" : action === "approve" ? "Setujui dan aktifkan" : "Cabut koreksi"}</Button></DialogFooter>
+      <DialogFooter><Button variant="outline" disabled={pending} onClick={() => setAction(null)}>Batal</Button><Button disabled={pending || (action === "withdraw" && reason.trim().length < 3)} onClick={() => void submit()}>{pending ? "Memproses…" : action === "withdraw" ? "Cabut koreksi" : approvingWithoutSources ? "Setujui tanpa materi" : "Setujui dan aktifkan"}</Button></DialogFooter>
     </DialogContent></Dialog>
   </Card>;
 }

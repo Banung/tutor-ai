@@ -60,11 +60,13 @@ export type RagSource = {
   materialId: string;
   materialTitle: string;
   fileName: string;
+  publicUrl?: string | null;
   sessionTitle: string;
   pageNumber: number;
   chunkIndex: number;
   similarity: number;
   snippet: string;
+  sourceNumber?: number;
 };
 
 export type TutorAiChatPageProps = {
