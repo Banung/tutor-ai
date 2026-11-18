@@ -12,7 +12,12 @@ import { z } from "zod/v4";
 const updateDosenCourseSchema = z
   .object({
     enrollmentKey: z.string().trim().min(1, "Enrollment key wajib diisi"),
-    title: z.string().trim().min(3, "Judul minimal 3 karakter").optional(),
+    title: z
+      .string()
+      .trim()
+      .min(3, "Judul minimal 3 karakter")
+      .max(150, "Judul maksimal 150 karakter")
+      .optional(),
     description: z.string().trim().nullable().optional(),
     isActive: z.boolean().optional(),
   })

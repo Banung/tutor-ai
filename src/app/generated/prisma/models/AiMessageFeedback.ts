@@ -184,13 +184,13 @@ export type AiMessageFeedbackAggregateArgs<ExtArgs extends runtime.Types.Extensi
   _avg?: AiMessageFeedbackAvgAggregateInputType
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   *
+   * 
    * Select which fields to sum
   **/
   _sum?: AiMessageFeedbackSumAggregateInputType
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-   *
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: AiMessageFeedbackMinAggregateInputType

@@ -567,14 +567,6 @@ export type CourseSessionUncheckedUpdateManyWithoutCourseNestedInput = {
   deleteMany?: Prisma.CourseSessionScalarWhereInput | Prisma.CourseSessionScalarWhereInput[]
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type CourseSessionCreateNestedOneWithoutMaterialsInput = {
   create?: Prisma.XOR<Prisma.CourseSessionCreateWithoutMaterialsInput, Prisma.CourseSessionUncheckedCreateWithoutMaterialsInput>
   connectOrCreate?: Prisma.CourseSessionCreateOrConnectWithoutMaterialsInput
