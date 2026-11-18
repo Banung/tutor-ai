@@ -47,3 +47,7 @@ jobs:
           gcloud run deploy tutor-ai-dev --project="$PROJECT_ID" --region="$REGION" --image="$IMAGE_BASE/web:$GITHUB_SHA" --env-vars-file="$env_file" --quiet
           python3 -c 'import json,sys; p=sys.argv[1]; v=json.load(open(p)); keys=["DATABASE_URL","SUPABASE_URL","SUPABASE_SERVICE_ROLE_KEY","SUPABASE_STORAGE_BUCKET","GEMINI_API_KEY"]; json.dump({k:v[k] for k in keys if k in v},open(p,"w"))' "$env_file"
           gcloud run jobs deploy tutor-material-worker-dev --project="$PROJECT_ID" --region="$REGION" --image="$IMAGE_BASE/worker:$GITHUB_SHA" --env-vars-file="$env_file" --quiet
+      - name: Clean up old Artifact Registry images
+        env:
+          ARTIFACT_REGISTRY_KEEP_COUNT: "10"
+        run: python3 scripts/cleanup-artifact-registry.py
