@@ -18,6 +18,7 @@ type AlignmentSession = {
   id: string;
   courseId: string;
   authorId: string;
+  includesAllMaterials: boolean;
   status: string;
   materialFingerprint: string;
   materialSnapshot: Prisma.JsonValue;
