@@ -15,6 +15,7 @@ async function harness(t: TestContext, options: {
   academicStyle?: string;
   responseMode?: "chat" | "avatar";
   chunks?: typeof chunk[];
+  availableMaterialIds?: string[];
   selected?: string[];
   history?: Array<{ senderType: string; content: string }>;
   answer?: string;
@@ -59,7 +60,17 @@ async function harness(t: TestContext, options: {
   const requests: Array<{ url: string; body: Record<string, unknown> }> = [];
   replace(prisma.user, "findUnique", async () => ({ id: "student", name: "Rani", role: "mahasiswa", academicLevel: options.academicLevel ?? "S1" }));
   replace(prisma.course, "findFirst", async () => options.denyAccess ? null : ({ id: "course", title: "Statistika Dasar", description: null, isActive: true }));
-  replace(prisma.material, "findMany", async (args: { where: Record<string, unknown> }) => { materialQueries.push(args); return [{ id: "material-1", title: "Penilaian", fileName: chunk.fileName, pageCount: 3, chunkCount: 4, createdAt: new Date(), courseSession: { id: "lesson-1", title: "Penilaian", orderNumber: 1 } }]; } );
+  replace(prisma.material, "findMany", async (args: { where: Record<string, unknown> }) => {
+    materialQueries.push(args);
+    return (options.availableMaterialIds ?? ["material-1"]).map((id, index) => {
+      const materialChunk = options.chunks?.find((candidate) => candidate.materialId === id) ?? chunk;
+      return {
+        id, title: materialChunk.materialTitle, fileName: materialChunk.fileName,
+        pageCount: 3, chunkCount: 4, createdAt: new Date(),
+        courseSession: { id: materialChunk.sessionId, title: materialChunk.sessionTitle, orderNumber: index + 1 },
+      };
+    });
+  });
   replace(prisma.aiChatSession, "findFirst", async () => options.denySession ? null : ({ id: "chat", messages: [] }));
   replace(prisma.aiChatSession, "update", async () => ({}));
   replace(prisma.aiChatMessage, "findFirst", async () => ({ content: JSON.stringify(options.selected ?? ["material-1"]) }));
@@ -237,8 +248,18 @@ test("weak matches below the existing threshold produce an evidence fallback", a
 });
 
 test("cited source numbers retain their original context identity", async (t) => {
+  const secondMaterialChunk = {
+    ...chunk,
+    chunkId: "chunk-2",
+    materialId: "material-2",
+    pageNumber: 3,
+    materialTitle: "Penilaian Lanjutan",
+    fileName: "02-statistika-digital.pdf",
+  };
   const h = await harness(t, {
-    chunks: [chunk, { ...chunk, chunkId: "chunk-2", pageNumber: 3 }],
+    chunks: [chunk, secondMaterialChunk],
+    availableMaterialIds: ["material-1", "material-2"],
+    selected: ["material-1", "material-2"],
     answer: "Lihat aturan pada halaman berikutnya. [Sumber 2]",
   });
   await h.ask("Di mana aturannya?");
