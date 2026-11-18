@@ -191,3 +191,13 @@ export type AiFeedbackReviewEvent = Prisma.AiFeedbackReviewEventModel
  * 
  */
 export type AiAnswerCorrection = Prisma.AiAnswerCorrectionModel
+/**
+ * Model TutorAlignmentSession
+ * 
+ */
+export type TutorAlignmentSession = Prisma.TutorAlignmentSessionModel
+/**
+ * Model TutorAlignmentCase
+ * 
+ */
+export type TutorAlignmentCase = Prisma.TutorAlignmentCaseModel

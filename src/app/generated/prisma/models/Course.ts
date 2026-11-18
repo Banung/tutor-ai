@@ -40,6 +40,7 @@ export type CourseMinAggregateOutputType = {
   catalogStatus: $Enums.CatalogStatus | null
   createdAt: Date | null
   updatedAt: Date | null
+  alignmentAutoRerun: boolean | null
 }
 
 export type CourseMaxAggregateOutputType = {
@@ -58,6 +59,7 @@ export type CourseMaxAggregateOutputType = {
   catalogStatus: $Enums.CatalogStatus | null
   createdAt: Date | null
   updatedAt: Date | null
+  alignmentAutoRerun: boolean | null
 }
 
 export type CourseCountAggregateOutputType = {
@@ -76,6 +78,7 @@ export type CourseCountAggregateOutputType = {
   catalogStatus: number
   createdAt: number
   updatedAt: number
+  alignmentAutoRerun: number
   _all: number
 }
 
@@ -96,6 +99,7 @@ export type CourseMinAggregateInputType = {
   catalogStatus?: true
   createdAt?: true
   updatedAt?: true
+  alignmentAutoRerun?: true
 }
 
 export type CourseMaxAggregateInputType = {
@@ -114,6 +118,7 @@ export type CourseMaxAggregateInputType = {
   catalogStatus?: true
   createdAt?: true
   updatedAt?: true
+  alignmentAutoRerun?: true
 }
 
 export type CourseCountAggregateInputType = {
@@ -132,6 +137,7 @@ export type CourseCountAggregateInputType = {
   catalogStatus?: true
   createdAt?: true
   updatedAt?: true
+  alignmentAutoRerun?: true
   _all?: true
 }
 
@@ -223,6 +229,7 @@ export type CourseGroupByOutputType = {
   catalogStatus: $Enums.CatalogStatus
   createdAt: Date
   updatedAt: Date
+  alignmentAutoRerun: boolean
   _count: CourseCountAggregateOutputType | null
   _min: CourseMinAggregateOutputType | null
   _max: CourseMaxAggregateOutputType | null
@@ -262,7 +269,9 @@ export type CourseWhereInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFilter<"Course"> | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFilter<"Course"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Course"> | Date | string
+  alignmentAutoRerun?: Prisma.BoolFilter<"Course"> | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionListRelationFilter
+  alignmentSessions?: Prisma.TutorAlignmentSessionListRelationFilter
   creator?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   studyProgram?: Prisma.XOR<Prisma.StudyProgramNullableScalarRelationFilter, Prisma.StudyProgramWhereInput> | null
   instructors?: Prisma.CourseInstructorListRelationFilter
@@ -289,7 +298,9 @@ export type CourseOrderByWithRelationInput = {
   catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  alignmentAutoRerun?: Prisma.SortOrder
   answerCorrections?: Prisma.AiAnswerCorrectionOrderByRelationAggregateInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionOrderByRelationAggregateInput
   creator?: Prisma.UserOrderByWithRelationInput
   studyProgram?: Prisma.StudyProgramOrderByWithRelationInput
   instructors?: Prisma.CourseInstructorOrderByRelationAggregateInput
@@ -320,7 +331,9 @@ export type CourseWhereUniqueInput = Prisma.AtLeast<{
   catalogStatus?: Prisma.EnumCatalogStatusFilter<"Course"> | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFilter<"Course"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Course"> | Date | string
+  alignmentAutoRerun?: Prisma.BoolFilter<"Course"> | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionListRelationFilter
+  alignmentSessions?: Prisma.TutorAlignmentSessionListRelationFilter
   creator?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   studyProgram?: Prisma.XOR<Prisma.StudyProgramNullableScalarRelationFilter, Prisma.StudyProgramWhereInput> | null
   instructors?: Prisma.CourseInstructorListRelationFilter
@@ -347,6 +360,7 @@ export type CourseOrderByWithAggregationInput = {
   catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  alignmentAutoRerun?: Prisma.SortOrder
   _count?: Prisma.CourseCountOrderByAggregateInput
   _max?: Prisma.CourseMaxOrderByAggregateInput
   _min?: Prisma.CourseMinOrderByAggregateInput
@@ -371,6 +385,7 @@ export type CourseScalarWhereWithAggregatesInput = {
   catalogStatus?: Prisma.EnumCatalogStatusWithAggregatesFilter<"Course"> | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Course"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Course"> | Date | string
+  alignmentAutoRerun?: Prisma.BoolWithAggregatesFilter<"Course"> | boolean
 }
 
 export type CourseCreateInput = {
@@ -387,7 +402,9 @@ export type CourseCreateInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
   studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
@@ -414,7 +431,9 @@ export type CourseUncheckedCreateInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
@@ -437,7 +456,9 @@ export type CourseUpdateInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
   studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
@@ -464,7 +485,9 @@ export type CourseUncheckedUpdateInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
@@ -489,6 +512,7 @@ export type CourseCreateManyInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
 }
 
 export type CourseUpdateManyMutationInput = {
@@ -505,6 +529,7 @@ export type CourseUpdateManyMutationInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type CourseUncheckedUpdateManyInput = {
@@ -523,6 +548,7 @@ export type CourseUncheckedUpdateManyInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type CourseListRelationFilter = {
@@ -556,6 +582,7 @@ export type CourseCountOrderByAggregateInput = {
   catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  alignmentAutoRerun?: Prisma.SortOrder
 }
 
 export type CourseMaxOrderByAggregateInput = {
@@ -574,6 +601,7 @@ export type CourseMaxOrderByAggregateInput = {
   catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  alignmentAutoRerun?: Prisma.SortOrder
 }
 
 export type CourseMinOrderByAggregateInput = {
@@ -592,6 +620,7 @@ export type CourseMinOrderByAggregateInput = {
   catalogStatus?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  alignmentAutoRerun?: Prisma.SortOrder
 }
 
 export type CourseScalarRelationFilter = {
@@ -785,6 +814,20 @@ export type CourseUpdateOneRequiredWithoutAnswerCorrectionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CourseUpdateToOneWithWhereWithoutAnswerCorrectionsInput, Prisma.CourseUpdateWithoutAnswerCorrectionsInput>, Prisma.CourseUncheckedUpdateWithoutAnswerCorrectionsInput>
 }
 
+export type CourseCreateNestedOneWithoutAlignmentSessionsInput = {
+  create?: Prisma.XOR<Prisma.CourseCreateWithoutAlignmentSessionsInput, Prisma.CourseUncheckedCreateWithoutAlignmentSessionsInput>
+  connectOrCreate?: Prisma.CourseCreateOrConnectWithoutAlignmentSessionsInput
+  connect?: Prisma.CourseWhereUniqueInput
+}
+
+export type CourseUpdateOneRequiredWithoutAlignmentSessionsNestedInput = {
+  create?: Prisma.XOR<Prisma.CourseCreateWithoutAlignmentSessionsInput, Prisma.CourseUncheckedCreateWithoutAlignmentSessionsInput>
+  connectOrCreate?: Prisma.CourseCreateOrConnectWithoutAlignmentSessionsInput
+  upsert?: Prisma.CourseUpsertWithoutAlignmentSessionsInput
+  connect?: Prisma.CourseWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CourseUpdateToOneWithWhereWithoutAlignmentSessionsInput, Prisma.CourseUpdateWithoutAlignmentSessionsInput>, Prisma.CourseUncheckedUpdateWithoutAlignmentSessionsInput>
+}
+
 export type CourseCreateWithoutCreatorInput = {
   id: string
   title: string
@@ -799,7 +842,9 @@ export type CourseCreateWithoutCreatorInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
@@ -824,7 +869,9 @@ export type CourseUncheckedCreateWithoutCreatorInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
@@ -878,6 +925,7 @@ export type CourseScalarWhereInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFilter<"Course"> | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFilter<"Course"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Course"> | Date | string
+  alignmentAutoRerun?: Prisma.BoolFilter<"Course"> | boolean
 }
 
 export type CourseCreateWithoutStudyProgramInput = {
@@ -894,7 +942,9 @@ export type CourseCreateWithoutStudyProgramInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
@@ -919,7 +969,9 @@ export type CourseUncheckedCreateWithoutStudyProgramInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
@@ -968,7 +1020,9 @@ export type CourseCreateWithoutInvitationInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
   studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
@@ -994,7 +1048,9 @@ export type CourseUncheckedCreateWithoutInvitationInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
@@ -1032,7 +1088,9 @@ export type CourseUpdateWithoutInvitationInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
   studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
@@ -1058,7 +1116,9 @@ export type CourseUncheckedUpdateWithoutInvitationInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
@@ -1080,7 +1140,9 @@ export type CourseCreateWithoutInstructorsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
   studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
@@ -1106,7 +1168,9 @@ export type CourseUncheckedCreateWithoutInstructorsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
@@ -1144,7 +1208,9 @@ export type CourseUpdateWithoutInstructorsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
   studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
@@ -1170,7 +1236,9 @@ export type CourseUncheckedUpdateWithoutInstructorsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
@@ -1192,7 +1260,9 @@ export type CourseCreateWithoutEnrollmentsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
   studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
@@ -1218,7 +1288,9 @@ export type CourseUncheckedCreateWithoutEnrollmentsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
@@ -1256,7 +1328,9 @@ export type CourseUpdateWithoutEnrollmentsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
   studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
@@ -1282,7 +1356,9 @@ export type CourseUncheckedUpdateWithoutEnrollmentsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
@@ -1304,7 +1380,9 @@ export type CourseCreateWithoutSessionsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
   studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
@@ -1330,7 +1408,9 @@ export type CourseUncheckedCreateWithoutSessionsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
@@ -1368,7 +1448,9 @@ export type CourseUpdateWithoutSessionsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
   studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
@@ -1394,7 +1476,9 @@ export type CourseUncheckedUpdateWithoutSessionsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
@@ -1416,7 +1500,9 @@ export type CourseCreateWithoutMaterialChunksInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
   studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
@@ -1442,7 +1528,9 @@ export type CourseUncheckedCreateWithoutMaterialChunksInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
@@ -1480,7 +1568,9 @@ export type CourseUpdateWithoutMaterialChunksInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
   studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
@@ -1506,7 +1596,9 @@ export type CourseUncheckedUpdateWithoutMaterialChunksInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
@@ -1528,7 +1620,9 @@ export type CourseCreateWithoutAiChatSessionsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
   studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
@@ -1554,7 +1648,9 @@ export type CourseUncheckedCreateWithoutAiChatSessionsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
@@ -1592,7 +1688,9 @@ export type CourseUpdateWithoutAiChatSessionsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
   studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
@@ -1618,7 +1716,9 @@ export type CourseUncheckedUpdateWithoutAiChatSessionsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
@@ -1640,6 +1740,8 @@ export type CourseCreateWithoutAnswerCorrectionsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
   creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
   studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
   instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
@@ -1666,6 +1768,8 @@ export type CourseUncheckedCreateWithoutAnswerCorrectionsInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
   instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
@@ -1704,6 +1808,8 @@ export type CourseUpdateWithoutAnswerCorrectionsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
   studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
@@ -1730,6 +1836,128 @@ export type CourseUncheckedUpdateWithoutAnswerCorrectionsInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
+  instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
+  enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
+  sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
+  materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
+  aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
+}
+
+export type CourseCreateWithoutAlignmentSessionsInput = {
+  id: string
+  title: string
+  description?: string | null
+  coverImage?: string | null
+  coverStoragePath?: string | null
+  enrollmentKey: string
+  isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
+  answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
+  studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
+  instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
+  enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
+  sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
+  materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
+  aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
+}
+
+export type CourseUncheckedCreateWithoutAlignmentSessionsInput = {
+  id: string
+  createdBy: string
+  title: string
+  description?: string | null
+  coverImage?: string | null
+  coverStoragePath?: string | null
+  enrollmentKey: string
+  isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
+  answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
+  enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
+  sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
+  materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
+  aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
+}
+
+export type CourseCreateOrConnectWithoutAlignmentSessionsInput = {
+  where: Prisma.CourseWhereUniqueInput
+  create: Prisma.XOR<Prisma.CourseCreateWithoutAlignmentSessionsInput, Prisma.CourseUncheckedCreateWithoutAlignmentSessionsInput>
+}
+
+export type CourseUpsertWithoutAlignmentSessionsInput = {
+  update: Prisma.XOR<Prisma.CourseUpdateWithoutAlignmentSessionsInput, Prisma.CourseUncheckedUpdateWithoutAlignmentSessionsInput>
+  create: Prisma.XOR<Prisma.CourseCreateWithoutAlignmentSessionsInput, Prisma.CourseUncheckedCreateWithoutAlignmentSessionsInput>
+  where?: Prisma.CourseWhereInput
+}
+
+export type CourseUpdateToOneWithWhereWithoutAlignmentSessionsInput = {
+  where?: Prisma.CourseWhereInput
+  data: Prisma.XOR<Prisma.CourseUpdateWithoutAlignmentSessionsInput, Prisma.CourseUncheckedUpdateWithoutAlignmentSessionsInput>
+}
+
+export type CourseUpdateWithoutAlignmentSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
+  studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
+  instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
+  enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
+  sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
+  materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
+  aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
+}
+
+export type CourseUncheckedUpdateWithoutAlignmentSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
@@ -1753,6 +1981,7 @@ export type CourseCreateManyCreatorInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
 }
 
 export type CourseUpdateWithoutCreatorInput = {
@@ -1769,7 +1998,9 @@ export type CourseUpdateWithoutCreatorInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
@@ -1794,7 +2025,9 @@ export type CourseUncheckedUpdateWithoutCreatorInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
@@ -1818,6 +2051,7 @@ export type CourseUncheckedUpdateManyWithoutCreatorInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type CourseCreateManyStudyProgramInput = {
@@ -1835,6 +2069,7 @@ export type CourseCreateManyStudyProgramInput = {
   catalogStatus?: $Enums.CatalogStatus
   createdAt?: Date | string
   updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
 }
 
 export type CourseUpdateWithoutStudyProgramInput = {
@@ -1851,7 +2086,9 @@ export type CourseUpdateWithoutStudyProgramInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
   creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
   instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
@@ -1876,7 +2113,9 @@ export type CourseUncheckedUpdateWithoutStudyProgramInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
@@ -1900,6 +2139,7 @@ export type CourseUncheckedUpdateManyWithoutStudyProgramInput = {
   catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 
@@ -1909,6 +2149,7 @@ export type CourseUncheckedUpdateManyWithoutStudyProgramInput = {
 
 export type CourseCountOutputType = {
   answerCorrections: number
+  alignmentSessions: number
   instructors: number
   enrollments: number
   sessions: number
@@ -1918,6 +2159,7 @@ export type CourseCountOutputType = {
 
 export type CourseCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   answerCorrections?: boolean | CourseCountOutputTypeCountAnswerCorrectionsArgs
+  alignmentSessions?: boolean | CourseCountOutputTypeCountAlignmentSessionsArgs
   instructors?: boolean | CourseCountOutputTypeCountInstructorsArgs
   enrollments?: boolean | CourseCountOutputTypeCountEnrollmentsArgs
   sessions?: boolean | CourseCountOutputTypeCountSessionsArgs
@@ -1940,6 +2182,13 @@ export type CourseCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Exten
  */
 export type CourseCountOutputTypeCountAnswerCorrectionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AiAnswerCorrectionWhereInput
+}
+
+/**
+ * CourseCountOutputType without action
+ */
+export type CourseCountOutputTypeCountAlignmentSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TutorAlignmentSessionWhereInput
 }
 
 /**
@@ -1994,7 +2243,9 @@ export type CourseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   catalogStatus?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  alignmentAutoRerun?: boolean
   answerCorrections?: boolean | Prisma.Course$answerCorrectionsArgs<ExtArgs>
+  alignmentSessions?: boolean | Prisma.Course$alignmentSessionsArgs<ExtArgs>
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
   instructors?: boolean | Prisma.Course$instructorsArgs<ExtArgs>
@@ -2022,6 +2273,7 @@ export type CourseSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   catalogStatus?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  alignmentAutoRerun?: boolean
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
 }, ExtArgs["result"]["course"]>
@@ -2042,6 +2294,7 @@ export type CourseSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   catalogStatus?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  alignmentAutoRerun?: boolean
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
 }, ExtArgs["result"]["course"]>
@@ -2062,11 +2315,13 @@ export type CourseSelectScalar = {
   catalogStatus?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  alignmentAutoRerun?: boolean
 }
 
-export type CourseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdBy" | "title" | "description" | "coverImage" | "coverStoragePath" | "enrollmentKey" | "isActive" | "studyProgramId" | "courseCode" | "learningOutcomes" | "hasArModule" | "catalogStatus" | "createdAt" | "updatedAt", ExtArgs["result"]["course"]>
+export type CourseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "createdBy" | "title" | "description" | "coverImage" | "coverStoragePath" | "enrollmentKey" | "isActive" | "studyProgramId" | "courseCode" | "learningOutcomes" | "hasArModule" | "catalogStatus" | "createdAt" | "updatedAt" | "alignmentAutoRerun", ExtArgs["result"]["course"]>
 export type CourseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   answerCorrections?: boolean | Prisma.Course$answerCorrectionsArgs<ExtArgs>
+  alignmentSessions?: boolean | Prisma.Course$alignmentSessionsArgs<ExtArgs>
   creator?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   studyProgram?: boolean | Prisma.Course$studyProgramArgs<ExtArgs>
   instructors?: boolean | Prisma.Course$instructorsArgs<ExtArgs>
@@ -2090,6 +2345,7 @@ export type $CoursePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   name: "Course"
   objects: {
     answerCorrections: Prisma.$AiAnswerCorrectionPayload<ExtArgs>[]
+    alignmentSessions: Prisma.$TutorAlignmentSessionPayload<ExtArgs>[]
     creator: Prisma.$UserPayload<ExtArgs>
     studyProgram: Prisma.$StudyProgramPayload<ExtArgs> | null
     instructors: Prisma.$CourseInstructorPayload<ExtArgs>[]
@@ -2115,6 +2371,7 @@ export type $CoursePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     catalogStatus: $Enums.CatalogStatus
     createdAt: Date
     updatedAt: Date
+    alignmentAutoRerun: boolean
   }, ExtArgs["result"]["course"]>
   composites: {}
 }
@@ -2510,6 +2767,7 @@ readonly fields: CourseFieldRefs;
 export interface Prisma__CourseClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   answerCorrections<T extends Prisma.Course$answerCorrectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$answerCorrectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiAnswerCorrectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  alignmentSessions<T extends Prisma.Course$alignmentSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$alignmentSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TutorAlignmentSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   creator<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   studyProgram<T extends Prisma.Course$studyProgramArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$studyProgramArgs<ExtArgs>>): Prisma.Prisma__StudyProgramClient<runtime.Types.Result.GetResult<Prisma.$StudyProgramPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   instructors<T extends Prisma.Course$instructorsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$instructorsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CourseInstructorPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2562,6 +2820,7 @@ export interface CourseFieldRefs {
   readonly catalogStatus: Prisma.FieldRef<"Course", 'CatalogStatus'>
   readonly createdAt: Prisma.FieldRef<"Course", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Course", 'DateTime'>
+  readonly alignmentAutoRerun: Prisma.FieldRef<"Course", 'Boolean'>
 }
     
 
@@ -2984,6 +3243,30 @@ export type Course$answerCorrectionsArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.AiAnswerCorrectionScalarFieldEnum | Prisma.AiAnswerCorrectionScalarFieldEnum[]
+}
+
+/**
+ * Course.alignmentSessions
+ */
+export type Course$alignmentSessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TutorAlignmentSession
+   */
+  select?: Prisma.TutorAlignmentSessionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TutorAlignmentSession
+   */
+  omit?: Prisma.TutorAlignmentSessionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TutorAlignmentSessionInclude<ExtArgs> | null
+  where?: Prisma.TutorAlignmentSessionWhereInput
+  orderBy?: Prisma.TutorAlignmentSessionOrderByWithRelationInput | Prisma.TutorAlignmentSessionOrderByWithRelationInput[]
+  cursor?: Prisma.TutorAlignmentSessionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TutorAlignmentSessionScalarFieldEnum | Prisma.TutorAlignmentSessionScalarFieldEnum[]
 }
 
 /**

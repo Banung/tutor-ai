@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
 import {
   ArrowLeft, ArrowRight, Plus, GraduationCap, Users, KeyRound, Copy, CalendarDays, Check,
   FileText, Upload, Loader2, Trash2, Pencil,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SessionCard } from "./session-card";
@@ -437,6 +439,23 @@ export default function DosenCourseDetailPage() {
           </Card>
         </div>
       </div>
+
+      <Card className="border-border/70 shadow-sm">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-full bg-brand/15 text-brand">
+              <Sparkles className="size-5" />
+            </div>
+            <div>
+              <p className="font-medium">Penyelarasan Tutor <span className="ml-1 text-xs font-normal text-muted-foreground">Opsional</span></p>
+              <p className="text-sm text-muted-foreground">Cek jawaban AI dengan materi dan pertanyaan dosen.</p>
+            </div>
+          </div>
+          <Button asChild variant="outline">
+            <Link href={`/dosen/courses/${courseId}/alignment`}>Buka</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       {sessionsLoaded && !loadingSessions && activeMaterialCount === 0 && (
         <Card className="border-brand/25 bg-brand/[0.03]">

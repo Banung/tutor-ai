@@ -413,7 +413,9 @@ export const ModelName = {
   AiResponseRun: 'AiResponseRun',
   AiMessageFeedback: 'AiMessageFeedback',
   AiFeedbackReviewEvent: 'AiFeedbackReviewEvent',
-  AiAnswerCorrection: 'AiAnswerCorrection'
+  AiAnswerCorrection: 'AiAnswerCorrection',
+  TutorAlignmentSession: 'TutorAlignmentSession',
+  TutorAlignmentCase: 'TutorAlignmentCase'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -429,7 +431,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userRoleAudit" | "userSecurityLog" | "courseInstructorMappingLog" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "academicCourseReference" | "lecturerReference" | "academicImportBatch" | "academicImportRowOutcome" | "course" | "courseCatalogStatusLog" | "courseInvitation" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback" | "aiFeedbackReviewEvent" | "aiAnswerCorrection"
+    modelProps: "user" | "userRoleAudit" | "userSecurityLog" | "courseInstructorMappingLog" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "academicCourseReference" | "lecturerReference" | "academicImportBatch" | "academicImportRowOutcome" | "course" | "courseCatalogStatusLog" | "courseInvitation" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback" | "aiFeedbackReviewEvent" | "aiAnswerCorrection" | "tutorAlignmentSession" | "tutorAlignmentCase"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2653,6 +2655,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TutorAlignmentSession: {
+      payload: Prisma.$TutorAlignmentSessionPayload<ExtArgs>
+      fields: Prisma.TutorAlignmentSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TutorAlignmentSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TutorAlignmentSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.TutorAlignmentSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TutorAlignmentSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload>
+        }
+        findMany: {
+          args: Prisma.TutorAlignmentSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload>[]
+        }
+        create: {
+          args: Prisma.TutorAlignmentSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload>
+        }
+        createMany: {
+          args: Prisma.TutorAlignmentSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TutorAlignmentSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.TutorAlignmentSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload>
+        }
+        update: {
+          args: Prisma.TutorAlignmentSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.TutorAlignmentSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TutorAlignmentSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TutorAlignmentSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.TutorAlignmentSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.TutorAlignmentSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTutorAlignmentSession>
+        }
+        groupBy: {
+          args: Prisma.TutorAlignmentSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TutorAlignmentSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TutorAlignmentSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TutorAlignmentSessionCountAggregateOutputType> | number
+        }
+      }
+    }
+    TutorAlignmentCase: {
+      payload: Prisma.$TutorAlignmentCasePayload<ExtArgs>
+      fields: Prisma.TutorAlignmentCaseFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TutorAlignmentCaseFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TutorAlignmentCaseFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload>
+        }
+        findFirst: {
+          args: Prisma.TutorAlignmentCaseFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TutorAlignmentCaseFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload>
+        }
+        findMany: {
+          args: Prisma.TutorAlignmentCaseFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload>[]
+        }
+        create: {
+          args: Prisma.TutorAlignmentCaseCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload>
+        }
+        createMany: {
+          args: Prisma.TutorAlignmentCaseCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TutorAlignmentCaseCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload>[]
+        }
+        delete: {
+          args: Prisma.TutorAlignmentCaseDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload>
+        }
+        update: {
+          args: Prisma.TutorAlignmentCaseUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload>
+        }
+        deleteMany: {
+          args: Prisma.TutorAlignmentCaseDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TutorAlignmentCaseUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TutorAlignmentCaseUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload>[]
+        }
+        upsert: {
+          args: Prisma.TutorAlignmentCaseUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorAlignmentCasePayload>
+        }
+        aggregate: {
+          args: Prisma.TutorAlignmentCaseAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTutorAlignmentCase>
+        }
+        groupBy: {
+          args: Prisma.TutorAlignmentCaseGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TutorAlignmentCaseGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TutorAlignmentCaseCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TutorAlignmentCaseCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2905,7 +3055,8 @@ export const CourseScalarFieldEnum = {
   hasArModule: 'hasArModule',
   catalogStatus: 'catalogStatus',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  alignmentAutoRerun: 'alignmentAutoRerun'
 } as const
 
 export type CourseScalarFieldEnum = (typeof CourseScalarFieldEnum)[keyof typeof CourseScalarFieldEnum]
@@ -3180,6 +3331,55 @@ export const AiAnswerCorrectionScalarFieldEnum = {
 } as const
 
 export type AiAnswerCorrectionScalarFieldEnum = (typeof AiAnswerCorrectionScalarFieldEnum)[keyof typeof AiAnswerCorrectionScalarFieldEnum]
+
+
+export const TutorAlignmentSessionScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  authorId: 'authorId',
+  status: 'status',
+  trigger: 'trigger',
+  includesAllMaterials: 'includesAllMaterials',
+  materialFingerprint: 'materialFingerprint',
+  materialSnapshot: 'materialSnapshot',
+  thresholdPercent: 'thresholdPercent',
+  academicLevel: 'academicLevel',
+  responseMode: 'responseMode',
+  accuracyPercent: 'accuracyPercent',
+  caseCount: 'caseCount',
+  correctCount: 'correctCount',
+  errorMessage: 'errorMessage',
+  autoRerunFingerprint: 'autoRerunFingerprint',
+  createdAt: 'createdAt',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt'
+} as const
+
+export type TutorAlignmentSessionScalarFieldEnum = (typeof TutorAlignmentSessionScalarFieldEnum)[keyof typeof TutorAlignmentSessionScalarFieldEnum]
+
+
+export const TutorAlignmentCaseScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  origin: 'origin',
+  question: 'question',
+  referenceAnswer: 'referenceAnswer',
+  rubric: 'rubric',
+  sourceSnapshot: 'sourceSnapshot',
+  isApproved: 'isApproved',
+  selected: 'selected',
+  tutorAnswer: 'tutorAnswer',
+  verdict: 'verdict',
+  grounded: 'grounded',
+  scoreReason: 'scoreReason',
+  tutorSources: 'tutorSources',
+  responseTimeMs: 'responseTimeMs',
+  correctionDraftId: 'correctionDraftId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TutorAlignmentCaseScalarFieldEnum = (typeof TutorAlignmentCaseScalarFieldEnum)[keyof typeof TutorAlignmentCaseScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -3536,6 +3736,8 @@ export type GlobalOmitConfig = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackOmit
   aiFeedbackReviewEvent?: Prisma.AiFeedbackReviewEventOmit
   aiAnswerCorrection?: Prisma.AiAnswerCorrectionOmit
+  tutorAlignmentSession?: Prisma.TutorAlignmentSessionOmit
+  tutorAlignmentCase?: Prisma.TutorAlignmentCaseOmit
 }
 
 /* Types for Logging */
