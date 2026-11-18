@@ -2,6 +2,7 @@ import "dotenv/config";
 import prisma from "@/lib/prisma";
 import { processMaterial } from "@/lib/material-processing/pipeline";
 import { MATERIAL_WORKER_POLL_INTERVAL_MS } from "@/lib/material-processing/config";
+import { processTutorAlignment, queueStaleAlignmentRuns, reserveQueuedAlignment } from "@/lib/tutor-ai/alignment-runner";
 
 type ReservedMaterial = {
   id: string;
@@ -55,22 +56,45 @@ async function workLoop() {
   console.log(`Material DB worker started as ${workerId}`);
 
   while (!shuttingDown) {
-    const material = await reserveQueuedMaterial(workerId);
+    try {
+      await queueStaleAlignmentRuns();
+    } catch (error) {
+      console.error("Could not queue stale tutor alignments", error);
+    }
 
-    if (!material) {
+    const [material, alignment] = await Promise.all([
+      reserveQueuedMaterial(workerId),
+      reserveQueuedAlignment(workerId),
+    ]);
+
+    if (!material && !alignment) {
       if (runOnce) break;
       await wait(MATERIAL_WORKER_POLL_INTERVAL_MS);
       continue;
     }
 
-    try {
-      console.log(`Processing material ${material.id} (${material.title})`);
-      await processMaterial(material.id);
-      console.log(`Material processing completed for ${material.id}`);
-    } catch (error) {
-      console.error(`Material processing failed for ${material.id}`, error);
-      if (runOnce) process.exitCode = 1;
-    }
+    const tasks: Promise<void>[] = [];
+    if (material) tasks.push((async () => {
+      try {
+        console.log(`Processing material ${material.id} (${material.title})`);
+        await processMaterial(material.id);
+        console.log(`Material processing completed for ${material.id}`);
+      } catch (error) {
+        console.error(`Material processing failed for ${material.id}`, error);
+        if (runOnce) process.exitCode = 1;
+      }
+    })());
+    if (alignment) tasks.push((async () => {
+      try {
+        console.log(`Processing tutor alignment ${alignment.id}`);
+        await processTutorAlignment(alignment.id);
+        console.log(`Tutor alignment completed for ${alignment.id}`);
+      } catch (error) {
+        console.error(`Tutor alignment failed for ${alignment.id}`, error);
+        if (runOnce) process.exitCode = 1;
+      }
+    })());
+    await Promise.all(tasks);
 
     if (runOnce) break;
   }

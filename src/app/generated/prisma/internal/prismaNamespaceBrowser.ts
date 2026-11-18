@@ -80,7 +80,9 @@ export const ModelName = {
   AiResponseRun: 'AiResponseRun',
   AiMessageFeedback: 'AiMessageFeedback',
   AiFeedbackReviewEvent: 'AiFeedbackReviewEvent',
-  AiAnswerCorrection: 'AiAnswerCorrection'
+  AiAnswerCorrection: 'AiAnswerCorrection',
+  TutorAlignmentSession: 'TutorAlignmentSession',
+  TutorAlignmentCase: 'TutorAlignmentCase'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -312,7 +314,8 @@ export const CourseScalarFieldEnum = {
   hasArModule: 'hasArModule',
   catalogStatus: 'catalogStatus',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  alignmentAutoRerun: 'alignmentAutoRerun'
 } as const
 
 export type CourseScalarFieldEnum = (typeof CourseScalarFieldEnum)[keyof typeof CourseScalarFieldEnum]
@@ -587,6 +590,55 @@ export const AiAnswerCorrectionScalarFieldEnum = {
 } as const
 
 export type AiAnswerCorrectionScalarFieldEnum = (typeof AiAnswerCorrectionScalarFieldEnum)[keyof typeof AiAnswerCorrectionScalarFieldEnum]
+
+
+export const TutorAlignmentSessionScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  authorId: 'authorId',
+  status: 'status',
+  trigger: 'trigger',
+  includesAllMaterials: 'includesAllMaterials',
+  materialFingerprint: 'materialFingerprint',
+  materialSnapshot: 'materialSnapshot',
+  thresholdPercent: 'thresholdPercent',
+  academicLevel: 'academicLevel',
+  responseMode: 'responseMode',
+  accuracyPercent: 'accuracyPercent',
+  caseCount: 'caseCount',
+  correctCount: 'correctCount',
+  errorMessage: 'errorMessage',
+  autoRerunFingerprint: 'autoRerunFingerprint',
+  createdAt: 'createdAt',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt'
+} as const
+
+export type TutorAlignmentSessionScalarFieldEnum = (typeof TutorAlignmentSessionScalarFieldEnum)[keyof typeof TutorAlignmentSessionScalarFieldEnum]
+
+
+export const TutorAlignmentCaseScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  origin: 'origin',
+  question: 'question',
+  referenceAnswer: 'referenceAnswer',
+  rubric: 'rubric',
+  sourceSnapshot: 'sourceSnapshot',
+  isApproved: 'isApproved',
+  selected: 'selected',
+  tutorAnswer: 'tutorAnswer',
+  verdict: 'verdict',
+  grounded: 'grounded',
+  scoreReason: 'scoreReason',
+  tutorSources: 'tutorSources',
+  responseTimeMs: 'responseTimeMs',
+  correctionDraftId: 'correctionDraftId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TutorAlignmentCaseScalarFieldEnum = (typeof TutorAlignmentCaseScalarFieldEnum)[keyof typeof TutorAlignmentCaseScalarFieldEnum]
 
 
 export const SortOrder = {

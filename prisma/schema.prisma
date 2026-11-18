@@ -48,6 +48,7 @@ model User {
   aiMessageFeedback  AiMessageFeedback[] @relation("FeedbackOwner")
   feedbackReviews    AiMessageFeedback[] @relation("FeedbackReviewer")
   aiChatSessions     AiChatSession[]
+  alignmentSessions  TutorAlignmentSession[] @relation("AlignmentAuthor")
 
   @@map("user")
 }
@@ -310,6 +311,8 @@ model Course {
   updatedAt        DateTime      @updatedAt
 
   answerCorrections AiAnswerCorrection[]
+  alignmentAutoRerun Boolean @default(false)
+  alignmentSessions TutorAlignmentSession[]
   creator        User               @relation("CourseCreator", fields: [createdBy], references: [id], onDelete: Cascade)
   studyProgram   StudyProgram?      @relation(fields: [studyProgramId], references: [id], onDelete: Restrict)
   instructors    CourseInstructor[]
@@ -686,4 +689,61 @@ model AiAnswerCorrection {
   @@index([courseId, status])
   @@index([feedbackId])
   @@map("ai_answer_correction")
+}
+
+model TutorAlignmentSession {
+  id                    String   @id @default(cuid())
+  courseId              String
+  authorId              String
+  status                String   @default("draft") // draft | queued | running | completed | failed | stale
+  trigger               String   @default("manual") // manual | material_change
+  includesAllMaterials  Boolean  @default(true)
+  materialFingerprint   String
+  materialSnapshot      Json
+  thresholdPercent      Int      @default(90)
+  academicLevel         String   @default("S1")
+  responseMode          String   @default("chat")
+  accuracyPercent       Float?
+  caseCount             Int      @default(0)
+  correctCount          Int      @default(0)
+  errorMessage          String?
+  autoRerunFingerprint  String?
+  createdAt             DateTime @default(now())
+  startedAt             DateTime?
+  finishedAt            DateTime?
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author User @relation("AlignmentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  cases TutorAlignmentCase[]
+
+  @@unique([courseId, autoRerunFingerprint])
+  @@index([courseId, createdAt])
+  @@index([status, createdAt])
+  @@map("tutor_alignment_session")
+}
+
+model TutorAlignmentCase {
+  id                 String   @id @default(cuid())
+  sessionId          String
+  origin             String   @default("ai") // ai | lecturer
+  question           String
+  referenceAnswer    String
+  rubric             String?
+  sourceSnapshot     Json     @default("[]")
+  isApproved         Boolean  @default(false)
+  selected           Boolean  @default(true)
+  tutorAnswer        String?
+  verdict            String? // correct | partial | incorrect | needs_review
+  grounded           Boolean?
+  scoreReason        String?
+  tutorSources       Json     @default("[]")
+  responseTimeMs     Int?
+  correctionDraftId  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  session TutorAlignmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, selected, isApproved])
+  @@map("tutor_alignment_case")
 }
