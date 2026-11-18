@@ -73,6 +73,48 @@ function getUniqueSources(sources: RagSource[]) {
   });
 }
 
+const SOURCE_KEYWORD_STOPWORDS = new Set([
+  "about", "after", "also", "among", "because", "being", "between", "could", "does", "from", "have", "into", "more", "most", "other", "over", "same", "should", "some", "source", "such", "than", "that", "their", "there", "these", "they", "this", "those", "through", "under", "using", "very", "what", "when", "where", "which", "while", "were", "with", "would",
+  "akan", "atau", "bagi", "bahwa", "banyak", "belum", "bisa", "dalam", "dan", "dapat", "dari", "dengan", "di", "ini", "itu", "juga", "karena", "ke", "lebih", "oleh", "pada", "para", "saat", "sebagai", "secara", "sehingga", "seperti", "sudah", "sumber", "telah", "tentang", "tersebut", "tidak", "untuk", "yang",
+]);
+
+function countSourceTerms(text: string) {
+  const counts = new Map<string, number>();
+  for (const match of text.toLocaleLowerCase().matchAll(/[\p{L}\p{N}][\p{L}\p{N}-]{3,}/gu)) {
+    const term = match[0].replace(/-+$/g, "");
+    if (term.length < 4 || SOURCE_KEYWORD_STOPWORDS.has(term)) continue;
+    counts.set(term, (counts.get(term) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function getRelatedKeyword(evidence: CitationEvidence[], messageContent: string) {
+  const answerText = messageContent
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  const answerTerms = countSourceTerms(answerText);
+  const snippetTerms = countSourceTerms(evidence.map(({ source }) => source.snippet).join(" "));
+
+  return [...snippetTerms.entries()]
+    .sort(([leftTerm, leftCount], [rightTerm, rightCount]) => {
+      const leftScore = (answerTerms.has(leftTerm) ? 100 : 0) + leftCount * 4 + Math.min(leftTerm.length, 20) / 10;
+      const rightScore = (answerTerms.has(rightTerm) ? 100 : 0) + rightCount * 4 + Math.min(rightTerm.length, 20) / 10;
+      return rightScore - leftScore;
+    })[0]?.[0] ?? null;
+}
+
+function highlightSourceKeyword(text: string, keyword: string | null): ReactNode {
+  if (!keyword) return text;
+
+  const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escapedKeyword})`, "gi"));
+  return parts.map((part, index) => (
+    part.toLocaleLowerCase() === keyword.toLocaleLowerCase()
+      ? <mark key={`${keyword}-${index}`} className="rounded-sm bg-amber-300/45 px-0.5 font-medium text-foreground dark:bg-amber-300/25">{part}</mark>
+      : part
+  ));
+}
+
 type CitationEvidence = {
   source: RagSource;
   sourceNumber: number;
@@ -308,9 +350,11 @@ function chooseTutorVoice(voices: SpeechSynthesisVoice[], lang: "id" | "en") {
 
 function MessageSources({
   sourceGroups,
+  messageContent,
   onOpenSource,
 }: {
   sourceGroups: CitationSourceGroup[];
+  messageContent: string;
   onOpenSource: (sourceNumber: number) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -320,6 +364,8 @@ function MessageSources({
   return (
     <div className="mt-5 border-t border-border/50 pt-3">
       <button
+        type="button"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground/80 transition-colors hover:text-foreground"
       >
@@ -333,29 +379,44 @@ function MessageSources({
       </button>
 
       {isOpen && (
-        <div className="mt-2.5 flex flex-col gap-3 pl-2 animate-in fade-in-50 slide-in-from-top-1 duration-200">
+        <div className="mt-3 flex flex-col gap-2.5 pl-2 animate-in fade-in-50 slide-in-from-top-1 duration-200">
           {sourceGroups.map((group) => {
             const pages = [...new Set(group.evidence.map(({ source }) => source.pageNumber))]
               .sort((left, right) => left - right);
             const firstEvidence = group.evidence[0];
+            const relatedKeyword = getRelatedKeyword(firstEvidence ? [firstEvidence] : [], messageContent);
 
             return (
               <button
                 key={group.materialId || group.materialTitle}
                 type="button"
                 onClick={() => onOpenSource(firstEvidence?.sourceNumber ?? group.sourceNumbers[0] ?? 1)}
-                className="flex w-full flex-col gap-1 rounded-lg px-2 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/70"
+                className="group flex w-full flex-col gap-2 rounded-xl border border-border/60 bg-card/45 p-3 text-left text-xs text-muted-foreground transition-all hover:border-brand/35 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
               >
-                <span className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
-                  <FileText className="size-3.5 shrink-0 text-brand" />
-                  <span className="truncate">{group.materialTitle}</span>
+                <span className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="flex min-w-0 items-start gap-2">
+                    <FileText className="mt-0.5 size-3.5 shrink-0 text-brand" />
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-foreground">{group.materialTitle}</span>
+                      <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                        {pages.length > 0 ? `Hal. ${pages.join(", ")}` : "Kutipan materi"}
+                        {group.evidence.length > 1 ? ` · ${group.evidence.length} kutipan` : ""}
+                      </span>
+                    </span>
+                  </span>
+                  <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
                 </span>
-                <span className="pl-5 text-[11px] text-muted-foreground">
-                  {pages.length > 0 ? `Hal. ${pages.join(", ")}` : "Kutipan materi"}
+                <span className="flex flex-wrap items-center gap-1.5 pl-5">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">Topik terkait</span>
+                  {relatedKeyword ? (
+                    <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand">{relatedKeyword}</span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Konteks materi</span>
+                  )}
                 </span>
                 {firstEvidence?.source.snippet && (
-                  <span className="line-clamp-2 pl-5 text-[11px] leading-relaxed italic text-muted-foreground/80">
-                    &quot;{firstEvidence.source.snippet}&quot;
+                  <span className="line-clamp-3 pl-5 text-[11px] leading-relaxed text-muted-foreground/90">
+                    {highlightSourceKeyword(firstEvidence.source.snippet, relatedKeyword)}
                   </span>
                 )}
               </button>
@@ -370,6 +431,7 @@ function MessageSources({
 type CitationPreviewState = {
   group: CitationSourceGroup;
   focusedChunkId: string;
+  relatedKeyword: string | null;
 };
 
 function CitationPreviewSheet({
@@ -415,6 +477,12 @@ function CitationPreviewSheet({
             <p className="mt-1 text-xs text-muted-foreground">
               {evidence.length} potongan dari {new Set(evidence.map(({ source }) => source.pageNumber)).size} halaman PDF
             </p>
+            {preview?.relatedKeyword && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">Topik terkait</span>
+                <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">{preview.relatedKeyword}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -448,7 +516,9 @@ function CitationPreviewSheet({
                       )}
                     </div>
                     <blockquote className="border-l-2 border-brand/35 pl-3 text-sm leading-relaxed text-muted-foreground">
-                      {source.snippet || "Kutipan teks tidak tersedia untuk potongan ini."}
+                      {source.snippet
+                        ? highlightSourceKeyword(source.snippet, preview?.relatedKeyword ?? null)
+                        : "Kutipan teks tidak tersedia untuk potongan ini."}
                     </blockquote>
                   </article>
                 );
@@ -805,6 +875,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
               setCitationPreview({
                 group,
                 focusedChunkId: focusedEvidence.source.chunkId,
+                relatedKeyword: getRelatedKeyword([focusedEvidence], message.content),
               });
             };
 
@@ -944,7 +1015,11 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                   )}
 
                   {!isUser && !isStreaming && (
-                    <MessageSources sourceGroups={sourceGroups} onOpenSource={openSource} />
+                    <MessageSources
+                      sourceGroups={sourceGroups}
+                      messageContent={message.content}
+                      onOpenSource={openSource}
+                    />
                   )}
                 </div>
               </div>
