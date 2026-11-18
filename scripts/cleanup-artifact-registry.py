@@ -5,6 +5,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 from datetime import datetime
 from typing import Optional
 
@@ -100,17 +101,37 @@ for image_name in ("web", "worker"):
         if uri in keep_uris:
             continue
         print(f"Deleting old Artifact Registry image: {uri}", flush=True)
-        subprocess.run(
-            [
-                "gcloud",
-                "artifacts",
-                "docker",
-                "images",
-                "delete",
-                uri,
-                "--delete-tags",
-                "--quiet",
-                f"--project={PROJECT_ID}",
-            ],
-            check=True,
-        )
+        command = [
+            "gcloud",
+            "artifacts",
+            "docker",
+            "images",
+            "delete",
+            uri,
+            "--delete-tags",
+            "--quiet",
+            f"--project={PROJECT_ID}",
+        ]
+        result = subprocess.run(command, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 0:
+            if result.stderr:
+                print(result.stderr, file=sys.stderr, end="", flush=True)
+            continue
+
+        if (
+            "PERMISSION_DENIED" in (result.stderr or "")
+            and "artifactregistry.versions.delete" in (result.stderr or "")
+        ):
+            print(
+                "Warning: Artifact Registry cleanup stopped because the deploy "
+                "service account lacks artifactregistry.versions.delete. Older "
+                "images may remain; grant this permission on the repository to "
+                "enable cleanup.",
+                file=sys.stderr,
+                flush=True,
+            )
+            raise SystemExit(0)
+
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, end="", flush=True)
+        raise subprocess.CalledProcessError(result.returncode, command)
