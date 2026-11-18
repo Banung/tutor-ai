@@ -39,18 +39,21 @@ async function harness(t: TestContext, options: {
   const saved: Array<Record<string, unknown>> = [];
   const deleted: unknown[] = [];
   const runs: Array<Record<string, unknown>> = [];
-  replace(prisma.aiResponseRun, "create", async ({ data }: { data: Record<string, unknown> }) => {
-    if (runs.some((run) => run.requestId === data.requestId)) {
-      const { Prisma } = await import("../src/app/generated/prisma/client");
-      throw new Prisma.PrismaClientKnownRequestError("duplicate", { code: "P2002", clientVersion: "test" });
-    }
-    const run = { status: "running", ...data }; runs.push(run); return run;
-  });
-  replace(prisma.aiResponseRun, "update", async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
-    const run = runs.find((run) => run.id === where.id)!; Object.assign(run, data); return run;
-  });
-  replace(prisma.aiResponseRun, "findUnique", async ({ where }: { where: { aiChatSessionId_requestId: { requestId: string } } }) => runs.find((run) => run.requestId === where.aiChatSessionId_requestId.requestId) ?? null);
-  replace(prisma.aiResponseRun, "findFirst", async ({ where }: { where: { id: string } }) => runs.find((run) => run.id === where.id && ["failed", "cancelled", "timed_out"].includes(String(run.status))) ?? null);
+  const responseRunModel = (prisma as unknown as { aiResponseRun?: object }).aiResponseRun;
+  if (responseRunModel) {
+    replace(responseRunModel, "create", async ({ data }: { data: Record<string, unknown> }) => {
+      if (runs.some((run) => run.requestId === data.requestId)) {
+        const { Prisma } = await import("../src/app/generated/prisma/client");
+        throw new Prisma.PrismaClientKnownRequestError("duplicate", { code: "P2002", clientVersion: "test" });
+      }
+      const run = { status: "running", ...data }; runs.push(run); return run;
+    });
+    replace(responseRunModel, "update", async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+      const run = runs.find((run) => run.id === where.id)!; Object.assign(run, data); return run;
+    });
+    replace(responseRunModel, "findUnique", async ({ where }: { where: { aiChatSessionId_requestId: { requestId: string } } }) => runs.find((run) => run.requestId === where.aiChatSessionId_requestId.requestId) ?? null);
+    replace(responseRunModel, "findFirst", async ({ where }: { where: { id: string } }) => runs.find((run) => run.id === where.id && ["failed", "cancelled", "timed_out"].includes(String(run.status))) ?? null);
+  }
   const materialQueries: Array<{ where: Record<string, unknown> }> = [];
   const queries: Array<{ strings: string[]; values: unknown[] }> = [];
   const requests: Array<{ url: string; body: Record<string, unknown> }> = [];
