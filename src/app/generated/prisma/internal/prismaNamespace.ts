@@ -386,6 +386,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   User: 'User',
   UserRoleAudit: 'UserRoleAudit',
+  UserSecurityLog: 'UserSecurityLog',
   CourseInstructorMappingLog: 'CourseInstructorMappingLog',
   Session: 'Session',
   Account: 'Account',
@@ -423,7 +424,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userRoleAudit" | "courseInstructorMappingLog" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "academicCourseReference" | "lecturerReference" | "academicImportBatch" | "academicImportRowOutcome" | "course" | "courseCatalogStatusLog" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
+    modelProps: "user" | "userRoleAudit" | "userSecurityLog" | "courseInstructorMappingLog" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "academicCourseReference" | "lecturerReference" | "academicImportBatch" | "academicImportRowOutcome" | "course" | "courseCatalogStatusLog" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -572,6 +573,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserRoleAuditCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserRoleAuditCountAggregateOutputType> | number
+        }
+      }
+    }
+    UserSecurityLog: {
+      payload: Prisma.$UserSecurityLogPayload<ExtArgs>
+      fields: Prisma.UserSecurityLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserSecurityLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserSecurityLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload>
+        }
+        findFirst: {
+          args: Prisma.UserSecurityLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserSecurityLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload>
+        }
+        findMany: {
+          args: Prisma.UserSecurityLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload>[]
+        }
+        create: {
+          args: Prisma.UserSecurityLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload>
+        }
+        createMany: {
+          args: Prisma.UserSecurityLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserSecurityLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload>[]
+        }
+        delete: {
+          args: Prisma.UserSecurityLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload>
+        }
+        update: {
+          args: Prisma.UserSecurityLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserSecurityLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserSecurityLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserSecurityLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserSecurityLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserSecurityLogPayload>
+        }
+        aggregate: {
+          args: Prisma.UserSecurityLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserSecurityLog>
+        }
+        groupBy: {
+          args: Prisma.UserSecurityLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserSecurityLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserSecurityLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserSecurityLogCountAggregateOutputType> | number
         }
       }
     }
@@ -2250,6 +2325,9 @@ export const UserScalarFieldEnum = {
   image: 'image',
   role: 'role',
   isActive: 'isActive',
+  isFrozen: 'isFrozen',
+  frozenAt: 'frozenAt',
+  frozenReason: 'frozenReason',
   academicLevel: 'academicLevel',
   npm: 'npm',
   nip: 'nip',
@@ -2274,6 +2352,19 @@ export const UserRoleAuditScalarFieldEnum = {
 } as const
 
 export type UserRoleAuditScalarFieldEnum = (typeof UserRoleAuditScalarFieldEnum)[keyof typeof UserRoleAuditScalarFieldEnum]
+
+
+export const UserSecurityLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  actorId: 'actorId',
+  action: 'action',
+  reason: 'reason',
+  revokedSessions: 'revokedSessions',
+  createdAt: 'createdAt'
+} as const
+
+export type UserSecurityLogScalarFieldEnum = (typeof UserSecurityLogScalarFieldEnum)[keyof typeof UserSecurityLogScalarFieldEnum]
 
 
 export const CourseInstructorMappingLogScalarFieldEnum = {
@@ -2704,6 +2795,20 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
  * Reference to a field of type 'AcademicSource'
  */
 export type EnumAcademicSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AcademicSource'>
@@ -2756,20 +2861,6 @@ export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'J
  * Reference to a field of type 'QueryMode'
  */
 export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -2940,6 +3031,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   userRoleAudit?: Prisma.UserRoleAuditOmit
+  userSecurityLog?: Prisma.UserSecurityLogOmit
   courseInstructorMappingLog?: Prisma.CourseInstructorMappingLogOmit
   session?: Prisma.SessionOmit
   account?: Prisma.AccountOmit

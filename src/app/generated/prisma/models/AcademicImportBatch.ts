@@ -645,14 +645,6 @@ export type EnumAcademicImportStatusFieldUpdateOperationsInput = {
   set?: $Enums.AcademicImportStatus
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type AcademicImportBatchCreateNestedOneWithoutOutcomesInput = {
   create?: Prisma.XOR<Prisma.AcademicImportBatchCreateWithoutOutcomesInput, Prisma.AcademicImportBatchUncheckedCreateWithoutOutcomesInput>
   connectOrCreate?: Prisma.AcademicImportBatchCreateOrConnectWithoutOutcomesInput

@@ -2,12 +2,14 @@ import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import type { Prisma } from "@/app/generated/prisma/client";
 import {
+  userSecurityActionSchema,
   validateUserProfile,
   type AcademicLevel,
   type CreateUserInput,
   type UpdateUserInput,
   type UserFilter,
   type UserRole,
+  type UserSecurityActionInput,
 } from "@/lib/schemas/user.schema";
 
 export class UserServiceError extends Error {
@@ -52,7 +54,11 @@ const userSelect = {
   faculty: true,
   bio: true,
   isActive: true,
+  isFrozen: true,
+  frozenAt: true,
+  frozenReason: true,
   createdAt: true,
+  _count: { select: { sessions: true } },
 } as const;
 
 function isUniqueConstraintError(error: unknown) {
@@ -91,6 +97,9 @@ export async function listUsers(filter: UserFilter) {
   }
   if (filter.isActive !== undefined) {
     where.isActive = filter.isActive;
+  }
+  if (filter.isFrozen !== undefined) {
+    where.isFrozen = filter.isFrozen;
   }
   if (filter.search) {
     where.OR = [
@@ -390,6 +399,11 @@ export async function updateUser(
         select: userSelect,
       });
 
+      // Deactivation revokes live sessions so an inactive account cannot keep browsing.
+      if (data.isActive === false) {
+        await tx.session.deleteMany({ where: { userId: id } });
+      }
+
       if (roleChanged) {
         await tx.userRoleAudit.create({
           data: {
@@ -425,6 +439,109 @@ export async function deleteUser(id: string, actorId: string) {
 
   await prisma.user.delete({ where: { id } });
   return { success: true };
+}
+
+/** Freeze, unfreeze, or force logout. Always audited and transactional. */
+export async function executeUserSecurityAction(
+  targetUserId: string,
+  input: UserSecurityActionInput,
+  actorId: string,
+  txTimeoutMs?: number
+) {
+  const parsed = userSecurityActionSchema.safeParse(input);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((issue) => issue.message);
+    throw new UserServiceError(issues[0], 400, issues);
+  }
+
+  const { action } = parsed.data;
+  const reason = parsed.data.reason ?? null;
+
+  return prisma.$transaction(async (tx) => {
+    await lockUsers(tx, [actorId, targetUserId]);
+
+    const [actor, target] = await Promise.all([
+      tx.user.findUnique({
+        where: { id: actorId },
+        select: { id: true, role: true, isActive: true, isFrozen: true },
+      }),
+      tx.user.findUnique({ where: { id: targetUserId }, select: userSelect }),
+    ]);
+
+    if (!actor || actor.role !== "admin" || !actor.isActive || actor.isFrozen) {
+      throw new UserServiceError("Akses admin diperlukan.", 403);
+    }
+    if (!target) {
+      throw new UserServiceError("Akun target tidak ditemukan.", 404);
+    }
+    if (actorId === targetUserId && action === "freeze") {
+      throw new UserServiceError("Tidak dapat membekukan akun sendiri.", 403);
+    }
+    if (actorId === targetUserId && action === "force_logout") {
+      throw new UserServiceError("Tidak dapat memutus sesi akun sendiri.", 403);
+    }
+
+    if (action === "force_logout") {
+      const deleted = await tx.session.deleteMany({
+        where: { userId: targetUserId },
+      });
+      await tx.userSecurityLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: targetUserId,
+          actorId,
+          action,
+          reason,
+          revokedSessions: deleted.count,
+        },
+      });
+      return { user: target, action, revokedSessions: deleted.count };
+    }
+
+    const updated = await tx.user.update({
+      where: { id: targetUserId },
+      data:
+        action === "freeze"
+          ? {
+              isFrozen: true,
+              frozenAt: new Date(),
+              frozenReason: reason,
+            }
+          : {
+              isFrozen: false,
+              frozenAt: null,
+              frozenReason: null,
+            },
+      select: userSelect,
+    });
+
+    const revokedSessions =
+      action === "freeze"
+        ? (
+            await tx.session.deleteMany({ where: { userId: targetUserId } })
+          ).count
+        : 0;
+
+    await tx.userSecurityLog.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId: targetUserId,
+        actorId,
+        action,
+        reason,
+        revokedSessions,
+      },
+    });
+
+    return { user: updated, action, revokedSessions };
+  }, txTimeoutMs ? { timeout: txTimeoutMs } : undefined);
+}
+
+export async function listUserSecurityLogs(userId: string) {
+  return prisma.userSecurityLog.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function getUserStats() {

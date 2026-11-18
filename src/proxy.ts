@@ -29,8 +29,18 @@ export default async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    // Authenticated users on login page → redirect by role
-    if (session && isAuthPage) {
+    // BR-008: frozen/inactive accounts lose access to protected pages
+    const account = session?.user as
+        | { isFrozen?: boolean; isActive?: boolean }
+        | undefined;
+    const isAccountBlocked =
+        account?.isFrozen === true || account?.isActive === false;
+    if (session && isProtectedPage && isAccountBlocked) {
+        return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    // Authenticated users on login page → redirect by role (unless blocked)
+    if (session && isAuthPage && !isAccountBlocked) {
         const redirectTo = role ? ROLE_REDIRECT_MAP[role] ?? "/dashboard" : "/dashboard";
         return NextResponse.redirect(new URL(redirectTo, request.url));
     }

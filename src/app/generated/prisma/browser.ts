@@ -28,6 +28,11 @@ export type User = Prisma.UserModel
  */
 export type UserRoleAudit = Prisma.UserRoleAuditModel
 /**
+ * Model UserSecurityLog
+ * 
+ */
+export type UserSecurityLog = Prisma.UserSecurityLogModel
+/**
  * Model CourseInstructorMappingLog
  * 
  */

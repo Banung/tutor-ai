@@ -8,6 +8,12 @@ export type AcademicLevel = (typeof ACADEMIC_LEVELS)[number];
 
 export const IDENTIFIER_MESSAGE = "NIM/NIP harus berupa angka 8–18 digit.";
 
+export const FREEZE_REASON_REQUIRED_MESSAGE = "Alasan pembekuan wajib diisi.";
+export const FREEZE_REASON_MAX_LENGTH_MESSAGE =
+  "Alasan pembekuan maksimal 200 karakter.";
+
+export const SECURITY_ACTIONS = ["freeze", "unfreeze", "force_logout"] as const;
+
 const IDENTIFIER_PATTERN = /^[0-9]{8,18}$/;
 
 /**
@@ -118,6 +124,10 @@ export const userFilterSchema = z.object({
     .enum(["true", "false"])
     .optional()
     .transform((v) => (v === undefined ? undefined : v === "true")),
+  isFrozen: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === "true")),
   search: z
     .string()
     .optional()
@@ -127,6 +137,37 @@ export const userFilterSchema = z.object({
     }),
 });
 
+/** Blank optional reasons normalize to null; freeze still requires a real one. */
+const securityReasonSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed === "" ? null : trimmed;
+  },
+  z
+    .string()
+    .max(200, FREEZE_REASON_MAX_LENGTH_MESSAGE)
+    .nullable()
+    .optional()
+);
+
+export const userSecurityActionSchema = z
+  .object({
+    action: z.enum(SECURITY_ACTIONS),
+    reason: securityReasonSchema,
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (data.action === "freeze" && !data.reason) {
+      ctx.addIssue({
+        code: "custom",
+        message: FREEZE_REASON_REQUIRED_MESSAGE,
+        path: ["reason"],
+      });
+    }
+  });
+
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 export type UserFilter = z.infer<typeof userFilterSchema>;
+export type UserSecurityActionInput = z.infer<typeof userSecurityActionSchema>;

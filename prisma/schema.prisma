@@ -21,6 +21,9 @@ model User {
   // Custom fields
   role          String  @default("mahasiswa") // admin | dosen | mahasiswa
   isActive      Boolean @default(true) // false = dinonaktifkan, tidak bisa login
+  isFrozen      Boolean @default(false)
+  frozenAt      DateTime?
+  frozenReason  String?
   academicLevel String? // S1 | S2 | S3 — hanya untuk mahasiswa
   npm           String? @unique // Nomor Pokok Mahasiswa — hanya untuk mahasiswa
   nip           String? @unique // Nomor Induk Pegawai — hanya untuk dosen
@@ -58,6 +61,21 @@ model UserRoleAudit {
 
   @@index([userId, createdAt])
   @@map("user_role_audit")
+}
+
+// Security action audit (FR-004: freeze, unfreeze, force_logout). No foreign keys: history survives account deletion.
+model UserSecurityLog {
+  id              String   @id
+  userId          String
+  actorId         String
+  action          String // freeze | unfreeze | force_logout
+  reason          String?
+  revokedSessions Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("user_security_log")
 }
 
 // Instructor mapping history. No foreign keys: history survives account/course deletion.

@@ -32,6 +32,9 @@ export type UserMinAggregateOutputType = {
   image: string | null
   role: string | null
   isActive: boolean | null
+  isFrozen: boolean | null
+  frozenAt: Date | null
+  frozenReason: string | null
   academicLevel: string | null
   npm: string | null
   nip: string | null
@@ -51,6 +54,9 @@ export type UserMaxAggregateOutputType = {
   image: string | null
   role: string | null
   isActive: boolean | null
+  isFrozen: boolean | null
+  frozenAt: Date | null
+  frozenReason: string | null
   academicLevel: string | null
   npm: string | null
   nip: string | null
@@ -70,6 +76,9 @@ export type UserCountAggregateOutputType = {
   image: number
   role: number
   isActive: number
+  isFrozen: number
+  frozenAt: number
+  frozenReason: number
   academicLevel: number
   npm: number
   nip: number
@@ -91,6 +100,9 @@ export type UserMinAggregateInputType = {
   image?: true
   role?: true
   isActive?: true
+  isFrozen?: true
+  frozenAt?: true
+  frozenReason?: true
   academicLevel?: true
   npm?: true
   nip?: true
@@ -110,6 +122,9 @@ export type UserMaxAggregateInputType = {
   image?: true
   role?: true
   isActive?: true
+  isFrozen?: true
+  frozenAt?: true
+  frozenReason?: true
   academicLevel?: true
   npm?: true
   nip?: true
@@ -129,6 +144,9 @@ export type UserCountAggregateInputType = {
   image?: true
   role?: true
   isActive?: true
+  isFrozen?: true
+  frozenAt?: true
+  frozenReason?: true
   academicLevel?: true
   npm?: true
   nip?: true
@@ -221,6 +239,9 @@ export type UserGroupByOutputType = {
   image: string | null
   role: string
   isActive: boolean
+  isFrozen: boolean
+  frozenAt: Date | null
+  frozenReason: string | null
   academicLevel: string | null
   npm: string | null
   nip: string | null
@@ -261,6 +282,9 @@ export type UserWhereInput = {
   image?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.StringFilter<"User"> | string
   isActive?: Prisma.BoolFilter<"User"> | boolean
+  isFrozen?: Prisma.BoolFilter<"User"> | boolean
+  frozenAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  frozenReason?: Prisma.StringNullableFilter<"User"> | string | null
   academicLevel?: Prisma.StringNullableFilter<"User"> | string | null
   npm?: Prisma.StringNullableFilter<"User"> | string | null
   nip?: Prisma.StringNullableFilter<"User"> | string | null
@@ -288,6 +312,9 @@ export type UserOrderByWithRelationInput = {
   image?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isFrozen?: Prisma.SortOrder
+  frozenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  frozenReason?: Prisma.SortOrderInput | Prisma.SortOrder
   academicLevel?: Prisma.SortOrderInput | Prisma.SortOrder
   npm?: Prisma.SortOrderInput | Prisma.SortOrder
   nip?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -321,6 +348,9 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   image?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.StringFilter<"User"> | string
   isActive?: Prisma.BoolFilter<"User"> | boolean
+  isFrozen?: Prisma.BoolFilter<"User"> | boolean
+  frozenAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  frozenReason?: Prisma.StringNullableFilter<"User"> | string | null
   academicLevel?: Prisma.StringNullableFilter<"User"> | string | null
   major?: Prisma.StringNullableFilter<"User"> | string | null
   faculty?: Prisma.StringNullableFilter<"User"> | string | null
@@ -345,6 +375,9 @@ export type UserOrderByWithAggregationInput = {
   image?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isFrozen?: Prisma.SortOrder
+  frozenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  frozenReason?: Prisma.SortOrderInput | Prisma.SortOrder
   academicLevel?: Prisma.SortOrderInput | Prisma.SortOrder
   npm?: Prisma.SortOrderInput | Prisma.SortOrder
   nip?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -370,6 +403,9 @@ export type UserScalarWhereWithAggregatesInput = {
   image?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   role?: Prisma.StringWithAggregatesFilter<"User"> | string
   isActive?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
+  isFrozen?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
+  frozenAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  frozenReason?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   academicLevel?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   npm?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   nip?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
@@ -389,6 +425,9 @@ export type UserCreateInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -416,6 +455,9 @@ export type UserUncheckedCreateInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -443,6 +485,9 @@ export type UserUpdateInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -470,6 +515,9 @@ export type UserUncheckedUpdateInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -497,6 +545,9 @@ export type UserCreateManyInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -516,6 +567,9 @@ export type UserUpdateManyMutationInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -535,6 +589,9 @@ export type UserUncheckedUpdateManyInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -554,6 +611,9 @@ export type UserCountOrderByAggregateInput = {
   image?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isFrozen?: Prisma.SortOrder
+  frozenAt?: Prisma.SortOrder
+  frozenReason?: Prisma.SortOrder
   academicLevel?: Prisma.SortOrder
   npm?: Prisma.SortOrder
   nip?: Prisma.SortOrder
@@ -573,6 +633,9 @@ export type UserMaxOrderByAggregateInput = {
   image?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isFrozen?: Prisma.SortOrder
+  frozenAt?: Prisma.SortOrder
+  frozenReason?: Prisma.SortOrder
   academicLevel?: Prisma.SortOrder
   npm?: Prisma.SortOrder
   nip?: Prisma.SortOrder
@@ -592,6 +655,9 @@ export type UserMinOrderByAggregateInput = {
   image?: Prisma.SortOrder
   role?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isFrozen?: Prisma.SortOrder
+  frozenAt?: Prisma.SortOrder
+  frozenReason?: Prisma.SortOrder
   academicLevel?: Prisma.SortOrder
   npm?: Prisma.SortOrder
   nip?: Prisma.SortOrder
@@ -618,6 +684,10 @@ export type BoolFieldUpdateOperationsInput = {
 
 export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 export type DateTimeFieldUpdateOperationsInput = {
@@ -744,6 +814,9 @@ export type UserCreateWithoutSessionsInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -770,6 +843,9 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -812,6 +888,9 @@ export type UserUpdateWithoutSessionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -838,6 +917,9 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -864,6 +946,9 @@ export type UserCreateWithoutAccountsInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -890,6 +975,9 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -932,6 +1020,9 @@ export type UserUpdateWithoutAccountsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -958,6 +1049,9 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -984,6 +1078,9 @@ export type UserCreateWithoutCoursesCreatedInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1010,6 +1107,9 @@ export type UserUncheckedCreateWithoutCoursesCreatedInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1052,6 +1152,9 @@ export type UserUpdateWithoutCoursesCreatedInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1078,6 +1181,9 @@ export type UserUncheckedUpdateWithoutCoursesCreatedInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1104,6 +1210,9 @@ export type UserCreateWithoutCourseInstructorInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1130,6 +1239,9 @@ export type UserUncheckedCreateWithoutCourseInstructorInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1172,6 +1284,9 @@ export type UserUpdateWithoutCourseInstructorInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1198,6 +1313,9 @@ export type UserUncheckedUpdateWithoutCourseInstructorInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1224,6 +1342,9 @@ export type UserCreateWithoutEnrollmentsInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1250,6 +1371,9 @@ export type UserUncheckedCreateWithoutEnrollmentsInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1292,6 +1416,9 @@ export type UserUpdateWithoutEnrollmentsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1318,6 +1445,9 @@ export type UserUncheckedUpdateWithoutEnrollmentsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1344,6 +1474,9 @@ export type UserCreateWithoutCourseSessionsMadeInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1370,6 +1503,9 @@ export type UserUncheckedCreateWithoutCourseSessionsMadeInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1412,6 +1548,9 @@ export type UserUpdateWithoutCourseSessionsMadeInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1438,6 +1577,9 @@ export type UserUncheckedUpdateWithoutCourseSessionsMadeInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1464,6 +1606,9 @@ export type UserCreateWithoutMaterialsUploadedInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1490,6 +1635,9 @@ export type UserUncheckedCreateWithoutMaterialsUploadedInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1532,6 +1680,9 @@ export type UserUpdateWithoutMaterialsUploadedInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1558,6 +1709,9 @@ export type UserUncheckedUpdateWithoutMaterialsUploadedInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1584,6 +1738,9 @@ export type UserCreateWithoutAiChatSessionsInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1610,6 +1767,9 @@ export type UserUncheckedCreateWithoutAiChatSessionsInput = {
   image?: string | null
   role?: string
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
   academicLevel?: string | null
   npm?: string | null
   nip?: string | null
@@ -1652,6 +1812,9 @@ export type UserUpdateWithoutAiChatSessionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1678,6 +1841,9 @@ export type UserUncheckedUpdateWithoutAiChatSessionsInput = {
   image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1798,6 +1964,9 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   image?: boolean
   role?: boolean
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: boolean
+  frozenReason?: boolean
   academicLevel?: boolean
   npm?: boolean
   nip?: boolean
@@ -1826,6 +1995,9 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   image?: boolean
   role?: boolean
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: boolean
+  frozenReason?: boolean
   academicLevel?: boolean
   npm?: boolean
   nip?: boolean
@@ -1845,6 +2017,9 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   image?: boolean
   role?: boolean
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: boolean
+  frozenReason?: boolean
   academicLevel?: boolean
   npm?: boolean
   nip?: boolean
@@ -1864,6 +2039,9 @@ export type UserSelectScalar = {
   image?: boolean
   role?: boolean
   isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: boolean
+  frozenReason?: boolean
   academicLevel?: boolean
   npm?: boolean
   nip?: boolean
@@ -1875,7 +2053,7 @@ export type UserSelectScalar = {
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "role" | "isActive" | "academicLevel" | "npm" | "nip" | "nidn" | "major" | "faculty" | "bio" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "role" | "isActive" | "isFrozen" | "frozenAt" | "frozenReason" | "academicLevel" | "npm" | "nip" | "nidn" | "major" | "faculty" | "bio" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
@@ -1910,6 +2088,9 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     image: string | null
     role: string
     isActive: boolean
+    isFrozen: boolean
+    frozenAt: Date | null
+    frozenReason: string | null
     academicLevel: string | null
     npm: string | null
     nip: string | null
@@ -2357,6 +2538,9 @@ export interface UserFieldRefs {
   readonly image: Prisma.FieldRef<"User", 'String'>
   readonly role: Prisma.FieldRef<"User", 'String'>
   readonly isActive: Prisma.FieldRef<"User", 'Boolean'>
+  readonly isFrozen: Prisma.FieldRef<"User", 'Boolean'>
+  readonly frozenAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly frozenReason: Prisma.FieldRef<"User", 'String'>
   readonly academicLevel: Prisma.FieldRef<"User", 'String'>
   readonly npm: Prisma.FieldRef<"User", 'String'>
   readonly nip: Prisma.FieldRef<"User", 'String'>

@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
   Search,
@@ -55,6 +56,10 @@ import {
   Trash2,
   Loader2,
   X,
+  Lock,
+  Unlock,
+  LogOut,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
@@ -93,8 +98,33 @@ interface User {
   faculty: string | null;
   bio: string | null;
   isActive: boolean;
+  isFrozen: boolean;
+  frozenAt: string | null;
+  frozenReason: string | null;
+  _count?: { sessions: number };
   createdAt: string;
 }
+
+interface SecurityLog {
+  id: string;
+  action: string;
+  reason: string | null;
+  revokedSessions: number;
+  createdAt: string;
+}
+
+type SecurityAction = "freeze" | "unfreeze" | "force_logout";
+
+const FREEZE_REASON_REQUIRED_MESSAGE = "Alasan pembekuan wajib diisi.";
+const FREEZE_REASON_MAX_LENGTH_MESSAGE =
+  "Alasan pembekuan maksimal 200 karakter.";
+const REASON_MAX_LENGTH_MESSAGE = "Alasan maksimal 200 karakter.";
+
+const SECURITY_ACTION_LABELS: Record<SecurityAction, string> = {
+  freeze: "Pembekuan Akun",
+  unfreeze: "Buka Pembekuan",
+  force_logout: "Force Logout",
+};
 
 function UserFormFields({
   form,
@@ -294,6 +324,7 @@ export default function UsersPage() {
   const [searchInput, setSearchInput] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [levelFilter, setLevelFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -308,11 +339,27 @@ export default function UsersPage() {
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Security action dialogs (freeze / unfreeze / force logout)
+  const [securityDialog, setSecurityDialog] = useState<{
+    user: User;
+    action: SecurityAction;
+  } | null>(null);
+  const [securityReason, setSecurityReason] = useState("");
+  const [securityError, setSecurityError] = useState<string | null>(null);
+  const [securitySubmitting, setSecuritySubmitting] = useState(false);
+
+  // Security audit log dialog
+  const [logsUser, setLogsUser] = useState<User | null>(null);
+  const [logs, setLogs] = useState<SecurityLog[] | null>(null);
+
   const fetchUsers = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (roleFilter !== "all") params.set("role", roleFilter);
     if (levelFilter !== "all") params.set("academicLevel", levelFilter);
+    if (statusFilter === "active") params.set("isActive", "true");
+    if (statusFilter === "inactive") params.set("isActive", "false");
+    if (statusFilter === "frozen") params.set("isFrozen", "true");
     if (search) params.set("search", search);
 
     fetch(`/api/admin/users?${params}`)
@@ -322,7 +369,7 @@ export default function UsersPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [roleFilter, levelFilter, search]);
+  }, [roleFilter, levelFilter, statusFilter, search]);
 
   useEffect(() => {
     fetchUsers();
@@ -403,6 +450,9 @@ export default function UsersPage() {
               faculty: form.faculty || null,
               bio: form.bio || null,
               isActive: form.isActive !== "false",
+              isFrozen: false,
+              frozenAt: null,
+              frozenReason: null,
               createdAt: "",
             });
             setPartialNotice(
@@ -442,6 +492,82 @@ export default function UsersPage() {
     } finally {
       setDeleting(false);
     }
+  }
+
+  function openSecurityDialog(user: User, action: SecurityAction) {
+    setSecurityDialog({ user, action });
+    setSecurityReason("");
+    setSecurityError(null);
+  }
+
+  function closeSecurityDialog() {
+    setSecurityDialog(null);
+    setSecurityReason("");
+    setSecurityError(null);
+  }
+
+  async function handleSecurityAction() {
+    if (!securityDialog) return;
+    const { user, action } = securityDialog;
+    const reason = securityReason.trim();
+
+    if (action === "freeze" && !reason) {
+      setSecurityError(FREEZE_REASON_REQUIRED_MESSAGE);
+      return;
+    }
+    if (reason.length > 200) {
+      setSecurityError(
+        action === "freeze"
+          ? FREEZE_REASON_MAX_LENGTH_MESSAGE
+          : REASON_MAX_LENGTH_MESSAGE
+      );
+      return;
+    }
+
+    setSecurityError(null);
+    setSecuritySubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/security`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...(reason && { reason }) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(errorMessage(data, "Gagal memproses tindakan keamanan"));
+      }
+      const revoked =
+        typeof data?.revokedSessions === "number" ? data.revokedSessions : 0;
+      toast.success(
+        action === "freeze"
+          ? `Akun dibekukan. ${revoked} sesi diputus.`
+          : action === "unfreeze"
+            ? "Pembekuan akun dibuka."
+            : `Force logout selesai. ${revoked} sesi diakhiri.`
+      );
+      closeSecurityDialog();
+      fetchUsers();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal memproses tindakan keamanan"
+      );
+    } finally {
+      setSecuritySubmitting(false);
+    }
+  }
+
+  function openSecurityLogs(user: User) {
+    setLogsUser(user);
+    setLogs(null);
+    fetch(`/api/admin/users/${user.id}/security`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data?.logs)) setLogs(data.logs);
+      })
+      .catch(() => {
+        setLogs([]);
+        toast.error("Gagal memuat riwayat keamanan");
+      });
   }
 
   return (
@@ -511,6 +637,19 @@ export default function UsersPage() {
               </SelectGroup>
             </SelectContent>
           </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="flex-1 sm:w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="active">Aktif</SelectItem>
+                <SelectItem value="inactive">Nonaktif</SelectItem>
+                <SelectItem value="frozen">Dibekukan</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -562,9 +701,29 @@ export default function UsersPage() {
                     {user.role}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={user.isActive ? "default" : "secondary"}>
-                      {user.isActive ? "Aktif" : "Nonaktif"}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge
+                        variant={
+                          user.isFrozen
+                            ? "destructive"
+                            : user.isActive
+                              ? "default"
+                              : "secondary"
+                        }
+                        title={
+                          user.isFrozen ? user.frozenReason ?? undefined : undefined
+                        }
+                      >
+                        {user.isFrozen
+                          ? "Dibekukan"
+                          : user.isActive
+                            ? "Aktif"
+                            : "Nonaktif"}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {user._count?.sessions ?? 0} sesi aktif
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell>{user.academicLevel ?? "—"}</TableCell>
                   <TableCell>{user.major ?? "—"}</TableCell>
@@ -580,6 +739,38 @@ export default function UsersPage() {
                           <DropdownMenuItem onClick={() => openEdit(user)}>
                             <Pencil data-icon="inline-start" />
                             Edit
+                          </DropdownMenuItem>
+                          {user.id !== currentUserId && (
+                            <>
+                              {user.isFrozen ? (
+                                <DropdownMenuItem
+                                  onClick={() => openSecurityDialog(user, "unfreeze")}
+                                >
+                                  <Unlock data-icon="inline-start" />
+                                  Buka Pembekuan
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => openSecurityDialog(user, "freeze")}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Lock data-icon="inline-start" />
+                                  Bekukan Akun
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  openSecurityDialog(user, "force_logout")
+                                }
+                              >
+                                <LogOut data-icon="inline-start" />
+                                Force Logout
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          <DropdownMenuItem onClick={() => openSecurityLogs(user)}>
+                            <ShieldAlert data-icon="inline-start" />
+                            Riwayat Keamanan
                           </DropdownMenuItem>
                           {user.id !== currentUserId && (
                             <DropdownMenuItem
@@ -672,6 +863,146 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Security Action Confirmation */}
+      <Dialog
+        open={!!securityDialog}
+        onOpenChange={(open) => {
+          if (!open) closeSecurityDialog();
+        }}
+      >
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>
+              {securityDialog?.action === "freeze"
+                ? "Bekukan Akun"
+                : securityDialog?.action === "unfreeze"
+                  ? "Buka Pembekuan"
+                  : "Force Logout"}
+            </DialogTitle>
+            <DialogDescription>
+              {securityDialog?.action === "freeze"
+                ? `Membekukan akun ${securityDialog.user.name} akan memblokir login (BR-008) dan memutus seluruh sesi aktifnya segera. Akun tidak dapat masuk hingga pembekuan dibuka kembali oleh admin.`
+                : securityDialog?.action === "unfreeze"
+                  ? `Pembekuan akun ${securityDialog.user.name} akan dibuka sehingga pengguna dapat kembali masuk.`
+                  : `Seluruh sesi aktif ${securityDialog?.user.name} akan diakhiri tanpa menghapus data pengguna (BR-009).`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {securityDialog?.action === "unfreeze" ? (
+            <div className="rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Alasan pembekuan: </span>
+              {securityDialog?.user.frozenReason ?? "—"}
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label htmlFor="security-reason">
+                {securityDialog?.action === "freeze"
+                  ? "Alasan Pembekuan"
+                  : "Alasan (opsional)"}
+              </Label>
+              <Textarea
+                id="security-reason"
+                value={securityReason}
+                onChange={(e) => {
+                  setSecurityReason(e.target.value);
+                  setSecurityError(null);
+                }}
+                placeholder={
+                  securityDialog?.action === "freeze"
+                    ? "Jelaskan alasan pembekuan akun..."
+                    : "Catatan tindakan (opsional)..."
+                }
+                aria-invalid={!!securityError}
+              />
+              <div className="flex items-start justify-between gap-2 text-xs">
+                <span className="text-destructive">{securityError}</span>
+                <span className="shrink-0 text-muted-foreground">
+                  {securityReason.length}/200
+                </span>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={closeSecurityDialog}
+              disabled={securitySubmitting}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleSecurityAction}
+              disabled={securitySubmitting}
+              className={
+                securityDialog?.action === "unfreeze"
+                  ? "bg-brand text-black hover:bg-brand/90"
+                  : "bg-destructive text-white hover:bg-destructive/90"
+              }
+            >
+              {securitySubmitting && (
+                <Loader2 className="animate-spin" data-icon="inline-start" />
+              )}
+              {securityDialog?.action === "freeze"
+                ? "Bekukan"
+                : securityDialog?.action === "unfreeze"
+                  ? "Buka Pembekuan"
+                  : "Force Logout"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Security Audit Log */}
+      <Dialog open={!!logsUser} onOpenChange={(open) => !open && setLogsUser(null)}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Riwayat Keamanan</DialogTitle>
+            <DialogDescription>
+              Catatan tindakan keamanan untuk {logsUser?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {logs === null ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <Loader2 className="animate-spin" />
+              </div>
+            ) : logs.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Belum ada tindakan keamanan.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y">
+                {logs.map((log) => (
+                  <li key={log.id} className="flex flex-col gap-1 py-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium">
+                        {SECURITY_ACTION_LABELS[log.action as SecurityAction] ??
+                          log.action}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(log.createdAt).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    {log.reason && (
+                      <p className="text-muted-foreground">{log.reason}</p>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {log.revokedSessions} sesi diputus
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogsUser(null)}>
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

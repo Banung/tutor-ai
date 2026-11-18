@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
   const filterResult = userFilterSchema.safeParse({
     role: searchParams.get("role") || undefined,
     academicLevel: searchParams.get("academicLevel") || undefined,
+    isActive: searchParams.get("isActive") || undefined,
+    isFrozen: searchParams.get("isFrozen") || undefined,
     search: searchParams.get("search") || undefined,
   });
 
