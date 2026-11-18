@@ -9,6 +9,8 @@ type TutorMessagesRouteContext = {
 
 const messageSchema = z.object({
   content: z.string().trim().min(1, "Pertanyaan tidak boleh kosong").max(8000),
+  requestId: z.uuid().optional(),
+  retryOfRunId: z.uuid().optional(),
   responseMode: z.enum(["chat", "avatar"]).default("chat"),
 });
 
@@ -29,6 +31,8 @@ export async function POST(request: NextRequest, context: TutorMessagesRouteCont
       userId: userId!,
       content: parsed.data.content,
       responseMode: parsed.data.responseMode,
+      requestId: parsed.data.requestId,
+      retryOfRunId: parsed.data.retryOfRunId,
       signal: request.signal,
     });
 

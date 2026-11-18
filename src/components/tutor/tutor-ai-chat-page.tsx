@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
+  BookOpen,
   Loader2,
   MessageCircle,
   Search,
@@ -53,6 +54,11 @@ import { useTutorChat } from "./hooks/use-tutor-chat";
 import { useTutorSpeech } from "./hooks/use-tutor-speech";
 
 const CHAT_INPUT_MIN_HEIGHT = 44;
+const CHAT_STARTER_PROMPTS = [
+  "Jelaskan konsep utama dari materi ini",
+  "Beri contoh sederhana",
+  "Buat kuis singkat untuk saya",
+];
 const CHAT_LANDING_MESSAGES = [
   "Siap belajar hari ini, {name}?",
   "Hai, {name}. Mau mulai dari mana hari ini?",
@@ -108,6 +114,7 @@ export function TutorAiChatPage({
   courseId,
   backHref,
   tutorHref = `/courses/${courseId}/tutor`,
+  courseBaseHref,
   initialSessionId,
 }: TutorAiChatPageProps) {
   const router = useRouter();
@@ -117,6 +124,16 @@ export function TutorAiChatPage({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [input, setInput] = useState("");
+  const draftStorageKey = `tutor-ai-draft:${courseId}`;
+  const updateInput = useCallback((value: string) => {
+    setInput(value);
+    try {
+      if (value) window.sessionStorage.setItem(draftStorageKey, value);
+      else window.sessionStorage.removeItem(draftStorageKey);
+    } catch {
+      // Draft persistence is optional when browser storage is unavailable.
+    }
+  }, [draftStorageKey]);
   const [avatarCustomization, setAvatarCustomization] =
     useState<TutorAvatarCustomization>(DEFAULT_TUTOR_AVATAR_CUSTOMIZATION);
   const [avatarCustomizationHydrated, setAvatarCustomizationHydrated] =
@@ -157,6 +174,7 @@ export function TutorAiChatPage({
     loadingSession,
     creatingChat,
     sending,
+    sendingStage,
     savingContext,
     
     renamingSessionId,
@@ -188,7 +206,7 @@ export function TutorAiChatPage({
     onNewChat: handleNewChatRoute,
     onSessionChange: handleSessionRouteChange,
     input,
-    setInput,
+    setInput: updateInput,
     panelMode,
   });
 
@@ -199,7 +217,7 @@ export function TutorAiChatPage({
     handleStartRecording,
     handleCancelRecording,
     handleConfirmRecording,
-  } = useTutorSpeech({ input, setInput, sending, courseId });
+  } = useTutorSpeech({ input, setInput: updateInput, sending, courseId });
 
   const userFirstName = getFirstName(overview?.user.name);
   const chatLandingMessage = useMemo(
@@ -217,6 +235,23 @@ export function TutorAiChatPage({
   useEffect(() => {
     void loadOverview();
   }, [loadOverview]);
+
+  useEffect(() => {
+    try {
+      const savedDraft = window.sessionStorage.getItem(draftStorageKey);
+      if (savedDraft) setInput(savedDraft);
+    } catch {
+      // The chat remains usable when browser storage is unavailable.
+    }
+  }, [draftStorageKey]);
+
+  async function openMaterialSettings() {
+    if (!activeSession) {
+      const session = await createNewChat();
+      if (!session) return;
+    }
+    setSettingsOpen(true);
+  }
 
   useEffect(() => {
     try {
@@ -288,24 +323,6 @@ export function TutorAiChatPage({
     previousLoadingRef.current = loadingSession;
   }, [activeSessionId, loadingSession, scrollToMessages]);
 
-  const handleSendWithScroll = async () => {
-    // First, let handleSend execute to add the new message to the state and set sending=true
-    await handleSend();
-    
-    // Wait a tick for React to render the new user message in the DOM
-    setTimeout(() => {
-      const messageEls = document.querySelectorAll('[id^="msg-"]');
-      const lastMessageEl = messageEls[messageEls.length - 1];
-      
-      if (lastMessageEl) {
-        // Scroll the user's new message to the top of the viewport (ala ChatGPT)
-        lastMessageEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-        scrollToMessages("smooth");
-      }
-    }, 50);
-  };
-
   // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -363,6 +380,9 @@ export function TutorAiChatPage({
         handleRenameSession={handleRenameSession}
         setDeleteSessionId={setDeleteSessionId}
         backHref={backHref}
+        courseId={courseId}
+        courseBaseHref={courseBaseHref}
+        currentCourseTitle={overview?.course.title}
       />
 
       {/* ==================== MAIN CHAT AREA ==================== */}
@@ -418,23 +438,17 @@ export function TutorAiChatPage({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={async () => {
-                  if (!activeSession) {
-                    const session = await createNewChat();
-                    if (!session) return;
-                  }
-                  setSettingsOpen(true);
-                }}
+                onClick={() => void openMaterialSettings()}
                 disabled={loadingOverview || creatingChat}
                 className="text-muted-foreground hover:text-foreground"
-                aria-label="Context Materi"
+                aria-label="Atur sumber materi"
               >
                 <Settings2 className="size-5" />
                 {savingContext && <Loader2 className="absolute size-5 animate-spin" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              Context Materi ({readyMaterials.length} PDF)
+              Sumber materi ({readyMaterials.length} materi siap)
             </TooltipContent>
           </Tooltip>
         </header>
@@ -442,6 +456,8 @@ export function TutorAiChatPage({
         {/* Messages area */}
         {loadingOverview ? (
           <TutorChatMessages
+            courseId={courseId}
+            canGiveFeedback={overview?.user.role === "mahasiswa"}
             activeSession={null}
             loadingSession
             sending={false}
@@ -450,13 +466,42 @@ export function TutorAiChatPage({
           />
         ) : isChatLanding ? (
           <div className="relative flex-1 px-5">
-            <div className="absolute left-5 right-5 top-[43%] flex -translate-y-1/2 flex-col items-center gap-10 text-center">
+            <div className="absolute left-5 right-5 top-[40%] flex -translate-y-1/2 flex-col items-center gap-5 text-center">
               <p className="max-w-2xl text-balance text-xl font-semibold leading-tight text-foreground sm:text-2xl">
                 {chatLandingMessage}
               </p>
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5">
+                    <BookOpen className="size-3.5 text-brand" />
+                    {readyMaterials.length > 0
+                      ? `Jawaban memakai ${selectedMaterialSet.size} dari ${readyMaterials.length} materi siap`
+                      : "Belum ada materi siap; kamu tetap bisa bertanya umum"}
+                  </span>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => void openMaterialSettings()}>
+                    Atur sumber
+                  </Button>
+                </div>
+                {!input.trim() && (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {CHAT_STARTER_PROMPTS.map((prompt) => (
+                      <Button
+                        key={prompt}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-auto whitespace-normal rounded-full px-3 py-2 text-xs"
+                        onClick={() => updateInput(prompt)}
+                      >
+                        {prompt}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <TutorChatInput
                 input={input}
-                setInput={setInput}
+                setInput={updateInput}
                 panelMode={panelMode}
                 setPanelMode={setPanelMode}
                 placement="inline"
@@ -464,7 +509,7 @@ export function TutorAiChatPage({
                 recording={recording}
                 transcribing={transcribing}
                 recordingLevels={recordingLevels}
-                handleSend={handleSendWithScroll}
+                handleSend={handleSend}
                 handleStop={handleStop}
                 handleStartRecording={handleStartRecording}
                 handleCancelRecording={handleCancelRecording}
@@ -475,9 +520,12 @@ export function TutorAiChatPage({
           </div>
         ) : panelMode === "chat" ? (
           <TutorChatMessages
+            courseId={courseId}
+            canGiveFeedback={overview?.user.role === "mahasiswa"}
             activeSession={activeSession}
             loadingSession={loadingSession}
             sending={sending}
+            sendingStage={sendingStage}
             scrollContainerRef={scrollContainerRef}
             messagesEndRef={messagesEndRef}
           />
@@ -497,14 +545,14 @@ export function TutorAiChatPage({
         {!loadingOverview && !isChatLanding && (
           <TutorChatInput
             input={input}
-            setInput={setInput}
+            setInput={updateInput}
             panelMode={panelMode}
             setPanelMode={setPanelMode}
             sending={sending}
             recording={recording}
             transcribing={transcribing}
             recordingLevels={recordingLevels}
-            handleSend={handleSendWithScroll}
+            handleSend={handleSend}
             handleStop={handleStop}
             handleStartRecording={handleStartRecording}
             handleCancelRecording={handleCancelRecording}

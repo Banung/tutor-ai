@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.env
+.env.*
+outputs
+compose.local.yaml
+*.log
+coverage
+gha-creds-*.json

@@ -9,9 +9,11 @@ export default async function MahasiswaTutorPage({ params }: MahasiswaTutorPageP
 
   return (
     <TutorAiChatPage 
+      key={id}
       courseId={id} 
       backHref={`/mahasiswa/courses/${id}`} 
       tutorHref={`/mahasiswa/courses/${id}/tutor`}
+      courseBaseHref="/mahasiswa/courses"
     />
   );
 }

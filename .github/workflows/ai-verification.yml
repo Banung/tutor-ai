@@ -1,0 +1,29 @@
+name: AI verification
+on:
+  pull_request:
+  push:
+    branches: [main, development, fix/ai-answer-reliability]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: bash scripts/reproduce-ai-baseline.sh
+      - run: pnpm test
+      - run: pnpm test:pdf
+      - run: pnpm typecheck
+      # Full-repository lint has pre-existing UI errors; see docs/ai/verification.md.
+      - run: pnpm exec eslint src/lib/tutor-ai src/lib/material-processing/pdf.ts src/lib/material-processing/embedding.ts src/lib/services/tutor-prompt.service.ts prisma/seed-prompts.ts tests scripts
+      - run: pnpm build
+      - run: pnpm eval:ai

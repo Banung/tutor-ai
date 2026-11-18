@@ -1,0 +1,5 @@
+{
+  "kind": "dry-run",
+  "cases": 25,
+  "note": "No API calls or writes. Use --live --config <path> --out <report.json>; set AI_EVAL_COOKIE locally."
+}

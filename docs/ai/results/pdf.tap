@@ -1,0 +1,25 @@
+TAP version 13
+# Warning: UnknownErrorException: Ensure that the `standardFontDataUrl` API parameter is provided.
+# Warning: UnknownErrorException: Ensure that the `standardFontDataUrl` API parameter is provided.
+# Subtest: digital PDF preserves native text once and skips full-page OCR
+ok 1 - digital PDF preserves native text once and skips full-page OCR
+  ---
+  duration_ms: 6069.291131
+  type: 'test'
+  ...
+# Warning: UnknownErrorException: Ensure that the `standardFontDataUrl` API parameter is provided.
+# Subtest: image-only PDF is actually OCRed and retains known facts
+ok 2 - image-only PDF is actually OCRed and retains known facts
+  ---
+  duration_ms: 7298.046004
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15224.355528

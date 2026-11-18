@@ -1,3 +1,5 @@
+import type { TutorFeedback } from "@/lib/tutor-ai/feedback-schema";
+
 export type TutorMaterial = {
   id: string;
   title: string;
@@ -18,6 +20,7 @@ export type TutorChatSessionSummary = {
 };
 
 export type TutorMessage = {
+  feedback?: TutorFeedback | null;
   id: string;
   senderType: "user" | "ai" | string;
   content: string;
@@ -57,16 +60,19 @@ export type RagSource = {
   materialId: string;
   materialTitle: string;
   fileName: string;
+  publicUrl?: string | null;
   sessionTitle: string;
   pageNumber: number;
   chunkIndex: number;
   similarity: number;
   snippet: string;
+  sourceNumber?: number;
 };
 
 export type TutorAiChatPageProps = {
   courseId: string;
   backHref: string;
   tutorHref?: string;
+  courseBaseHref?: string;
   initialSessionId?: string;
 };

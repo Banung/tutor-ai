@@ -77,22 +77,18 @@ export async function listMahasiswaCourses(mahasiswaId: string, search?: string)
 
 export async function searchAvailableCourses(mahasiswaId: string, search?: string) {
   const query = search?.trim();
-  if (!query) return [];
-
   const courses = await prisma.course.findMany({
     where: {
       isActive: true,
       catalogStatus: "PUBLISHED",
-      enrollments: {
-        none: {
-          userId: mahasiswaId,
-          isActive: true,
-        },
-      },
-      OR: [
-        { title: { contains: query, mode: "insensitive" } },
-        { description: { contains: query, mode: "insensitive" } },
-      ],
+      ...(query
+        ? {
+            OR: [
+              { title: { contains: query, mode: "insensitive" as const } },
+              { description: { contains: query, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
     },
     include: {
       creator: { select: { id: true, name: true } },
@@ -102,13 +98,17 @@ export async function searchAvailableCourses(mahasiswaId: string, search?: strin
         },
       },
       _count: { select: { instructors: true, sessions: true } },
+      enrollments: { where: { userId: mahasiswaId, isActive: true }, select: { id: true } },
     },
     orderBy: { title: "asc" },
-    take: 8,
   });
 
   const coursesWithCover = await ensureCourseCovers(courses);
-  return coursesWithCover.map(hideEnrollmentKey);
+  return coursesWithCover.map((course) => ({
+    ...hideEnrollmentKey(course),
+    isEnrolled: course.enrollments.length > 0,
+    enrollments: undefined,
+  }));
 }
 
 export async function enrollMahasiswaCourse(

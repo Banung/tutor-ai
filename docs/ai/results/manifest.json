@@ -1,0 +1,12 @@
+{
+  "implementationRevision": "b295718c998c2aeaf5eeb3995c6e53b3d5a796f8",
+  "fixtureHashes": {
+    "01-statistika-digital.pdf": "1e55c13d426ab3206b5e9744d604dc5d8d90d39459a95d13ac9ee6a6dc388c8d",
+    "02-praktikum-scan.pdf": "cbbad564ac62b32c29f32973c7da3e9d7cba5b32a6c009facb55cd69fcda6ac8",
+    "03-course-distractor.pdf": "f2ca110b882c666cfb421cd5ba1ba0a22d5ac486d811d767edc0fda03ddcce23",
+    "04-untrusted-document.pdf": "bf6c0cc4f14a3672c0716b1fb300271fd65b598735f289ed2687d3bdf3dbebfd",
+    "questions.json": "f7547b03822b87c096896773595bd03ae9f85708d0660bda9053aac1906632c0"
+  },
+  "liveModelEvaluation": "not_run_no_credentials",
+  "databaseIntegration": "not_run_no_credentials"
+}

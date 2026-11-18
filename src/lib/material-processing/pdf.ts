@@ -51,13 +51,14 @@ function extractTextItems(items: unknown[]) {
     items
       .map((item) => {
         if (typeof item === "object" && item !== null && "str" in item) {
-          return String((item as { str?: string }).str ?? "");
+          const textItem = item as { str?: string; hasEOL?: boolean };
+          return `${textItem.str ?? ""}${textItem.hasEOL ? "\n" : " "}`;
         }
 
         return "";
       })
       .filter(Boolean)
-      .join(" ")
+      .join("")
   );
 }
 
@@ -138,27 +139,26 @@ export async function extractPdfPages(
   let workerError: string | null = null;
 
   try {
-    worker = await createOcrWorker();
-  } catch (error) {
-    workerError = error instanceof Error ? error.message : String(error);
-  }
-
-  try {
     for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
       const page = await document.getPage(pageNumber);
       const textContent = await page.getTextContent();
       const embeddedText = extractTextItems(textContent.items as unknown[]);
       await callbacks.onExtractedText?.(pageNumber, pageCount);
 
-      const ocr = await recognizePage(
-        worker,
-        page as unknown as Parameters<typeof recognizePage>[1],
-        canvasFactory
-      );
-      await callbacks.onOcrPage?.(pageNumber, pageCount);
+      // Prefer a usable native text layer. Full-page OCR of digital PDFs
+      // duplicates paragraphs and can introduce conflicting numbers.
+      const needsOcr = embeddedText.replace(/\s/g, "").length < 80;
+      if (needsOcr && !worker && !workerError) {
+        try { worker = await createOcrWorker(); }
+        catch (error) { workerError = error instanceof Error ? error.message : String(error); }
+      }
+      const ocr = needsOcr
+        ? await recognizePage(worker, page as unknown as Parameters<typeof recognizePage>[1], canvasFactory)
+        : { text: "", attempted: false, error: null };
+      if (ocr.attempted) await callbacks.onOcrPage?.(pageNumber, pageCount);
 
       const finalText = cleanExtractedText(
-        [embeddedText, ocr.text].filter(Boolean).join("\n\n")
+        ocr.text || embeddedText
       );
 
       pages.push({

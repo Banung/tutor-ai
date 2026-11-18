@@ -45,6 +45,8 @@ model User {
   enrollments        Enrollment[]
   courseSessionsMade CourseSession[]    @relation("CourseSessionCreator")
   materialsUploaded  Material[]
+  aiMessageFeedback  AiMessageFeedback[] @relation("FeedbackOwner")
+  feedbackReviews    AiMessageFeedback[] @relation("FeedbackReviewer")
   aiChatSessions     AiChatSession[]
 
   @@map("user")
@@ -307,6 +309,7 @@ model Course {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
+  answerCorrections AiAnswerCorrection[]
   creator        User               @relation("CourseCreator", fields: [createdBy], references: [id], onDelete: Cascade)
   studyProgram   StudyProgram?      @relation(fields: [studyProgramId], references: [id], onDelete: Restrict)
   instructors    CourseInstructor[]
@@ -314,6 +317,7 @@ model Course {
   sessions       CourseSession[]
   materialChunks MaterialChunk[]
   aiChatSessions AiChatSession[]
+  invitation    CourseInvitation?
 
   @@unique([studyProgramId, courseCode])
   @@index([enrollmentKey])
@@ -333,6 +337,18 @@ model CourseCatalogStatusLog {
 
   @@index([courseId, createdAt])
   @@map("course_catalog_status_log")
+}
+
+model CourseInvitation {
+  id        String   @id
+  courseId  String   @unique
+  tokenHash String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("course_invitation")
 }
 
 // Satu course bisa diampu banyak dosen
@@ -516,6 +532,7 @@ model AiChatSession {
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   course        Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseSession CourseSession   @relation(fields: [courseSessionId], references: [id], onDelete: Cascade)
+  responseRuns  AiResponseRun[]
   messages      AiChatMessage[]
 
   @@index([userId, courseSessionId])
@@ -524,6 +541,7 @@ model AiChatSession {
 }
 
 model AiChatMessage {
+  feedbacks AiMessageFeedback[]
   id              String   @id
   aiChatSessionId String
   senderType      String // user | ai
@@ -555,4 +573,117 @@ model TutorPromptConfig {
 
   @@unique([academicLevel, responseMode])
   @@map("tutor_prompt_config")
+}
+
+// Snapshot data is private to the chat owner and deleted with the session.
+model AiResponseRun {
+  feedbacks AiMessageFeedback[]
+  id              String @id
+  aiChatSessionId String
+  requestId       String
+  retryOfRunId    String?
+  requestHash     String
+  status          String @default("running")
+  stage           String @default("retrieval")
+  question        String
+  responseMode    String
+  userMessageId   String?
+  answerMessageId String? @unique
+  configuration   Json?
+  evidence        Json?
+  tokenUsage      Json?
+  errorCategory   String?
+  startedAt       DateTime @default(now())
+  finishedAt      DateTime?
+  durationMs      Int?
+
+  aiChatSession AiChatSession @relation(fields: [aiChatSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([aiChatSessionId, requestId])
+  @@index([aiChatSessionId, startedAt])
+  @@map("ai_response_run")
+}
+
+model AiMessageFeedback {
+  corrections AiAnswerCorrection[]
+  reviewStatus   String @default("pending")
+  reviewRevision Int @default(1)
+  reviewerId     String?
+  reviewedAt     DateTime?
+  id        String @id @default(cuid())
+  userId    String
+  messageId String
+  runId     String?
+  value     String
+  reason    String?
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User @relation("FeedbackOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("FeedbackReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewEvents AiFeedbackReviewEvent[]
+  message AiChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  run     AiResponseRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, messageId])
+  @@index([runId])
+  @@index([value, reviewStatus, updatedAt])
+  @@map("ai_message_feedback")
+}
+
+model AiFeedbackReviewEvent {
+  id             String @id @default(cuid())
+  feedbackId     String
+  revision       Int
+  eventType      String
+  fromStatus     String?
+  toStatus       String
+  actorId        String
+  actorRole      String
+  actorName      String?
+  feedbackBefore Json?
+  feedbackAfter  Json?
+  createdAt      DateTime @default(now())
+
+  feedback AiMessageFeedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@unique([feedbackId, revision])
+  @@map("ai_feedback_review_event")
+}
+
+model AiAnswerCorrection {
+  id                   String @id @default(cuid())
+  courseId             String
+  feedbackId           String?
+  questionKey          String
+  question             String
+  version              Int
+  answer               String
+  rationale            String
+  sourceSnapshot       Json
+  sourceFingerprint    String
+  status               String @default("draft")
+  authorId             String
+  authorName           String
+  approvedBy           String?
+  approvedByName       String?
+  approvedAt           DateTime?
+  withdrawnBy          String?
+  withdrawnByName      String?
+  withdrawnAt          DateTime?
+  withdrawalReason     String?
+  supersededById       String?
+  embeddingModel       String?
+  embeddingDimensions  Int?
+  questionEmbedding    Unsupported("vector(768)")?
+  createdAt            DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  feedback AiMessageFeedback? @relation(fields: [feedbackId], references: [id], onDelete: SetNull)
+
+  @@unique([courseId, questionKey, version])
+  @@index([courseId, status])
+  @@index([feedbackId])
+  @@map("ai_answer_correction")
 }
