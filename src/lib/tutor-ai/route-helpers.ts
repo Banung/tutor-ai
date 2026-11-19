@@ -11,6 +11,17 @@ export async function requireTutorUser(request: NextRequest) {
     };
   }
 
+  const user = session.user as { isFrozen?: boolean; isActive?: boolean };
+  if (user.isFrozen === true || user.isActive === false) {
+    return {
+      userId: null,
+      error: NextResponse.json(
+        { error: "Akun dibekukan atau tidak aktif." },
+        { status: 403 }
+      ),
+    };
+  }
+
   return { userId: session.user.id, error: null };
 }
 

@@ -106,6 +106,35 @@ export async function createCorrectionDraft(userId: string, feedbackId: string, 
   });
 }
 
+export async function createCourseCorrectionDraft(userId: string, courseId: string, payload: unknown) {
+  const parsed = correctionDraftSchema.safeParse(payload);
+  if (!parsed.success) throw new TutorAiServiceError("Isi pertanyaan, koreksi, alasan, dan sumber materi tidak valid.", 400);
+  const { sourceChunkIds, sourceRanges, ...content } = parsed.data;
+  return feedbackTransaction(async (tx) => {
+    const author = await requireCorrectionLecturer(userId, courseId, tx);
+    const sources = await captureCorrectionSelections(courseId, sourceChunkIds, sourceRanges, tx);
+    const questionKey = correctionQuestionKey(content.question);
+    const previous = await tx.aiAnswerCorrection.findFirst({
+      where: { courseId, questionKey },
+      orderBy: { version: "desc" },
+      select: { version: true },
+    });
+    return tx.aiAnswerCorrection.create({
+      data: {
+        ...content,
+        courseId,
+        feedbackId: null,
+        questionKey,
+        version: (previous?.version ?? 0) + 1,
+        sourceSnapshot: sources,
+        sourceFingerprint: fingerprint(sources),
+        authorId: author.id,
+        authorName: author.name,
+      },
+    });
+  });
+}
+
 export async function listCourseCorrections(userId: string, query: unknown = {}) {
   const parsed = z.object({ courseId: z.string().min(1).optional(), page: z.coerce.number().int().min(1).max(10000).default(1) }).safeParse(query);
   if (!parsed.success) throw new TutorAiServiceError("Filter koreksi tidak valid.", 400);

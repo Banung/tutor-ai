@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  ArrowRight,
   Check,
   ChevronRight,
   Copy,
@@ -63,6 +64,11 @@ function getMessageSources(message: TutorMessage): RagSource[] {
   });
 }
 
+function isSummaryResponse(message: TutorMessage) {
+  if (!message.ragSources || typeof message.ragSources !== "object") return false;
+  return (message.ragSources as { intent?: unknown }).intent === "summary";
+}
+
 function getUniqueSources(sources: RagSource[]) {
   const seen = new Set<string>();
   return sources.filter((source) => {
@@ -71,6 +77,106 @@ function getUniqueSources(sources: RagSource[]) {
     seen.add(key);
     return true;
   });
+}
+
+const SOURCE_KEYWORD_STOPWORDS = new Set([
+  "about", "after", "also", "among", "because", "being", "between", "could", "does", "from", "have", "into", "more", "most", "other", "over", "same", "should", "some", "source", "such", "than", "that", "their", "there", "these", "they", "this", "those", "through", "under", "using", "very", "what", "when", "where", "which", "while", "were", "with", "would",
+  "akan", "atau", "bagi", "bahwa", "banyak", "belum", "bisa", "dalam", "dan", "dapat", "dari", "dengan", "di", "ini", "itu", "juga", "karena", "ke", "lebih", "oleh", "pada", "para", "saat", "sebagai", "secara", "sehingga", "seperti", "sudah", "sumber", "telah", "tentang", "tersebut", "tidak", "untuk", "yang",
+]);
+
+function countSourceTerms(text: string) {
+  const counts = new Map<string, number>();
+  for (const match of text.toLocaleLowerCase().matchAll(/[\p{L}\p{N}][\p{L}\p{N}-]{3,}/gu)) {
+    const term = match[0].replace(/-+$/g, "");
+    if (term.length < 4 || SOURCE_KEYWORD_STOPWORDS.has(term)) continue;
+    counts.set(term, (counts.get(term) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function normalizeSourceTerm(term: string) {
+  const normalized = term.toLocaleLowerCase();
+  if (normalized.endsWith("ies") && normalized.length > 5) return `${normalized.slice(0, -3)}y`;
+  if (/(ses|xes|zes|ches|shes|oes)$/.test(normalized) && normalized.length > 5) {
+    return normalized.slice(0, -2);
+  }
+  if (normalized.endsWith("s") && normalized.length > 4 && !normalized.endsWith("ss")) return normalized.slice(0, -1);
+  return normalized;
+}
+
+function getRelatedTopic(evidence: CitationEvidence[], question: string) {
+  const questionTerms = [...countSourceTerms(question).keys()];
+  const pageTerms = new Set(
+    [...countSourceTerms(evidence.map(({ source }) => source.snippet).join(" ")).keys()]
+      .map(normalizeSourceTerm),
+  );
+  let bestPhrase: string[] = [];
+  let currentPhrase: string[] = [];
+
+  for (const term of questionTerms) {
+    if (pageTerms.has(normalizeSourceTerm(term))) {
+      currentPhrase.push(term);
+      if (currentPhrase.length > bestPhrase.length) bestPhrase = [...currentPhrase];
+    } else {
+      currentPhrase = [];
+    }
+  }
+
+  return bestPhrase.length > 0 ? bestPhrase.join(" ") : null;
+}
+
+function getMostRelatedEvidence(evidence: CitationEvidence[], question: string) {
+  return [...evidence].sort((left, right) => {
+    const leftTopic = getRelatedTopic([left], question);
+    const rightTopic = getRelatedTopic([right], question);
+    const topicLength = (topic: string | null) => topic?.split(/\s+/).length ?? 0;
+    return topicLength(rightTopic) - topicLength(leftTopic)
+      || right.source.similarity - left.source.similarity;
+  })[0] ?? null;
+}
+
+function splitSourceSentences(text: string) {
+  if (typeof Intl.Segmenter === "function") {
+    return [...new Intl.Segmenter(undefined, { granularity: "sentence" }).segment(text)]
+      .map(({ segment }) => segment.trim())
+      .filter(Boolean);
+  }
+
+  return (text.match(/[^.!?]+[.!?]*/gu) ?? [text]).map((sentence) => sentence.trim()).filter(Boolean);
+}
+
+function getSentenceExcerpt(text: string, topic: string | null, sentenceLimit: number) {
+  const sentences = splitSourceSentences(text);
+  if (sentences.length <= sentenceLimit) return text;
+
+  const topicTerms = new Set([...countSourceTerms(topic ?? "").keys()].map(normalizeSourceTerm));
+  const relatedSentenceIndex = sentences.findIndex((sentence) =>
+    [...countSourceTerms(sentence).keys()].some((term) => topicTerms.has(normalizeSourceTerm(term)))
+  );
+  const startIndex = relatedSentenceIndex < 0 ? 0 : Math.max(0, relatedSentenceIndex - 1);
+  const endIndex = Math.min(sentences.length, startIndex + sentenceLimit);
+  const prefix = startIndex > 0 ? "… " : "";
+  const suffix = endIndex < sentences.length ? " …" : "";
+
+  return `${prefix}${sentences.slice(startIndex, endIndex).join(" ")}${suffix}`;
+}
+
+function highlightSourceKeyword(text: string, keyword: string | null): ReactNode {
+  if (!keyword) return text;
+
+  const terms = [...countSourceTerms(keyword).keys()];
+  if (terms.length === 0) return text;
+  const pattern = terms.map((term) => {
+    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return `${escapedTerm}(?:es|s)?`;
+  }).join("|");
+  const parts = text.split(new RegExp(`\\b(${pattern})\\b`, "gi"));
+  const keywordTerms = new Set(terms.map(normalizeSourceTerm));
+  return parts.map((part, index) => (
+    keywordTerms.has(normalizeSourceTerm(part))
+      ? <mark key={`${keyword}-${index}`} className="rounded-sm bg-amber-300/45 px-0.5 font-medium text-foreground dark:bg-amber-300/25">{part}</mark>
+      : part
+  ));
 }
 
 type CitationEvidence = {
@@ -308,9 +414,11 @@ function chooseTutorVoice(voices: SpeechSynthesisVoice[], lang: "id" | "en") {
 
 function MessageSources({
   sourceGroups,
+  relatedQuestion,
   onOpenSource,
 }: {
   sourceGroups: CitationSourceGroup[];
+  relatedQuestion: string;
   onOpenSource: (sourceNumber: number) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -320,6 +428,8 @@ function MessageSources({
   return (
     <div className="mt-5 border-t border-border/50 pt-3">
       <button
+        type="button"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground/80 transition-colors hover:text-foreground"
       >
@@ -329,33 +439,48 @@ function MessageSources({
             isOpen && "rotate-90 text-brand"
           )}
         />
-        <span>Sumber ({sourceGroups.length})</span>
+        <span>Sumber ({sourceGroups.reduce((count, group) => count + group.sourceNumbers.length, 0)})</span>
       </button>
 
       {isOpen && (
-        <div className="mt-2.5 flex flex-col gap-3 pl-2 animate-in fade-in-50 slide-in-from-top-1 duration-200">
+        <div className="mt-3 flex flex-col gap-2.5 pl-2 animate-in fade-in-50 slide-in-from-top-1 duration-200">
           {sourceGroups.map((group) => {
             const pages = [...new Set(group.evidence.map(({ source }) => source.pageNumber))]
               .sort((left, right) => left - right);
-            const firstEvidence = group.evidence[0];
+            const relatedEvidence = getMostRelatedEvidence(group.evidence, relatedQuestion);
+            const relatedTopic = relatedEvidence ? getRelatedTopic([relatedEvidence], relatedQuestion) : null;
 
             return (
               <button
                 key={group.materialId || group.materialTitle}
                 type="button"
-                onClick={() => onOpenSource(firstEvidence?.sourceNumber ?? group.sourceNumbers[0] ?? 1)}
-                className="flex w-full flex-col gap-1 rounded-lg px-2 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/70"
+                onClick={() => onOpenSource(relatedEvidence?.sourceNumber ?? group.sourceNumbers[0] ?? 1)}
+                className="group flex w-full flex-col gap-2 rounded-xl border border-border/60 bg-card/45 p-3 text-left text-xs text-muted-foreground transition-all hover:border-brand/35 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
               >
-                <span className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
-                  <FileText className="size-3.5 shrink-0 text-brand" />
-                  <span className="truncate">{group.materialTitle}</span>
+                <span className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="flex min-w-0 items-start gap-2">
+                    <FileText className="mt-0.5 size-3.5 shrink-0 text-brand" />
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-foreground">{group.materialTitle}</span>
+                      <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                        {pages.length > 0 ? `Hal. ${pages.join(", ")}` : "Kutipan materi"}
+                        {group.evidence.length > 1 ? ` · ${group.evidence.length} kutipan` : ""}
+                      </span>
+                    </span>
+                  </span>
+                  <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
                 </span>
-                <span className="pl-5 text-[11px] text-muted-foreground">
-                  {pages.length > 0 ? `Hal. ${pages.join(", ")}` : "Kutipan materi"}
+                <span className="flex flex-wrap items-center gap-1.5 pl-5">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">Topik terkait</span>
+                  {relatedTopic ? (
+                    <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand">{relatedTopic}</span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Konteks materi</span>
+                  )}
                 </span>
-                {firstEvidence?.source.snippet && (
-                  <span className="line-clamp-2 pl-5 text-[11px] leading-relaxed italic text-muted-foreground/80">
-                    &quot;{firstEvidence.source.snippet}&quot;
+                {relatedEvidence?.source.snippet && (
+                  <span className="pl-5 text-[11px] leading-relaxed text-muted-foreground/90">
+                    {highlightSourceKeyword(getSentenceExcerpt(relatedEvidence.source.snippet, relatedTopic, 2), relatedTopic)}
                   </span>
                 )}
               </button>
@@ -370,6 +495,8 @@ function MessageSources({
 type CitationPreviewState = {
   group: CitationSourceGroup;
   focusedChunkId: string;
+  pageNumber: number;
+  relatedTopic: string | null;
 };
 
 function CitationPreviewSheet({
@@ -380,13 +507,12 @@ function CitationPreviewSheet({
   onOpenChange: (preview: CitationPreviewState | null) => void;
 }) {
   const group = preview?.group;
-  const evidence = group?.evidence ?? [];
-  const orderedEvidence = preview
-    ? [
-        ...evidence.filter(({ source }) => source.chunkId === preview.focusedChunkId),
-        ...evidence.filter(({ source }) => source.chunkId !== preview.focusedChunkId),
-      ]
+  const evidence = preview
+    ? group?.evidence.filter(({ source }) => source.pageNumber === preview.pageNumber) ?? []
     : [];
+  const orderedEvidence = [...evidence].sort(
+    (left, right) => left.source.chunkIndex - right.source.chunkIndex,
+  );
 
   return (
     <Sheet
@@ -413,13 +539,19 @@ function CitationPreviewSheet({
           <div className="border-b border-border/70 px-5 py-3">
             <p className="text-sm font-medium text-foreground">Kutipan yang mendukung jawaban</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {evidence.length} potongan dari {new Set(evidence.map(({ source }) => source.pageNumber)).size} halaman PDF
+              {evidence.length} potongan dari halaman PDF {preview?.pageNumber}
             </p>
+            {preview?.relatedTopic && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">Topik terkait</span>
+                <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">{preview.relatedTopic}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto px-5 py-4">
             <div className="flex flex-col gap-3">
-              {orderedEvidence.map(({ source }) => {
+              {orderedEvidence.map(({ source }, excerptIndex) => {
                 const pdfPageUrl = getPdfPageUrl(group?.publicUrl ?? null, source.pageNumber);
                 const isFocused = source.chunkId === preview?.focusedChunkId;
 
@@ -433,7 +565,7 @@ function CitationPreviewSheet({
                   >
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-xs font-semibold text-foreground">
-                        Halaman PDF {source.pageNumber}
+                        Kutipan {excerptIndex + 1} dari {orderedEvidence.length} · Halaman PDF {source.pageNumber}
                       </p>
                       {pdfPageUrl && (
                         <a
@@ -448,7 +580,9 @@ function CitationPreviewSheet({
                       )}
                     </div>
                     <blockquote className="border-l-2 border-brand/35 pl-3 text-sm leading-relaxed text-muted-foreground">
-                      {source.snippet || "Kutipan teks tidak tersedia untuk potongan ini."}
+                      {source.snippet
+                        ? highlightSourceKeyword(source.snippet, preview?.relatedTopic ?? null)
+                        : "Kutipan teks tidak tersedia untuk potongan ini."}
                     </blockquote>
                   </article>
                 );
@@ -633,6 +767,7 @@ export type TutorChatMessagesProps = {
   loadingSession: boolean;
   sending: boolean;
   sendingStage?: "preparing" | "generating" | null;
+  onCreateSummary?: (anchorMessageId: string) => void;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -644,6 +779,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   loadingSession,
   sending,
   sendingStage,
+  onCreateSummary,
   scrollContainerRef,
   messagesEndRef,
 }: TutorChatMessagesProps) {
@@ -788,23 +924,38 @@ export const TutorChatMessages = memo(function TutorChatMessages({
         ) : activeSession.messages.length === 0 ? (
           <div className="min-h-[60vh]" aria-hidden="true" />
         ) : (
-          activeSession.messages.map((message) => {
+          activeSession.messages.map((message, messageIndex) => {
             const isUser = message.senderType === "user";
             const sources = getUniqueSources(getMessageSources(message));
             const sourceGroups = groupCitationSources(sources);
             const isStreaming = sending && message.id.startsWith("streaming-");
+            const canCreateSummary =
+              !isUser &&
+              !isStreaming &&
+              !isSummaryResponse(message) &&
+              message.content.trim().length > 0 &&
+              sources.length > 0 &&
+              Boolean(onCreateSummary);
+            const relatedQuestion = isUser
+              ? ""
+              : activeSession.messages
+                  .slice(0, messageIndex)
+                  .reverse()
+                  .find((previousMessage) => previousMessage.senderType === "user")?.content ?? "";
 
             const openSource = (sourceNumber: number) => {
               const group = sourceGroups.find((item) => item.sourceNumbers.includes(sourceNumber));
               if (!group) return;
 
-              const focusedEvidence = group.evidence.find((item) => item.sourceNumber === sourceNumber)
-                ?? group.evidence[0];
+              const citationEvidence = group.evidence.filter((item) => item.sourceNumber === sourceNumber);
+              const focusedEvidence = getMostRelatedEvidence(citationEvidence, relatedQuestion);
               if (!focusedEvidence) return;
 
               setCitationPreview({
                 group,
                 focusedChunkId: focusedEvidence.source.chunkId,
+                pageNumber: focusedEvidence.source.pageNumber,
+                relatedTopic: getRelatedTopic([focusedEvidence], relatedQuestion),
               });
             };
 
@@ -873,6 +1024,34 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                           <span className="inline-block h-4 w-0.5 animate-pulse bg-brand align-text-bottom" />
                         )}
                       </div>
+
+                      {!isStreaming && (
+                        <MessageSources
+                          sourceGroups={sourceGroups}
+                          relatedQuestion={relatedQuestion}
+                          onOpenSource={openSource}
+                        />
+                      )}
+
+                      {canCreateSummary && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="lg"
+                          disabled={sending}
+                          onClick={() => onCreateSummary?.(message.id)}
+                          aria-label="Buat ringkasan materi dari jawaban ini"
+                          className="mt-4 h-auto w-full justify-between gap-4 rounded-2xl border-border bg-card px-5 py-4 text-left whitespace-normal hover:bg-muted/60"
+                        >
+                          <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                            <span className="font-medium text-foreground">Buat ringkasan materi ini</span>
+                            <span className="text-sm font-normal text-muted-foreground">
+                              Poin inti, istilah penting, dan hubungan konsep
+                            </span>
+                          </span>
+                          <ArrowRight data-icon="inline-end" className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        </Button>
+                      )}
 
                       {!isStreaming && message.content.trim() && (
                         <div className="mt-3 flex flex-wrap items-center gap-1">
@@ -943,9 +1122,6 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                     </>
                   )}
 
-                  {!isUser && !isStreaming && (
-                    <MessageSources sourceGroups={sourceGroups} onOpenSource={openSource} />
-                  )}
                 </div>
               </div>
             );

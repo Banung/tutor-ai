@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { DosenUsageInsights } from "@/app/dosen/usage-insights";
 import {
   BookOpen,
   GraduationCap,
@@ -119,11 +120,11 @@ function CourseCard({ course }: { course: DosenCourse }) {
         <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1 whitespace-nowrap">
             <GraduationCap className="size-3.5" />
-            {course._count.enrollments} Mahasiswa
+            {course._count.enrollments} Enrollment
           </span>
           <span className="flex items-center gap-1 whitespace-nowrap">
             <CalendarDays className="size-3.5" />
-            {course._count.sessions} Sesi
+            {course._count.sessions} Sesi Materi
           </span>
         </div>
       </CardContent>
@@ -273,8 +274,8 @@ export default function DosenDashboardPage() {
 
   const statCards = [
     { title: "Total Course", value: stats?.totalCourses, icon: BookOpen, color: "text-brand" },
-    { title: "Total Mahasiswa", value: stats?.totalStudents, icon: Users, color: "text-blue-500" },
-    { title: "Total Sesi", value: stats?.totalSessions, icon: CalendarDays, color: "text-emerald-500" },
+    { title: "Total Enrollment", value: stats?.totalStudents, icon: Users, color: "text-blue-500" },
+    { title: "Sesi Materi", value: stats?.totalSessions, icon: CalendarDays, color: "text-emerald-500" },
   ];
 
   return (
@@ -293,6 +294,8 @@ export default function DosenDashboardPage() {
           <StatCard key={card.title} {...card} />
         ))}
       </div>
+
+      <DosenUsageInsights />
 
       <Card className="border-brand/20 bg-brand/[0.03]">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">

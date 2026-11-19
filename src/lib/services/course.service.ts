@@ -1,7 +1,133 @@
 import prisma from "@/lib/prisma";
-import type { CreateCourseInput, UpdateCourseInput } from "@/lib/schemas/course.schema";
-import { generateCourseCover, isCurrentCourseCover } from "@/lib/course-cover";
-import { deleteMaterialFilesFromSupabase } from "@/lib/supabase-storage";
+import type { Prisma } from "@/app/generated/prisma/client";
+import type {
+  AdminCreateCourseInput,
+  CatalogStatusInput,
+  UpdateCourseInput,
+} from "@/lib/schemas/course.schema";
+import {
+  generateCourseCover,
+  isCurrentCourseCover,
+  isCustomCourseCover,
+} from "@/lib/course-cover";
+import { validateCourseCoverUpload } from "@/lib/course-cover-upload";
+import { assertStudyProgramExists } from "@/lib/services/academic.service";
+import {
+  deleteCourseCoverFromSupabase,
+  deleteMaterialFilesFromSupabase,
+  uploadCourseCoverToSupabase,
+} from "@/lib/supabase-storage";
+
+export type PublicationMissingField = { field: string; message: string };
+
+export class CourseServiceError extends Error {
+  constructor(
+    message: string,
+    readonly status = 400,
+    readonly missingFields?: PublicationMissingField[]
+  ) {
+    super(message);
+    this.name = "CourseServiceError";
+  }
+}
+
+export const PUBLICATION_INCOMPLETE_MESSAGE =
+  "Lengkapi data sebelum mempublikasikan entri.";
+
+export const INACTIVE_LECTURER_MESSAGE = "Dosen tidak aktif tidak dapat dipetakan.";
+
+const COURSE_CODE_PATTERN = /^[A-Z0-9]{4,12}$/;
+
+/**
+ * Operational definition of a publishable catalog entry.
+ * Description, outcomes, custom cover, and AR availability stay optional.
+ */
+export function getCoursePublicationIssues(course: {
+  title: string;
+  courseCode: string | null;
+  studyProgram: { id: string; facultyId: string } | null;
+  instructorCount: number;
+}): PublicationMissingField[] {
+  const issues: PublicationMissingField[] = [];
+  const title = course.title.trim();
+
+  if (!title) {
+    issues.push({ field: "title", message: "Nama mata kuliah wajib diisi." });
+  } else if (title.length > 150) {
+    issues.push({
+      field: "title",
+      message: "Nama mata kuliah maksimal 150 karakter.",
+    });
+  }
+
+  if (!COURSE_CODE_PATTERN.test((course.courseCode ?? "").trim().toUpperCase())) {
+    issues.push({
+      field: "courseCode",
+      message: "Format kode mata kuliah tidak valid.",
+    });
+  }
+
+  if (!course.studyProgram?.id || !course.studyProgram.facultyId) {
+    issues.push({
+      field: "studyProgram",
+      message: "Program studi dan fakultas wajib dipilih.",
+    });
+  }
+
+  if (course.instructorCount < 1) {
+    issues.push({
+      field: "instructors",
+      message: "Tambahkan minimal satu dosen pengampu.",
+    });
+  }
+
+  return issues;
+}
+
+const publicationSelect = {
+  id: true,
+  title: true,
+  courseCode: true,
+  isActive: true,
+  catalogStatus: true,
+  studyProgram: { select: { id: true, facultyId: true } },
+  _count: { select: { instructors: true } },
+} as const;
+
+type PublicationCourse = {
+  id: string;
+  title: string;
+  courseCode: string | null;
+  isActive: boolean;
+  catalogStatus: CatalogStatusInput;
+  studyProgram: { id: string; facultyId: string } | null;
+  _count: { instructors: number };
+};
+
+/** Row-lock convention shared with instructor removal and FR-002 publication. */
+async function lockCourseRow(tx: Prisma.TransactionClient, courseId: string) {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "course" WHERE "id" = ${courseId} FOR UPDATE
+  `;
+  return rows.length > 0;
+}
+
+function assertPublicationComplete(course: PublicationCourse, message: string) {
+  const issues = getCoursePublicationIssues({
+    title: course.title,
+    courseCode: course.courseCode,
+    studyProgram: course.studyProgram,
+    instructorCount: course._count.instructors,
+  });
+
+  if (issues.length > 0) {
+    throw new CourseServiceError(message, 400, issues);
+  }
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return (error as { code?: string })?.code === "P2002";
+}
 
 function serializeBigInt<T>(obj: T): T {
   return JSON.parse(
@@ -56,7 +182,9 @@ const materialSelect = {
 } as const;
 
 async function ensureCourseCover<T extends CourseWithCover>(course: T): Promise<T> {
-  if (isCurrentCourseCover(course.coverImage)) return course;
+  if (isCurrentCourseCover(course.coverImage) || isCustomCourseCover(course.coverImage)) {
+    return course;
+  }
 
   const coverImage = generateCourseCover(course);
   await prisma.course.update({
@@ -71,17 +199,34 @@ async function ensureCourseCovers<T extends CourseWithCover>(courses: T[]) {
   return Promise.all(courses.map(ensureCourseCover));
 }
 
-export async function listCourses(search?: string) {
+export async function listCourses(filters: {
+  search?: string;
+  facultyId?: string;
+  studyProgramId?: string;
+  catalogStatus?: CatalogStatusInput;
+} = {}) {
+  const { search, facultyId, studyProgramId, catalogStatus } = filters;
   const courses = await prisma.course.findMany({
-    where: search ? {
-      OR: [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { enrollmentKey: { contains: search, mode: 'insensitive' } },
-      ]
-    } : {},
+    where: {
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: "insensitive" as const } },
+              { courseCode: { contains: search, mode: "insensitive" as const } },
+              { description: { contains: search, mode: "insensitive" as const } },
+              { enrollmentKey: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+      ...(studyProgramId && { studyProgramId }),
+      ...(facultyId && { studyProgram: { facultyId } }),
+      ...(catalogStatus && { catalogStatus }),
+    },
     include: {
       creator: { select: { id: true, name: true } },
+      studyProgram: {
+        select: { id: true, name: true, faculty: { select: { id: true, name: true } } },
+      },
       _count: {
         select: {
           instructors: true,
@@ -101,9 +246,21 @@ export async function getCourseById(id: string) {
     where: { id },
     include: {
       creator: { select: { id: true, name: true } },
+      studyProgram: {
+        select: { id: true, name: true, faculty: { select: { id: true, name: true } } },
+      },
       instructors: {
         include: {
-          user: { select: { id: true, name: true, email: true } },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              nip: true,
+              nidn: true,
+              isActive: true,
+            },
+          },
         },
       },
       _count: {
@@ -113,10 +270,18 @@ export async function getCourseById(id: string) {
   });
 
   if (!course) return null;
-  return ensureCourseCover(course);
+  const [withCover, mappingLogs] = await Promise.all([
+    ensureCourseCover(course),
+    listCourseInstructorMappingLogs(id),
+  ]);
+  return { ...withCover, mappingLogs };
 }
 
-export async function createCourse(data: CreateCourseInput, adminId: string) {
+export async function createCourse(data: AdminCreateCourseInput, adminId: string) {
+  if (data.studyProgramId) {
+    await assertStudyProgramExists(data.studyProgramId);
+  }
+
   // Generate unique enrollment key with retry
   let enrollmentKey = generateEnrollmentKey();
   let attempts = 0;
@@ -129,40 +294,299 @@ export async function createCourse(data: CreateCourseInput, adminId: string) {
 
   const courseId = crypto.randomUUID();
 
-  return prisma.course.create({
-    data: {
-      id: courseId,
-      createdBy: adminId,
-      title: data.title,
-      description: data.description ?? null,
-      enrollmentKey,
-      coverImage: generateCourseCover({
+  try {
+    return await prisma.course.create({
+      data: {
         id: courseId,
+        createdBy: adminId,
         title: data.title,
+        description: data.description ?? null,
+        courseCode: data.courseCode,
+        learningOutcomes: data.learningOutcomes ?? null,
+        studyProgramId: data.studyProgramId ?? null,
+        hasArModule: data.hasArModule ?? false,
+        catalogStatus: "DRAFT",
         enrollmentKey,
-      }),
-    },
-    include: {
-      creator: { select: { id: true, name: true } },
-      _count: { select: { instructors: true, enrollments: true, sessions: true } },
-    },
-  });
+        coverImage: generateCourseCover({
+          id: courseId,
+          title: data.title,
+          enrollmentKey,
+        }),
+      },
+      include: {
+        creator: { select: { id: true, name: true } },
+        studyProgram: {
+          select: { id: true, name: true, faculty: { select: { id: true, name: true } } },
+        },
+        _count: { select: { instructors: true, enrollments: true, sessions: true } },
+      },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new CourseServiceError(
+        "Kode mata kuliah sudah digunakan pada program studi ini.",
+        409
+      );
+    }
+    throw error;
+  }
 }
 
 export async function updateCourse(id: string, data: UpdateCourseInput) {
-  const existing = await prisma.course.findUnique({ where: { id } });
-  if (!existing) {
-    throw new Error("Course tidak ditemukan");
+  if (data.studyProgramId) {
+    await assertStudyProgramExists(data.studyProgramId);
   }
 
-  return prisma.course.update({
-    where: { id },
-    data: {
-      ...(data.title && { title: data.title }),
-      ...(data.description !== undefined && { description: data.description }),
-      ...(data.isActive !== undefined && { isActive: data.isActive }),
-    },
+  return prisma.$transaction(async (tx) => {
+    if (!(await lockCourseRow(tx, id))) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    const existing = await tx.course.findUnique({ where: { id } });
+    if (!existing) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    if (existing.catalogStatus === "PUBLISHED") {
+      const nextStudyProgramId =
+        data.studyProgramId !== undefined
+          ? data.studyProgramId
+          : existing.studyProgramId;
+      const nextStudyProgram = nextStudyProgramId
+        ? await tx.studyProgram.findUnique({
+            where: { id: nextStudyProgramId },
+            select: { id: true, facultyId: true },
+          })
+        : null;
+      const instructorCount = await tx.courseInstructor.count({
+        where: { courseId: id },
+      });
+
+      const issues = getCoursePublicationIssues({
+        title: data.title ?? existing.title,
+        courseCode: data.courseCode ?? existing.courseCode,
+        studyProgram: nextStudyProgram,
+        instructorCount,
+      });
+
+      if (issues.length > 0) {
+        throw new CourseServiceError(
+          "Perubahan ini membuat data course yang dipublikasikan tidak lengkap.",
+          400,
+          issues
+        );
+      }
+    }
+
+    const nextTitle = data.title ?? existing.title;
+    const regenerateCover =
+      data.title !== undefined &&
+      data.title !== existing.title &&
+      !existing.coverStoragePath &&
+      !isCustomCourseCover(existing.coverImage);
+
+    try {
+      return await tx.course.update({
+        where: { id },
+        data: {
+          ...(data.title !== undefined && { title: data.title }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.isActive !== undefined && { isActive: data.isActive }),
+          ...(data.courseCode !== undefined && { courseCode: data.courseCode }),
+          ...(data.learningOutcomes !== undefined && {
+            learningOutcomes: data.learningOutcomes,
+          }),
+          ...(data.studyProgramId !== undefined && {
+            studyProgramId: data.studyProgramId,
+          }),
+          ...(data.hasArModule !== undefined && { hasArModule: data.hasArModule }),
+          ...(regenerateCover && {
+            coverImage: generateCourseCover({
+              id: existing.id,
+              title: nextTitle,
+              enrollmentKey: existing.enrollmentKey,
+            }),
+          }),
+        },
+        include: {
+          creator: { select: { id: true, name: true } },
+          studyProgram: {
+            select: { id: true, name: true, faculty: { select: { id: true, name: true } } },
+          },
+        },
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new CourseServiceError(
+          "Kode mata kuliah sudah digunakan pada program studi ini.",
+          409
+        );
+      }
+      throw error;
+    }
   });
+}
+
+export async function setCoursePublication(
+  courseId: string,
+  action: "publish" | "unpublish",
+  actorId: string
+) {
+  return prisma.$transaction(async (tx) => {
+    if (!(await lockCourseRow(tx, courseId))) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: publicationSelect,
+    });
+    if (!course) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    if (course.catalogStatus === "ARCHIVED") {
+      throw new CourseServiceError(
+        "Course yang diarsipkan tidak dapat diubah status publikasinya.",
+        409
+      );
+    }
+
+    if (action === "publish") {
+      if (course.catalogStatus === "PUBLISHED") {
+        return { catalogStatus: "PUBLISHED" as const, changed: false };
+      }
+
+      if (!course.isActive) {
+        throw new CourseServiceError(
+          "Aktifkan akses course sebelum mempublikasikan entri.",
+          409
+        );
+      }
+
+      assertPublicationComplete(course, PUBLICATION_INCOMPLETE_MESSAGE);
+
+      await tx.course.update({
+        where: { id: courseId },
+        data: { catalogStatus: "PUBLISHED" },
+      });
+      await tx.courseCatalogStatusLog.create({
+        data: {
+          id: crypto.randomUUID(),
+          courseId,
+          actorId,
+          fromStatus: "DRAFT",
+          toStatus: "PUBLISHED",
+        },
+      });
+
+      return { catalogStatus: "PUBLISHED" as const, changed: true };
+    }
+
+    if (course.catalogStatus === "DRAFT") {
+      return { catalogStatus: "DRAFT" as const, changed: false };
+    }
+
+    await tx.course.update({
+      where: { id: courseId },
+      data: { catalogStatus: "DRAFT" },
+    });
+    await tx.courseCatalogStatusLog.create({
+      data: {
+        id: crypto.randomUUID(),
+        courseId,
+        actorId,
+        fromStatus: "PUBLISHED",
+        toStatus: "DRAFT",
+      },
+    });
+
+    return { catalogStatus: "DRAFT" as const, changed: true };
+  });
+}
+
+export async function archiveCourse(id: string, actorId: string) {
+  return prisma.$transaction(async (tx) => {
+    if (!(await lockCourseRow(tx, id))) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    const existing = await tx.course.findUnique({
+      where: { id },
+      select: { catalogStatus: true },
+    });
+    if (!existing) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    if (existing.catalogStatus === "ARCHIVED") {
+      return { success: true, catalogStatus: "ARCHIVED" as const, changed: false };
+    }
+
+    await tx.course.update({
+      where: { id },
+      data: { catalogStatus: "ARCHIVED" },
+    });
+    await tx.courseCatalogStatusLog.create({
+      data: {
+        id: crypto.randomUUID(),
+        courseId: id,
+        actorId,
+        fromStatus: existing.catalogStatus,
+        toStatus: "ARCHIVED",
+      },
+    });
+
+    return { success: true, catalogStatus: "ARCHIVED" as const, changed: true };
+  });
+}
+
+export async function uploadCourseCover(
+  courseId: string,
+  file: { size: number; buffer: Buffer }
+) {
+  const existing = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true, coverStoragePath: true },
+  });
+  if (!existing) {
+    throw new CourseServiceError("Course tidak ditemukan", 404);
+  }
+
+  const validation = await validateCourseCoverUpload(file);
+  if (validation.error || !validation.detected) {
+    throw new CourseServiceError(validation.error ?? "Berkas gambar tidak valid.", 400);
+  }
+
+  const uploaded = await uploadCourseCoverToSupabase({
+    buffer: file.buffer,
+    contentType: validation.detected.contentType,
+    extension: validation.detected.extension,
+    courseId,
+  });
+
+  try {
+    const course = await prisma.course.update({
+      where: { id: courseId },
+      data: {
+        coverImage: uploaded.publicUrl,
+        coverStoragePath: uploaded.storagePath,
+      },
+      select: { id: true, coverImage: true, coverStoragePath: true },
+    });
+
+    if (
+      existing.coverStoragePath &&
+      existing.coverStoragePath !== uploaded.storagePath
+    ) {
+      await deleteCourseCoverFromSupabase(existing.coverStoragePath).catch(() => undefined);
+    }
+
+    return course;
+  } catch (error) {
+    await deleteCourseCoverFromSupabase(uploaded.storagePath).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function deleteCourse(id: string) {
@@ -181,46 +605,199 @@ export async function deleteCourse(id: string) {
   return { success: true };
 }
 
-export async function assignInstructor(courseId: string, userId: string) {
-  // Verify user is a dosen
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    throw new Error("User tidak ditemukan");
-  }
-  if (user.role !== "dosen") {
-    throw new Error("Hanya user dengan role dosen yang dapat ditugaskan sebagai pengajar");
-  }
+export async function assignInstructor(
+  courseId: string,
+  userId: string,
+  actorIdOrTimeout: string | number = "system",
+  txTimeoutMs?: number
+) {
+  const actorId = typeof actorIdOrTimeout === "string" ? actorIdOrTimeout : "system";
+  const timeout = typeof actorIdOrTimeout === "number" ? actorIdOrTimeout : txTimeoutMs;
 
-  // Check not already assigned
-  const existing = await prisma.courseInstructor.findFirst({
-    where: { courseId, userId },
-  });
-  if (existing) {
-    throw new Error("Dosen sudah ditugaskan ke course ini");
-  }
+  // Lock order: the target user row first, then read/insert the assignment.
+  // Role changes take the same user-row lock, so a demotion and an assignment
+  // cannot interleave. No course row lock is taken here, so this cannot cycle
+  // with the course -> user order used by instructor removal/publication.
+  return prisma.$transaction(async (tx) => {
+    const lockedUser = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "user" WHERE "id" = ${userId} FOR UPDATE
+    `;
+    if (lockedUser.length === 0) {
+      throw new CourseServiceError("User tidak ditemukan", 404);
+    }
 
-  return prisma.courseInstructor.create({
-    data: {
-      id: crypto.randomUUID(),
-      courseId,
-      userId,
-    },
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-    },
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true, isActive: true, nip: true, nidn: true },
+    });
+    if (!user) {
+      throw new CourseServiceError("User tidak ditemukan", 404);
+    }
+    if (user.role !== "dosen") {
+      throw new CourseServiceError(
+        "Hanya user dengan role dosen yang dapat ditugaskan sebagai pengajar",
+        400
+      );
+    }
+    if (user.isActive === false) {
+      throw new CourseServiceError(INACTIVE_LECTURER_MESSAGE, 400);
+    }
+
+    if (user.nip || user.nidn) {
+      const inactiveReference = await tx.lecturerReference?.findFirst({
+        where: {
+          OR: [
+            ...(user.nip ? [{ nip: user.nip }] : []),
+            ...(user.nidn ? [{ nidn: user.nidn }] : []),
+          ],
+          isActive: false,
+        },
+        select: { id: true },
+      });
+      if (inactiveReference) {
+        throw new CourseServiceError(INACTIVE_LECTURER_MESSAGE, 400);
+      }
+    }
+
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: { id: true },
+    });
+    if (!course) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    const existing = await tx.courseInstructor.findFirst({
+      where: { courseId, userId },
+    });
+    if (existing) {
+      throw new CourseServiceError("Dosen sudah ditugaskan ke course ini", 409);
+    }
+
+    let assignment;
+    try {
+      assignment = await tx.courseInstructor.create({
+        data: {
+          id: crypto.randomUUID(),
+          courseId,
+          userId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              nip: true,
+              nidn: true,
+              isActive: true,
+            },
+          },
+        },
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new CourseServiceError("Dosen sudah ditugaskan ke course ini", 409);
+      }
+      throw error;
+    }
+
+    await tx.courseInstructorMappingLog?.create({
+      data: {
+        id: crypto.randomUUID(),
+        courseId,
+        userId,
+        actorId,
+        action: "ASSIGNED",
+      },
+    });
+
+    return assignment;
+  }, timeout ? { timeout } : undefined);
+}
+
+export async function removeInstructor(
+  courseId: string,
+  userId: string,
+  actorId = "system"
+) {
+  // Locking convention: instructor membership changes take a row lock on the parent
+  // course. FR-002 publication must acquire the same lock before its completeness check
+  // and status transition so the two operations serialize.
+  return prisma.$transaction(async (tx) => {
+    const lockedCourse = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "course" WHERE "id" = ${courseId} FOR UPDATE
+    `;
+    if (lockedCourse.length === 0) {
+      throw new CourseServiceError("Course tidak ditemukan", 404);
+    }
+
+    const existing = await tx.courseInstructor.findFirst({
+      where: { courseId, userId },
+    });
+    if (!existing) {
+      throw new CourseServiceError("Assignment tidak ditemukan", 404);
+    }
+
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: {
+        catalogStatus: true,
+        _count: { select: { instructors: true } },
+      },
+    });
+
+    if (
+      course?.catalogStatus === "PUBLISHED" &&
+      course._count.instructors <= 1
+    ) {
+      throw new CourseServiceError(
+        "Course yang dipublikasikan wajib memiliki minimal satu dosen pengampu.",
+        409
+      );
+    }
+
+    await tx.courseInstructor.delete({ where: { id: existing.id } });
+    await tx.courseInstructorMappingLog?.create({
+      data: {
+        id: crypto.randomUUID(),
+        courseId,
+        userId,
+        actorId,
+        action: "REMOVED",
+      },
+    });
+    return { success: true };
   });
 }
 
-export async function removeInstructor(courseId: string, userId: string) {
-  const existing = await prisma.courseInstructor.findFirst({
-    where: { courseId, userId },
-  });
-  if (!existing) {
-    throw new Error("Assignment tidak ditemukan");
-  }
+export async function listCourseInstructorMappingLogs(courseId: string) {
+  const logs =
+    (await prisma.courseInstructorMappingLog?.findMany({
+      where: { courseId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    })) ?? [];
 
-  await prisma.courseInstructor.delete({ where: { id: existing.id } });
-  return { success: true };
+  const ids = [...new Set(logs.flatMap((log) => [log.userId, log.actorId]))];
+  const users = ids.length
+    ? await prisma.user.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const names = new Map(users.map((user) => [user.id, user.name]));
+
+  return logs.map((log) => ({
+    id: log.id,
+    courseId: log.courseId,
+    userId: log.userId,
+    userName: names.get(log.userId) ?? null,
+    actorId: log.actorId,
+    actorName: names.get(log.actorId) ?? null,
+    action: log.action,
+    createdAt: log.createdAt,
+  }));
 }
 
 export async function listAdminCourseSessions(courseId: string) {
@@ -469,10 +1046,53 @@ export async function getCourseStats() {
 }
 
 export async function getDosenList() {
-  return prisma.user.findMany({
+  const dosen = await prisma.user.findMany({
     where: { role: "dosen" },
-    select: { id: true, name: true, email: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      nip: true,
+      nidn: true,
+      isActive: true,
+    },
     orderBy: { name: "asc" },
+  });
+
+  const or = [
+    ...dosen.flatMap((d) => (d.nip ? [{ nip: d.nip }] : [])),
+    ...dosen.flatMap((d) => (d.nidn ? [{ nidn: d.nidn }] : [])),
+  ];
+  const references = or.length
+    ? (await prisma.lecturerReference?.findMany({
+        where: { OR: or },
+        select: { id: true, nip: true, nidn: true, isActive: true },
+      })) ?? []
+    : [];
+
+  const byNip = new Map<string, (typeof references)[number]>();
+  const byNidn = new Map<string, (typeof references)[number]>();
+  for (const reference of references) {
+    if (reference.nip) byNip.set(reference.nip, reference);
+    if (reference.nidn) byNidn.set(reference.nidn, reference);
+  }
+
+  return dosen.map((d) => {
+    const reference =
+      (d.nip ? byNip.get(d.nip) : undefined) ??
+      (d.nidn ? byNidn.get(d.nidn) : undefined) ??
+      null;
+    const referenceIsActive = reference?.isActive ?? null;
+    return {
+      id: d.id,
+      name: d.name,
+      email: d.email,
+      nip: d.nip,
+      nidn: d.nidn,
+      isActive: d.isActive && referenceIsActive !== false,
+      userIsActive: d.isActive,
+      referenceIsActive,
+    };
   });
 }
 

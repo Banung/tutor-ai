@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime
+from typing import Optional
 
 
 IMAGE_BASE = os.environ["IMAGE_BASE"]
@@ -14,6 +15,40 @@ PROJECT_ID = os.environ["PROJECT_ID"]
 CURRENT_SHA = os.environ["GITHUB_SHA"]
 KEEP_COUNT = int(os.environ.get("ARTIFACT_REGISTRY_KEEP_COUNT", "10"))
 SHA_TAG = re.compile(r"^[0-9a-f]{40}$")
+
+
+def image_uri(image: dict) -> Optional[str]:
+    uri = image.get("uri")
+    if isinstance(uri, str) and uri.strip():
+        return uri.strip()
+
+    # Recent gcloud output omits `uri` and splits it into package + version.
+    package = image.get("package")
+    version = image.get("version")
+    if isinstance(package, str) and package.strip() and isinstance(version, str) and version.strip():
+        package = package.strip().rstrip("/")
+        version = version.strip().lstrip("@")
+        return f"{package}@{version}"
+
+    metadata = image.get("metadata")
+    resource_name = metadata.get("name") if isinstance(metadata, dict) else None
+    if not isinstance(resource_name, str):
+        return None
+
+    prefix, separator, image_version = resource_name.partition("/dockerImages/")
+    parts = prefix.split("/")
+    if (
+        not separator
+        or "@" not in image_version
+        or len(parts) != 6
+        or parts[0] != "projects"
+        or parts[2] != "locations"
+        or parts[4] != "repositories"
+    ):
+        return None
+
+    project_id, location, repository = parts[1], parts[3], parts[5]
+    return f"{location}-docker.pkg.dev/{project_id}/{repository}/{image_version}"
 
 
 def parse_upload_time(image: dict) -> datetime:
@@ -37,6 +72,8 @@ def delete_image(uri: str) -> bool:
     ]
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode == 0:
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, end="", flush=True)
         return True
 
     error_output = f"{result.stdout}\n{result.stderr}"
@@ -45,6 +82,22 @@ def delete_image(uri: str) -> bool:
         or "manifest has referenced parents" in error_output
     ):
         return False
+
+    if (
+        "PERMISSION_DENIED" in error_output
+        and "artifactregistry.versions.delete" in error_output
+    ):
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, end="", flush=True)
+        print(
+            "Warning: Artifact Registry cleanup stopped because the deploy "
+            "service account lacks artifactregistry.versions.delete. Older "
+            "images may remain; grant this permission on the repository to "
+            "enable cleanup.",
+            file=sys.stderr,
+            flush=True,
+        )
+        raise SystemExit(0)
 
     if result.stdout:
         print(result.stdout, end="", flush=True)
@@ -80,9 +133,9 @@ for image_name in ("web", "worker"):
         tags = image.get("tags") or []
         if any(not SHA_TAG.fullmatch(tag) for tag in tags):
             continue
-        uri = image.get("uri")
+        uri = image_uri(image)
         if not uri:
-            raise ValueError(f"Artifact Registry returned an image without a URI: {image}")
+            raise ValueError(f"Artifact Registry returned an image without a usable URI: {image}")
         candidates.append((parse_upload_time(image), uri, tags))
 
     candidates.sort(key=lambda candidate: candidate[0], reverse=True)

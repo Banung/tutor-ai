@@ -53,3 +53,11 @@ verify migrations against the intended database before releasing schema changes.
 The workflow must be pushed to GitHub before automatic deployments can run.
 Cloud Run compute, registry storage, logs, networking, and external APIs
 have separate quotas and charges. Budget alerts are notifications, not caps.
+
+After a successful deployment, the workflow keeps the 10 most recently uploaded
+SHA-tagged images for each of `web` and `worker` in Artifact Registry and deletes
+older digests. Images with other tags are left untouched. Cleanup is best-effort:
+if the deploy service account lacks `artifactregistry.versions.delete` on the
+repository, the workflow logs a warning and leaves older images in place. Grant
+that permission to enable cleanup (for example, with a custom role scoped to the
+repository or `roles/artifactregistry.repoAdmin`).

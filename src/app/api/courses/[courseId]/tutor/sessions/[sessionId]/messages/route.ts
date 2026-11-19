@@ -12,6 +12,23 @@ const messageSchema = z.object({
   requestId: z.uuid().optional(),
   retryOfRunId: z.uuid().optional(),
   responseMode: z.enum(["chat", "avatar"]).default("chat"),
+  intent: z.enum(["chat", "summary"]).default("chat"),
+  anchorMessageId: z.uuid().optional(),
+}).superRefine((message, context) => {
+  if (message.intent === "summary" && !message.anchorMessageId) {
+    context.addIssue({
+      code: "custom",
+      path: ["anchorMessageId"],
+      message: "Jawaban Tutor AI yang ingin diringkas harus dipilih.",
+    });
+  }
+  if (message.intent === "summary" && message.responseMode !== "chat") {
+    context.addIssue({
+      code: "custom",
+      path: ["responseMode"],
+      message: "Ringkasan materi hanya tersedia di chat.",
+    });
+  }
 });
 
 export async function POST(request: NextRequest, context: TutorMessagesRouteContext) {
@@ -31,6 +48,8 @@ export async function POST(request: NextRequest, context: TutorMessagesRouteCont
       userId: userId!,
       content: parsed.data.content,
       responseMode: parsed.data.responseMode,
+      intent: parsed.data.intent,
+      anchorMessageId: parsed.data.anchorMessageId,
       requestId: parsed.data.requestId,
       retryOfRunId: parsed.data.retryOfRunId,
       signal: request.signal,

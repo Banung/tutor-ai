@@ -35,25 +35,61 @@ import {
   KeyRound,
   Users,
   GraduationCap,
+  Archive,
+  Boxes,
+  BookOpen,
+  Globe,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CourseInvitationButton } from "@/components/courses/course-invitation-button";
 
 interface Instructor {
   id: string;
-  user: { id: string; name: string; email: string };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    nip: string | null;
+    nidn: string | null;
+    isActive: boolean;
+  };
   assignedAt: string;
+}
+
+interface MappingLog {
+  id: string;
+  courseId: string;
+  userId: string;
+  userName: string | null;
+  actorId: string;
+  actorName: string | null;
+  action: string;
+  createdAt: string;
 }
 
 interface CourseDetail {
   id: string;
   title: string;
+  courseCode: string | null;
   description: string | null;
+  learningOutcomes: string | null;
+  coverImage: string | null;
+  coverStoragePath: string | null;
   enrollmentKey: string;
   isActive: boolean;
+  hasArModule: boolean;
+  catalogStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  studyProgramId: string | null;
+  studyProgram: {
+    id: string;
+    name: string;
+    faculty: { id: string; name: string };
+  } | null;
   createdAt: string;
   creator: { id: string; name: string };
   instructors: Instructor[];
+  mappingLogs: MappingLog[];
   _count: { enrollments: number };
 }
 
@@ -76,6 +112,17 @@ interface Dosen {
   id: string;
   name: string;
   email: string;
+  nip: string | null;
+  nidn: string | null;
+  isActive: boolean;
+}
+
+function apiErrorMessage(data: unknown, fallback: string) {
+  if (data && typeof data === "object" && "error" in data) {
+    const err = (data as { error?: unknown }).error;
+    if (typeof err === "string") return err;
+  }
+  return fallback;
 }
 
 interface Mahasiswa {
@@ -121,11 +168,27 @@ export default function CourseDetailPage() {
   const [removeEnrollment, setRemoveEnrollment] = useState<Enrollment | null>(null);
   const [removingEnrollment, setRemovingEnrollment] = useState(false);
 
+  // Archive
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [togglingAr, setTogglingAr] = useState(false);
+
+  // Publication
+  const [publicationAction, setPublicationAction] = useState<
+    "publish" | "unpublish" | null
+  >(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publicationIssues, setPublicationIssues] = useState<
+    { field: string; message: string }[] | null
+  >(null);
+
   const fetchCourse = useCallback(() => {
     setLoading(true);
     fetch(`/api/admin/courses/${courseId}`)
-      .then((r) => r.json())
-      .then(setCourse)
+      .then(async (r) => {
+        const data = await r.json().catch(() => null);
+        setCourse(r.ok && data && !data.error ? data : null);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [courseId]);
@@ -164,22 +227,39 @@ export default function CourseDetailPage() {
     if (selectedDosenIds.length === 0) return;
     setAssigning(true);
     try {
-      const promises = selectedDosenIds.map(id => 
-        fetch(`/api/admin/courses/${courseId}/instructors`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: id }),
-        }).then(res => {
-            if (!res.ok) throw new Error("Gagal");
-            return res.json();
+      const results = await Promise.allSettled(
+        selectedDosenIds.map(async (id) => {
+          const res = await fetch(`/api/admin/courses/${courseId}/instructors`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: id }),
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok) {
+            throw new Error(apiErrorMessage(data, "Gagal menugaskan dosen"));
+          }
+          return data;
         })
       );
-      const results = await Promise.allSettled(promises);
-      const successCount = results.filter(r => r.status === "fulfilled").length;
-      
+      const successCount = results.filter((r) => r.status === "fulfilled").length;
+      const failures = results.filter(
+        (r): r is PromiseRejectedResult => r.status === "rejected"
+      );
+
       if (successCount > 0) toast.success(`${successCount} Dosen berhasil ditambahkan`);
-      if (successCount < selectedDosenIds.length) toast.error("Beberapa dosen gagal ditambahkan");
-      
+      if (failures.length > 0) {
+        const messages = [
+          ...new Set(
+            failures.map((f) =>
+              f.reason instanceof Error
+                ? f.reason.message
+                : "Gagal menugaskan dosen"
+            )
+          ),
+        ];
+        toast.error(messages.join("; "));
+      }
+
       setAssignOpen(false);
       fetchCourse();
     } catch {
@@ -197,7 +277,10 @@ export default function CourseDetailPage() {
         `/api/admin/courses/${courseId}/instructors?userId=${removeInstructor.user.id}`,
         { method: "DELETE" }
       );
-      if (!res.ok) throw new Error("Gagal menghapus dosen");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(apiErrorMessage(data, "Gagal menghapus dosen"));
+      }
       toast.success("Dosen berhasil dihapus dari course");
       setRemoveInstructor(null);
       fetchCourse();
@@ -205,6 +288,34 @@ export default function CourseDetailPage() {
       toast.error(err instanceof Error ? err.message : "Gagal menghapus dosen");
     } finally {
       setRemoving(false);
+    }
+  }
+
+  async function handleToggleArModule() {
+    if (!course || course.catalogStatus === "ARCHIVED" || togglingAr) return;
+    setTogglingAr(true);
+    try {
+      const res = await fetch(`/api/admin/courses/${courseId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hasArModule: !course.hasArModule }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(apiErrorMessage(data, "Gagal mengubah ketersediaan Modul AR"));
+      }
+      toast.success(
+        course.hasArModule
+          ? "Modul AR ditandai belum tersedia"
+          : "Modul AR ditandai tersedia"
+      );
+      fetchCourse();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal mengubah ketersediaan Modul AR"
+      );
+    } finally {
+      setTogglingAr(false);
     }
   }
 
@@ -290,6 +401,75 @@ export default function CourseDetailPage() {
     toast.success("Enrollment key disalin");
   }
 
+  async function handlePublication() {
+    if (!publicationAction || publishing) return;
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/admin/courses/${courseId}/publication`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: publicationAction }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        if (Array.isArray(data?.missingFields) && data.missingFields.length > 0) {
+          setPublicationIssues(data.missingFields);
+          setPublicationAction(null);
+          return;
+        }
+        throw new Error(
+          typeof data?.error === "string"
+            ? data.error
+            : "Gagal mengubah status publikasi"
+        );
+      }
+
+      const publish = publicationAction === "publish";
+      toast.success(
+        publish
+          ? data?.changed
+            ? "Course dipublikasikan ke katalog"
+            : "Course sudah dipublikasikan"
+          : data?.changed
+            ? "Course ditarik dari katalog"
+            : "Course sudah berstatus draft"
+      );
+      setPublicationAction(null);
+      fetchCourse();
+      fetchEnrollments();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal mengubah status publikasi"
+      );
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function handleArchive() {
+    setArchiving(true);
+    try {
+      const res = await fetch(`/api/admin/courses/${courseId}/archive`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(
+          typeof data?.error === "string" ? data.error : "Gagal mengarsipkan course"
+        );
+      }
+      toast.success("Course berhasil diarsipkan");
+      setArchiveOpen(false);
+      fetchCourse();
+      fetchEnrollments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengarsipkan course");
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col gap-6">
@@ -315,14 +495,26 @@ export default function CourseDetailPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight truncate" title={course.title}>
               {course.title}
             </h1>
+            {course.courseCode && (
+              <span className="rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
+                {course.courseCode}
+              </span>
+            )}
+            <Badge variant={course.catalogStatus === "PUBLISHED" ? "default" : "secondary"} className="shrink-0">
+              {course.catalogStatus === "PUBLISHED"
+                ? "Dipublikasikan"
+                : course.catalogStatus === "ARCHIVED"
+                  ? "Diarsipkan"
+                  : "Draft"}
+            </Badge>
             <Badge variant={course.isActive ? "default" : "secondary"} className="shrink-0">
-              {course.isActive ? "Aktif" : "Nonaktif"}
+              {course.isActive ? "Akses aktif" : "Akses nonaktif"}
             </Badge>
           </div>
           {course.description && (
@@ -330,6 +522,102 @@ export default function CourseDetailPage() {
               {course.description}
             </p>
           )}
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {course.catalogStatus === "DRAFT" && (
+            <Button
+              onClick={() => setPublicationAction("publish")}
+              className="gap-2 bg-brand text-black hover:bg-brand/90"
+            >
+              <Globe data-icon="inline-start" />
+              Publikasikan
+            </Button>
+          )}
+          {course.catalogStatus === "PUBLISHED" && (
+            <Button
+              variant="outline"
+              onClick={() => setPublicationAction("unpublish")}
+              className="gap-2"
+            >
+              <EyeOff data-icon="inline-start" />
+              Tarik dari katalog
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => setArchiveOpen(true)}
+            disabled={course.catalogStatus === "ARCHIVED"}
+            className="shrink-0 gap-2"
+          >
+            <Archive data-icon="inline-start" />
+            {course.catalogStatus === "ARCHIVED" ? "Sudah diarsipkan" : "Arsipkan"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Academic profile */}
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <div
+          className="h-40 rounded-xl border bg-muted bg-cover bg-center"
+          style={
+            course.coverImage
+              ? { backgroundImage: `url("${course.coverImage}")` }
+              : undefined
+          }
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs font-semibold uppercase tracking-wider">
+                Program Studi
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="font-medium">
+                {course.studyProgram?.name ?? "Belum ditentukan"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {course.studyProgram?.faculty.name ?? "Referensi akademik belum diisi"}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs font-semibold uppercase tracking-wider">
+                Modul AR
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="flex items-center gap-2 font-medium">
+                <Boxes className="size-4 text-brand" />
+                {course.hasArModule ? "Tersedia" : "Belum tersedia"}
+              </p>
+              <p className="text-sm text-muted-foreground">Metadata katalog</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 gap-2"
+                onClick={handleToggleArModule}
+                disabled={course.catalogStatus === "ARCHIVED" || togglingAr}
+              >
+                {togglingAr && <Loader2 className="animate-spin" data-icon="inline-start" />}
+                {course.hasArModule ? "Tandai belum tersedia" : "Tandai tersedia"}
+              </Button>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50 sm:col-span-2">
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider">
+                <BookOpen className="size-3.5" />
+                Capaian Pembelajaran
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {course.learningOutcomes || "Belum diisi"}
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -419,13 +707,15 @@ export default function CourseDetailPage() {
         </div>
 
         {/* Instructors Tab Table */}
-        <TabsContent value="instructors" className="mt-0">
+        <TabsContent value="instructors" className="mt-0 space-y-4">
           <div className="rounded-xl border bg-card">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="pl-6">Nama</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>NIP / NIDN</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Ditugaskan</TableHead>
                   <TableHead className="w-[80px] text-right pr-6">Aksi</TableHead>
                 </TableRow>
@@ -433,7 +723,7 @@ export default function CourseDetailPage() {
               <TableBody>
                 {course.instructors.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-20 text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">
                       Belum ada dosen yang ditugaskan
                     </TableCell>
                   </TableRow>
@@ -445,6 +735,14 @@ export default function CourseDetailPage() {
                       </TableCell>
                       <TableCell className="text-muted-foreground max-w-[200px] truncate" title={inst.user.email}>
                         {inst.user.email}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {inst.user.nip ?? inst.user.nidn ?? "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={inst.user.isActive ? "default" : "secondary"}>
+                          {inst.user.isActive ? "Aktif" : "Nonaktif"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {new Date(inst.assignedAt).toLocaleDateString("id-ID", {
@@ -469,6 +767,58 @@ export default function CourseDetailPage() {
               </TableBody>
             </Table>
           </div>
+
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardDescription className="text-xs font-semibold uppercase tracking-wider">
+                Riwayat Pemetaan Dosen
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {course.mappingLogs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Belum ada riwayat pemetaan dosen.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Aksi</TableHead>
+                      <TableHead>Nama Dosen</TableHead>
+                      <TableHead>Admin Pelaku</TableHead>
+                      <TableHead>Waktu</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {course.mappingLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          <Badge variant={log.action === "ASSIGNED" ? "default" : "secondary"}>
+                            {log.action === "ASSIGNED" ? "Ditugaskan" : "Dihapus"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium max-w-[200px] truncate" title={log.userName ?? undefined}>
+                          {log.userName ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground max-w-[200px] truncate" title={log.actorName ?? undefined}>
+                          {log.actorName ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString("id-ID", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Enrollments Tab */}
@@ -563,7 +913,13 @@ export default function CourseDetailPage() {
         searchInput={dosenSearchInput}
         onSearchInputChange={setDosenSearchInput}
         onSearch={setDosenSearchQuery}
-        availableItems={availableDosen.map(d => ({ id: d.id, name: d.name, email: d.email }))}
+        availableItems={availableDosen.map(d => ({
+          id: d.id,
+          name: d.name,
+          email: d.email,
+          badge: d.nip ?? d.nidn ?? null,
+          subText: d.isActive ? d.email : `${d.email} · Nonaktif`,
+        }))}
         selectedIds={selectedDosenIds}
         onSelectedIdsChange={setSelectedDosenIds}
         emptyStateIcon={<Users className="size-12" />}
@@ -644,6 +1000,92 @@ export default function CourseDetailPage() {
             >
               {removingEnrollment && <Loader2 className="animate-spin" data-icon="inline-start" />}
               Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Archive Confirmation */}
+      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arsipkan Course</AlertDialogTitle>
+            <AlertDialogDescription>
+              Course <strong>{course.title}</strong> akan ditandai sebagai arsip dan hilang
+              dari pencarian mahasiswa. Course, enrollment, sesi, materi, serta riwayat
+              percakapan tetap tersimpan. Status akses kelas tidak berubah.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={archiving}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchive} disabled={archiving}>
+              {archiving && <Loader2 className="animate-spin" data-icon="inline-start" />}
+              Arsipkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Publication Confirmation */}
+      <AlertDialog
+        open={!!publicationAction}
+        onOpenChange={(open) => !open && !publishing && setPublicationAction(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {publicationAction === "publish"
+                ? "Publikasikan Course"
+                : "Tarik Course dari Katalog"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {publicationAction === "publish" ? (
+                <>
+                  Course <strong>{course.title}</strong> akan tampil di katalog dan
+                  dapat di-enroll mandiri oleh mahasiswa. Status akses kelas tidak
+                  berubah.
+                </>
+              ) : (
+                <>
+                  Course <strong>{course.title}</strong> akan disembunyikan dari
+                  katalog dan enrollment mandiri. Mahasiswa yang sudah terdaftar tetap
+                  memiliki akses ke kelas, sesi, materi, dan riwayat percakapan. Status
+                  akses kelas tidak berubah.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={publishing}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePublication} disabled={publishing}>
+              {publishing && <Loader2 className="animate-spin" data-icon="inline-start" />}
+              {publicationAction === "publish"
+                ? "Publikasikan"
+                : "Tarik dari katalog"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Publication completeness */}
+      <AlertDialog
+        open={!!publicationIssues}
+        onOpenChange={(open) => !open && setPublicationIssues(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Data belum lengkap</AlertDialogTitle>
+            <AlertDialogDescription>
+              Lengkapi data berikut sebelum mempublikasikan entri:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="list-disc space-y-1 pl-5 text-sm">
+            {publicationIssues?.map((issue) => (
+              <li key={issue.field}>{issue.message}</li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setPublicationIssues(null)}>
+              Mengerti
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -17,7 +17,7 @@ node_modules/.bin/tsx --test --test-name-pattern "after character 1400|Embedding
 baseline_status=$?
 set -e
 # Require the expected assertions, not a missing dependency, import or network error.
-if [ "$baseline_status" -eq 0 ] || ! rg -q 'not ok 1' baseline.tap || ! rg -q 'KODE-AKHIR: MERANTI-42' baseline.tap || ! rg -q 'task: question answering' baseline.tap; then
+if [ "$baseline_status" -eq 0 ] || ! grep -Fq 'not ok 1' baseline.tap || ! grep -Fq 'not ok 2' baseline.tap || ! grep -Fq 'KODE-AKHIR: MERANTI-42' baseline.tap || ! grep -Fq 'task: question answering' baseline.tap; then
   cat baseline.tap
   echo 'Baseline did not fail for the two expected reasons.' >&2
   exit 1

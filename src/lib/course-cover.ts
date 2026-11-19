@@ -180,3 +180,8 @@ export function generateCourseCover({ id, title, enrollmentKey }: CoverInput) {
 export function isCurrentCourseCover(coverImage: string | null) {
   return Boolean(coverImage?.includes(COVER_VERSION));
 }
+
+/** Uploaded/admin-managed covers are not generated SVGs and must never be regenerated. */
+export function isCustomCourseCover(coverImage: string | null) {
+  return Boolean(coverImage && !coverImage.startsWith("data:image/svg+xml"));
+}
