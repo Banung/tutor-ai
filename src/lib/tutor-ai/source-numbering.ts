@@ -10,6 +10,23 @@ export function buildChunkSourceNumbers(chunks: { chunkId: string; materialId: s
   return chunkNumbers;
 }
 
+export function buildPageSourceNumbers(
+  chunks: { chunkId: string; materialId: string; pageNumber: number }[],
+) {
+  const pageNumbers = new Map<string, number>();
+  const chunkNumbers = new Map<string, number>();
+
+  for (const chunk of chunks) {
+    const pageKey = `${chunk.materialId}\u0000${chunk.pageNumber}`;
+    if (!pageNumbers.has(pageKey)) {
+      pageNumbers.set(pageKey, pageNumbers.size + 1);
+    }
+    chunkNumbers.set(chunk.chunkId, pageNumbers.get(pageKey)!);
+  }
+
+  return chunkNumbers;
+}
+
 export function getCorrectionSourceNumbers(
   sources: ({ chunkId: string } | { kind: "page_range"; materialId: string; startPage: number; endPage: number })[],
   sourceNumbers: ReadonlyMap<string, number>,
