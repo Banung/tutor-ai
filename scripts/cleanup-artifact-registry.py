@@ -34,6 +34,7 @@ def image_uri(image: dict) -> Optional[str]:
     resource_name = metadata.get("name") if isinstance(metadata, dict) else None
     if not isinstance(resource_name, str):
         return None
+
     prefix, separator, image_version = resource_name.partition("/dockerImages/")
     parts = prefix.split("/")
     if (
@@ -55,6 +56,55 @@ def parse_upload_time(image: dict) -> datetime:
     if not value:
         raise ValueError(f"Image has no upload timestamp: {image.get('uri', image)}")
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def delete_image(uri: str) -> bool:
+    command = [
+        "gcloud",
+        "artifacts",
+        "docker",
+        "images",
+        "delete",
+        uri,
+        "--delete-tags",
+        "--quiet",
+        f"--project={PROJECT_ID}",
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode == 0:
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, end="", flush=True)
+        return True
+
+    error_output = f"{result.stdout}\n{result.stderr}"
+    if (
+        "manifest is referenced by parent manifests" in error_output
+        or "manifest has referenced parents" in error_output
+    ):
+        return False
+
+    if (
+        "PERMISSION_DENIED" in error_output
+        and "artifactregistry.versions.delete" in error_output
+    ):
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, end="", flush=True)
+        print(
+            "Warning: Artifact Registry cleanup stopped because the deploy "
+            "service account lacks artifactregistry.versions.delete. Older "
+            "images may remain; grant this permission on the repository to "
+            "enable cleanup.",
+            file=sys.stderr,
+            flush=True,
+        )
+        raise SystemExit(0)
+
+    if result.stdout:
+        print(result.stdout, end="", flush=True)
+    if result.stderr:
+        print(result.stderr, end="", file=sys.stderr, flush=True)
+    result.check_returncode()
+    return False
 
 
 for image_name in ("web", "worker"):
@@ -97,41 +147,32 @@ for image_name in ("web", "worker"):
         if CURRENT_SHA in tags
     )
 
-    for _, uri, _ in candidates:
-        if uri in keep_uris:
-            continue
-        print(f"Deleting old Artifact Registry image: {uri}", flush=True)
-        command = [
-            "gcloud",
-            "artifacts",
-            "docker",
-            "images",
-            "delete",
-            uri,
-            "--delete-tags",
-            "--quiet",
-            f"--project={PROJECT_ID}",
-        ]
-        result = subprocess.run(command, stderr=subprocess.PIPE, text=True)
-        if result.returncode == 0:
-            if result.stderr:
-                print(result.stderr, file=sys.stderr, end="", flush=True)
-            continue
+    pending_uris = [uri for _, uri, _ in candidates if uri not in keep_uris]
+    while pending_uris:
+        deferred_uris = []
+        deleted_any = False
 
-        if (
-            "PERMISSION_DENIED" in (result.stderr or "")
-            and "artifactregistry.versions.delete" in (result.stderr or "")
-        ):
-            print(
-                "Warning: Artifact Registry cleanup stopped because the deploy "
-                "service account lacks artifactregistry.versions.delete. Older "
-                "images may remain; grant this permission on the repository to "
-                "enable cleanup.",
-                file=sys.stderr,
-                flush=True,
-            )
-            raise SystemExit(0)
+        for uri in pending_uris:
+            print(f"Deleting old Artifact Registry image: {uri}", flush=True)
+            if delete_image(uri):
+                deleted_any = True
+            else:
+                print(
+                    f"Deferring image while a parent manifest references it: {uri}",
+                    flush=True,
+                )
+                deferred_uris.append(uri)
 
-        if result.stderr:
-            print(result.stderr, file=sys.stderr, end="", flush=True)
-        raise subprocess.CalledProcessError(result.returncode, command)
+        if not deferred_uris:
+            break
+
+        if not deleted_any:
+            for uri in deferred_uris:
+                print(
+                    f"Keeping image while it is referenced by a parent manifest: {uri}",
+                    flush=True,
+                )
+            break
+
+        pending_uris = deferred_uris
+

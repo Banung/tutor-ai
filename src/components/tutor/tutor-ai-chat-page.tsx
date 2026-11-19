@@ -352,7 +352,7 @@ export function TutorAiChatPage({
         <MessageCircle className="size-12 text-muted-foreground/50" strokeWidth={1.5} />
         <p>Course tidak ditemukan atau Anda belum enroll.</p>
         <Button variant="outline" onClick={() => router.push(backHref)}>
-          Kembali ke Course
+          Kembali ke Dashboard
         </Button>
       </div>
     );
@@ -384,6 +384,7 @@ export function TutorAiChatPage({
         courseId={courseId}
         courseBaseHref={courseBaseHref}
         currentCourseTitle={overview?.course.title}
+        currentUserName={overview?.user.name}
       />
 
       {/* ==================== MAIN CHAT AREA ==================== */}

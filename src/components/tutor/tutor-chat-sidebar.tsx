@@ -3,16 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Check,
   ChevronDown,
   FolderKanban,
+  House,
   Loader2,
   MessageCircle,
   MoreHorizontal,
   Pencil,
   Plus,
   Search,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -73,6 +74,7 @@ export type TutorChatSidebarProps = {
   courseId?: string;
   courseBaseHref?: string;
   currentCourseTitle?: string;
+  currentUserName?: string | null;
 };
 
 type StudentCourse = { id: string; title: string };
@@ -100,6 +102,7 @@ export function TutorChatSidebar({
   courseId,
   courseBaseHref,
   currentCourseTitle,
+  currentUserName,
 }: TutorChatSidebarProps) {
   const router = useRouter();
   const [courses, setCourses] = useState<StudentCourse[]>([]);
@@ -149,8 +152,20 @@ export function TutorChatSidebar({
         )}
       >
         {/* Sidebar Header */}
-        <div className={cn("flex h-14 shrink-0 items-center", sidebarOpen ? "justify-between px-3" : "justify-center px-0")}>
-          {sidebarOpen && <span className="truncate text-lg font-bold">Tutor AI Chat</span>}
+        <div className={cn("flex h-16 shrink-0 items-center", sidebarOpen ? "justify-between px-3" : "justify-center px-0")}>
+          {sidebarOpen && (
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand">
+                <Sparkles className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-bold leading-none">Tutor AI</span>
+                <span className="mt-1 block text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  Ruang belajar
+                </span>
+              </span>
+            </div>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -422,24 +437,36 @@ export function TutorChatSidebar({
         </div>
 
         {/* Sidebar Footer — Back button */}
-        <div className="shrink-0 px-3 pb-4 pt-2">
+        <div className="shrink-0 px-3 pb-3 pt-2">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => router.push(backHref)}
                 className={cn(
-                  "flex h-11 w-full items-center rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                  sidebarOpen ? "gap-4 px-4" : "justify-center px-0"
+                  "flex h-9 w-full items-center rounded-lg text-xs font-medium transition-colors",
+                  sidebarOpen
+                    ? "gap-2.5 border border-brand/30 bg-brand/10 px-3 text-foreground hover:bg-brand/20"
+                    : "justify-center px-0 text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <ArrowLeft className="size-4 shrink-0" />
-                {sidebarOpen && <span className="truncate">Kembali ke course</span>}
+                <House className="size-4 shrink-0" />
+                {sidebarOpen && <span className="truncate">Kembali ke Dashboard</span>}
               </button>
             </TooltipTrigger>
             <TooltipContent side="right" hidden={sidebarOpen}>
-              Kembali ke course
+              Kembali ke Dashboard
             </TooltipContent>
           </Tooltip>
+          {currentUserName && (
+            <div className="flex min-w-0 items-center gap-2.5 px-1.5 pt-3">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-black">
+                {currentUserName.trim().charAt(0).toUpperCase()}
+              </span>
+              {sidebarOpen && (
+                <span className="truncate text-xs font-medium">{currentUserName}</span>
+              )}
+            </div>
+          )}
         </div>
       </aside>
     </>
