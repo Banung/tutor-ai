@@ -535,9 +535,6 @@ function CitationPreviewSheet({
             <p className="mt-1 text-xs text-muted-foreground">
               {evidence.length} potongan dari halaman PDF {preview?.pageNumber}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground/80">
-              Kutipan ditampilkan utuh. Buka PDF untuk membaca konteks halaman lengkap.
-            </p>
             {preview?.relatedTopic && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">Topik terkait</span>
