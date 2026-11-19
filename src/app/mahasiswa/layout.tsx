@@ -1,6 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/auth-client";
+import { usePathname } from "next/navigation";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Loader2, LayoutDashboard, BookOpen, UserRound } from "lucide-react";
 import { PanelSidebar } from "@/components/panel-sidebar";
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
 
 export default function MahasiswaLayout({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = authClient.useSession();
+  const pathname = usePathname();
 
   if (isPending) {
     return (
@@ -24,6 +26,12 @@ export default function MahasiswaLayout({ children }: { children: React.ReactNod
 
   if (!session || (session.user as { role?: string }).role !== "mahasiswa") {
     return null;
+  }
+
+  const isTutorChatRoute = /^\/mahasiswa\/courses\/[^/]+\/tutor(?:\/|$)/.test(pathname);
+
+  if (isTutorChatRoute) {
+    return children;
   }
 
   return (

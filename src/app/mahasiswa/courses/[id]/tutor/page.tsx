@@ -11,7 +11,7 @@ export default async function MahasiswaTutorPage({ params }: MahasiswaTutorPageP
     <TutorAiChatPage 
       key={id}
       courseId={id} 
-      backHref={`/mahasiswa/courses/${id}`} 
+      backHref="/mahasiswa" 
       tutorHref={`/mahasiswa/courses/${id}/tutor`}
       courseBaseHref="/mahasiswa/courses"
     />

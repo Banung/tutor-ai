@@ -10,7 +10,7 @@ export default async function CourseTutorPage({ params }: CourseTutorPageProps) 
   return (
     <TutorAiChatPage
       courseId={courseId}
-      backHref={`/mahasiswa/courses/${courseId}`}
+      backHref="/mahasiswa"
       tutorHref={`/courses/${courseId}/tutor`}
     />
   );

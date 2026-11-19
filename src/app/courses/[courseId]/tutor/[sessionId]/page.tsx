@@ -12,7 +12,7 @@ export default async function CourseTutorSessionPage({
   return (
     <TutorAiChatPage
       courseId={courseId}
-      backHref={`/mahasiswa/courses/${courseId}`}
+      backHref="/mahasiswa"
       tutorHref={`/courses/${courseId}/tutor`}
       initialSessionId={sessionId}
     />
