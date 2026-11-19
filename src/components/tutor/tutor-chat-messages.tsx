@@ -129,6 +129,32 @@ function getMostRelatedEvidence(evidence: CitationEvidence[], question: string) 
   })[0] ?? null;
 }
 
+function splitSourceSentences(text: string) {
+  if (typeof Intl.Segmenter === "function") {
+    return [...new Intl.Segmenter(undefined, { granularity: "sentence" }).segment(text)]
+      .map(({ segment }) => segment.trim())
+      .filter(Boolean);
+  }
+
+  return (text.match(/[^.!?]+[.!?]*/gu) ?? [text]).map((sentence) => sentence.trim()).filter(Boolean);
+}
+
+function getSentenceExcerpt(text: string, topic: string | null, sentenceLimit: number) {
+  const sentences = splitSourceSentences(text);
+  if (sentences.length <= sentenceLimit) return text;
+
+  const topicTerms = new Set([...countSourceTerms(topic ?? "").keys()].map(normalizeSourceTerm));
+  const relatedSentenceIndex = sentences.findIndex((sentence) =>
+    [...countSourceTerms(sentence).keys()].some((term) => topicTerms.has(normalizeSourceTerm(term)))
+  );
+  const startIndex = relatedSentenceIndex < 0 ? 0 : Math.max(0, relatedSentenceIndex - 1);
+  const endIndex = Math.min(sentences.length, startIndex + sentenceLimit);
+  const prefix = startIndex > 0 ? "… " : "";
+  const suffix = endIndex < sentences.length ? " …" : "";
+
+  return `${prefix}${sentences.slice(startIndex, endIndex).join(" ")}${suffix}`;
+}
+
 function highlightSourceKeyword(text: string, keyword: string | null): ReactNode {
   if (!keyword) return text;
 
@@ -447,8 +473,8 @@ function MessageSources({
                   )}
                 </span>
                 {relatedEvidence?.source.snippet && (
-                  <span className="line-clamp-3 pl-5 text-[11px] leading-relaxed text-muted-foreground/90">
-                    {highlightSourceKeyword(relatedEvidence.source.snippet, relatedTopic)}
+                  <span className="pl-5 text-[11px] leading-relaxed text-muted-foreground/90">
+                    {highlightSourceKeyword(getSentenceExcerpt(relatedEvidence.source.snippet, relatedTopic, 2), relatedTopic)}
                   </span>
                 )}
               </button>
@@ -478,12 +504,9 @@ function CitationPreviewSheet({
   const evidence = preview
     ? group?.evidence.filter(({ source }) => source.pageNumber === preview.pageNumber) ?? []
     : [];
-  const orderedEvidence = preview
-    ? [
-        ...evidence.filter(({ source }) => source.chunkId === preview.focusedChunkId),
-        ...evidence.filter(({ source }) => source.chunkId !== preview.focusedChunkId),
-      ]
-    : [];
+  const orderedEvidence = [...evidence].sort(
+    (left, right) => left.source.chunkIndex - right.source.chunkIndex,
+  );
 
   return (
     <Sheet
@@ -512,6 +535,9 @@ function CitationPreviewSheet({
             <p className="mt-1 text-xs text-muted-foreground">
               {evidence.length} potongan dari halaman PDF {preview?.pageNumber}
             </p>
+            <p className="mt-1 text-xs text-muted-foreground/80">
+              Kutipan ditampilkan utuh. Buka PDF untuk membaca konteks halaman lengkap.
+            </p>
             {preview?.relatedTopic && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">Topik terkait</span>
@@ -522,7 +548,7 @@ function CitationPreviewSheet({
 
           <div className="flex-1 overflow-y-auto px-5 py-4">
             <div className="flex flex-col gap-3">
-              {orderedEvidence.map(({ source }) => {
+              {orderedEvidence.map(({ source }, excerptIndex) => {
                 const pdfPageUrl = getPdfPageUrl(group?.publicUrl ?? null, source.pageNumber);
                 const isFocused = source.chunkId === preview?.focusedChunkId;
 
@@ -536,7 +562,7 @@ function CitationPreviewSheet({
                   >
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-xs font-semibold text-foreground">
-                        Halaman PDF {source.pageNumber}
+                        Kutipan {excerptIndex + 1} dari {orderedEvidence.length} · Halaman PDF {source.pageNumber}
                       </p>
                       {pdfPageUrl && (
                         <a

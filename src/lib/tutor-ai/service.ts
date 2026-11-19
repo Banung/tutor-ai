@@ -500,7 +500,7 @@ function toRagSource(chunk: RetrievedChunkRow): RagSource {
     pageNumber: chunk.pageNumber,
     chunkIndex: chunk.chunkIndex,
     similarity: Number(chunk.similarity),
-    snippet: truncateText(chunk.content.replace(/\s+/g, " ").trim(), 260),
+    snippet: chunk.content.replace(/\s+/g, " ").trim(),
   };
 }
 
