@@ -36,7 +36,14 @@ export function useTutorChat({
   const chatSessionsRef = useRef<TutorChatSessionSummary[]>([]);
   const readyMaterialsRef = useRef<TutorOverview["readyMaterials"]>([]);
   const loadingSessionRef = useRef(false);
-  const lastAttemptRef = useRef<{ sessionId: string; question: string; mode: string; requestId: string } | null>(null);
+  const lastAttemptRef = useRef<{
+    sessionId: string;
+    question: string;
+    mode: string;
+    intent: "chat" | "summary";
+    anchorMessageId?: string;
+    requestId: string;
+  } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const loadSessionRequestIdRef = useRef(0);
 
@@ -310,11 +317,18 @@ export function useTutorChat({
     }
   }
 
-  async function handleSend() {
-    const question = input.trim();
+  async function sendMessage(
+    content: string,
+    options: { intent?: "summary"; anchorMessageId?: string; preserveInput?: boolean } = {}
+  ) {
+    const question = content.trim();
     if (!question || sending) return;
     if (loadingSessionRef.current) {
       toast("Harap tunggu chat selesai dimuat sebelum mengirim pesan");
+      return;
+    }
+    if (options.intent === "summary" && (!activeSession || activeSession.id.startsWith("new-"))) {
+      toast.error("Buat ringkasan setelah Tutor AI menjawab materi.");
       return;
     }
 
@@ -324,7 +338,7 @@ export function useTutorChat({
       if (!session) return;
     }
 
-    setInput("");
+    if (!options.preserveInput) setInput("");
     setSending(true);
     setSendingStage("preparing");
 
@@ -377,7 +391,7 @@ export function useTutorChat({
         }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Gagal membuat sesi baru");
-        setInput(question);
+        if (!options.preserveInput) setInput(question);
         setSending(false);
         setSendingStage(null);
         setActiveSession(session);
@@ -388,7 +402,14 @@ export function useTutorChat({
     try {
       let retryOfRunId: string | undefined;
       const previous = lastAttemptRef.current;
-      if (previous?.sessionId === realSessionId && previous.question === question && previous.mode === panelMode) {
+      const intent = options.intent ?? "chat";
+      if (
+        previous?.sessionId === realSessionId &&
+        previous.question === question &&
+        previous.mode === panelMode &&
+        previous.intent === intent &&
+        previous.anchorMessageId === options.anchorMessageId
+      ) {
         const statusResponse = await fetch(`/api/courses/${courseId}/tutor/sessions/${realSessionId}/runs/${previous.requestId}`, { signal: abortController.signal });
         if (statusResponse.ok) {
           const run = await statusResponse.json();
@@ -401,13 +422,28 @@ export function useTutorChat({
         }
       }
       const requestId = crypto.randomUUID();
-      lastAttemptRef.current = { sessionId: realSessionId, question, mode: panelMode, requestId };
+      lastAttemptRef.current = {
+        sessionId: realSessionId,
+        question,
+        mode: panelMode,
+        intent,
+        anchorMessageId: options.anchorMessageId,
+        requestId,
+      };
       const response = await fetch(
         `/api/courses/${courseId}/tutor/sessions/${realSessionId}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: question, responseMode: panelMode, requestId, retryOfRunId }),
+          body: JSON.stringify({
+            content: question,
+            responseMode: panelMode,
+            requestId,
+            retryOfRunId,
+            ...(options.intent
+              ? { intent: options.intent, anchorMessageId: options.anchorMessageId }
+              : {}),
+          }),
           signal: abortController.signal,
         }
       );
@@ -551,7 +587,7 @@ export function useTutorChat({
         return { ...prev, id: isNewSession ? realSessionId : prev.id, messages };
       });
       if (!isAborted) {
-        setInput(question);
+        if (!options.preserveInput) setInput(question);
         toast.error(err instanceof Error ? err.message : "Tutor AI gagal menjawab");
       }
     } finally {
@@ -559,6 +595,18 @@ export function useTutorChat({
       setSending(false);
       setSendingStage(null);
     }
+  }
+
+  async function handleSend() {
+    await sendMessage(input);
+  }
+
+  async function handleCreateSummary(anchorMessageId: string) {
+    await sendMessage("Buat ringkasan materi ini.", {
+      intent: "summary",
+      anchorMessageId,
+      preserveInput: true,
+    });
   }
 
   return {
@@ -595,5 +643,6 @@ export function useTutorChat({
     handleDeleteSession,
     handleStop,
     handleSend,
+    handleCreateSummary,
   };
 }
