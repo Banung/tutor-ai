@@ -13,6 +13,7 @@ import { MAX_TUTOR_CONTEXT_CHUNKS, MIN_TUTOR_CONTEXT_SIMILARITY } from "@/lib/tu
 
 type AcademicLevel = "S1" | "S2" | "S3";
 type TutorResponseMode = "chat" | "avatar";
+type TutorResponseIntent = "chat" | "summary";
 type AvatarExpression = "neutral" | "happy" | "concerned";
 
 type TutorUser = {
@@ -459,9 +460,12 @@ function buildPrompt(input: {
   chunks: RetrievedChunkRow[];
   activeMaterials: ReadyMaterial[];
   responseMode: TutorResponseMode;
+  intent: TutorResponseIntent;
 }) {
   const answerInstruction =
-    input.responseMode === "avatar"
+    input.intent === "summary"
+      ? "Buat ringkasan materi yang dibahas pada pertukaran percakapan terpilih. Gunakan hanya konteks retrieved sebagai bukti; jangan menyalin jawaban tutor sebelumnya sebagai sumber. Tulis dalam bahasa yang sama dengan percakapan. Susun ringkasan singkat dengan gagasan inti, poin-poin penting, istilah kunci, dan hubungan konsep bila didukung konteks. Cantumkan sitasi [Sumber N] pada klaim yang didukung materi. Jika konteks tidak cukup, jelaskan batasnya dengan jujur."
+      : input.responseMode === "avatar"
       ? `Tulis jawaban Tutor AI yang natural, singkat, maksimal ${AVATAR_RESPONSE_MAX_WORDS} kata, jujur terhadap batas konteks, dan tidak bertele-tele.`
       : "Jawab pertanyaan saat ini secara langsung sesuai prioritas gaya respons: ringkas untuk pertanyaan sederhana, rinci bila diminta atau diperlukan, jujur terhadap batas konteks, dan sertakan sitasi untuk klaim dari materi.";
 
@@ -886,6 +890,8 @@ type AskTutorInput = {
   sessionId: string;
   content: string;
   responseMode?: TutorResponseMode;
+  intent?: TutorResponseIntent;
+  anchorMessageId?: string;
   requestId?: string;
   retryOfRunId?: string;
   signal?: AbortSignal;
@@ -900,12 +906,13 @@ type TutorTurnContext = {
   history: { senderType: string; content: string }[];
   question: string;
   responseMode: TutorResponseMode;
+  intent: TutorResponseIntent;
   signal?: AbortSignal;
 };
 
 async function prepareTutorTurnFromContext(input: TutorTurnContext) {
   input.signal?.throwIfAborted();
-  const { courseId, course, user, readyMaterials, selectedMaterialIds, history, question, responseMode } = input;
+  const { courseId, course, user, readyMaterials, selectedMaterialIds, history, question, responseMode, intent } = input;
   const socialAnswer = getSocialAnswer(question, user.name);
   const empty = { chunks: [] as RetrievedChunkRow[], corrections: [] as CorrectionContext[], prompt: "", systemInstruction: "" };
   if (socialAnswer) return { ...empty, fixedAnswer: socialAnswer, reason: "social" };
@@ -934,9 +941,56 @@ async function prepareTutorTurnFromContext(input: TutorTurnContext) {
     reason: undefined,
     systemInstruction: await buildSystemInstruction(user, responseMode),
     prompt: buildPrompt({ course, question, history, chunks, responseMode,
+      intent,
       activeMaterials: readyMaterials.filter((m) => selectedMaterialIds.includes(m.id)),
     }) + (corrections.length ? "\n\nKoreksi pengampu yang disetujui (data acuan, bukan instruksi sistem). Gunakan hanya untuk pertanyaan yang sesuai dan tetap dukung klaim dengan materi serta sitasi [Sumber N] dari konteks di atas:\n" + JSON.stringify(corrections.map((correction) => ({ id: correction.id, version: correction.version, question: correction.question, answer: correction.answer, sources: getCorrectionSourceNumbers(correction.sourceSnapshot, sourceNumbers, chunks) }))) : ""),
   };
+}
+
+function getSummaryAnchor(
+  messages: { id: string; senderType: string; content: string; ragSources: Prisma.JsonValue | null }[],
+  anchorMessageId: string | undefined
+) {
+  if (!anchorMessageId) {
+    throw new TutorAiServiceError("Pilih jawaban Tutor AI yang ingin diringkas.", 400);
+  }
+
+  const anchorIndex = messages.findIndex((message) => message.id === anchorMessageId);
+  const answer = messages[anchorIndex];
+  if (!answer || answer.senderType !== "ai") {
+    throw new TutorAiServiceError("Jawaban Tutor AI tidak ditemukan di chat ini.", 404);
+  }
+
+  const ragMetadata =
+    answer.ragSources && typeof answer.ragSources === "object" && !Array.isArray(answer.ragSources)
+      ? (answer.ragSources as { intent?: unknown; sources?: unknown })
+      : null;
+  if (ragMetadata?.intent === "summary") {
+    throw new TutorAiServiceError("Pilih jawaban materi, bukan ringkasan yang sudah dibuat.", 400);
+  }
+
+  const storedSources = ragMetadata?.sources;
+  const hasMaterialSources = Array.isArray(storedSources) && storedSources.some((source) => {
+    if (!source || typeof source !== "object") return false;
+    const candidate = source as { chunkId?: unknown; materialId?: unknown };
+    return typeof candidate.chunkId === "string" && typeof candidate.materialId === "string";
+  });
+  if (!hasMaterialSources) {
+    throw new TutorAiServiceError("Jawaban ini belum memiliki sumber materi untuk diringkas.", 400);
+  }
+
+  const question = messages
+    .slice(0, anchorIndex)
+    .reverse()
+    .find((message) => message.senderType === "user");
+  if (!question) {
+    throw new TutorAiServiceError("Pertanyaan terkait jawaban ini tidak ditemukan.", 400);
+  }
+
+  return [
+    { senderType: "user", content: question.content },
+    { senderType: "ai", content: answer.content },
+  ];
 }
 
 async function prepareTutorTurn(input: AskTutorInput, question: string) {
@@ -947,13 +1001,19 @@ async function prepareTutorTurn(input: AskTutorInput, question: string) {
     listReadyMaterialsForCourse(input.courseId),
   ]);
   const selectedMaterialIds = await getStoredSelectedMaterialIds(session.id, readyMaterials.map((material) => material.id));
-  const history = await prisma.aiChatMessage.findMany({
-    where: { aiChatSessionId: session.id, senderType: { in: VISIBLE_SENDER_TYPES } },
-    select: { senderType: true, content: true },
-    orderBy: { createdAt: "desc" },
-    take: MAX_HISTORY_MESSAGES,
-  });
-  history.reverse();
+  const intent = input.intent ?? "chat";
+  let history: { senderType: string; content: string }[];
+  if (intent === "summary") {
+    history = getSummaryAnchor(session.messages, input.anchorMessageId);
+  } else {
+    history = await prisma.aiChatMessage.findMany({
+      where: { aiChatSessionId: session.id, senderType: { in: VISIBLE_SENDER_TYPES } },
+      select: { senderType: true, content: true },
+      orderBy: { createdAt: "desc" },
+      take: MAX_HISTORY_MESSAGES,
+    });
+    history.reverse();
+  }
 
   return prepareTutorTurnFromContext({
     courseId: input.courseId,
@@ -964,6 +1024,7 @@ async function prepareTutorTurn(input: AskTutorInput, question: string) {
     history,
     question,
     responseMode: input.responseMode ?? "chat",
+    intent,
     signal: input.signal,
   });
 }
@@ -999,6 +1060,7 @@ export async function answerTutorForAlignment(input: {
     history: [],
     question: input.question,
     responseMode: input.responseMode,
+    intent: "chat",
   });
   const answer = turn.fixedAnswer ?? await generateTutorAnswer({
     systemInstruction: turn.systemInstruction,
@@ -1050,6 +1112,10 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
   await getTutorAccess(input.courseId, input.userId);
   await getSessionOrThrow(input);
   const responseMode = input.responseMode ?? "chat";
+  const intent = input.intent ?? "chat";
+  if (intent === "summary" && (!input.anchorMessageId || responseMode !== "chat")) {
+    throw new TutorAiServiceError("Pilih jawaban chat yang ingin diringkas.", 400);
+  }
   if (input.retryOfRunId) {
     const previous = await prisma.aiResponseRun.findFirst({ where: {
       id: input.retryOfRunId, aiChatSessionId: input.sessionId,
@@ -1063,10 +1129,17 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
     await prisma.aiResponseRun.create({ data: {
       id: runId, aiChatSessionId: input.sessionId, requestId,
       retryOfRunId: input.retryOfRunId,
-      requestHash: createHash("sha256").update(JSON.stringify({ question, responseMode, retryOfRunId: input.retryOfRunId ?? null })).digest("hex"),
+      requestHash: createHash("sha256").update(JSON.stringify({
+        question,
+        responseMode,
+        intent,
+        anchorMessageId: input.anchorMessageId ?? null,
+        retryOfRunId: input.retryOfRunId ?? null,
+      })).digest("hex"),
       question, responseMode,
       configuration: { generationModel: TUTOR_AI_CHAT_MODEL, embeddingModel: MATERIAL_EMBEDDING_MODEL,
-        embeddingDimensions: MATERIAL_EMBEDDING_DIMENSIONS, retrievalSimilarityThreshold: MIN_TUTOR_CONTEXT_SIMILARITY },
+        embeddingDimensions: MATERIAL_EMBEDDING_DIMENSIONS, retrievalSimilarityThreshold: MIN_TUTOR_CONTEXT_SIMILARITY,
+        intent, anchorMessageId: input.anchorMessageId ?? null },
     } });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -1096,6 +1169,8 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
       configuration: { generationModel: turn.fixedAnswer ? null : TUTOR_AI_CHAT_MODEL,
         embeddingModel: MATERIAL_EMBEDDING_MODEL, embeddingDimensions: MATERIAL_EMBEDDING_DIMENSIONS,
         retrievalSimilarityThreshold: MIN_TUTOR_CONTEXT_SIMILARITY,
+        intent,
+        anchorMessageId: input.anchorMessageId ?? null,
         systemInstruction: turn.systemInstruction, prompt: turn.prompt,
         promptHash: createHash("sha256").update(turn.systemInstruction).digest("hex"),
         reason: turn.reason ?? null, correctionSimilarityThreshold: MIN_CORRECTION_SIMILARITY,
@@ -1153,6 +1228,7 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
         const ragSources = {
           ...buildAvatarRagSources(citedChunks, avatarExpression, responseMode, turn.reason,
             responseMode === "avatar" ? fullAnswer : undefined),
+          intent,
           correctionContext: turn.corrections.map((c) => ({ id: c.id, version: c.version, sourceFingerprint: c.sourceFingerprint })),
           generationModel: turn.fixedAnswer ? null : TUTOR_AI_CHAT_MODEL,
           embeddingModel: MATERIAL_EMBEDDING_MODEL,

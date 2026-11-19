@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  ArrowRight,
   Check,
   ChevronRight,
   Copy,
@@ -61,6 +62,11 @@ function getMessageSources(message: TutorMessage): RagSource[] {
       "materialTitle" in source
     );
   });
+}
+
+function isSummaryResponse(message: TutorMessage) {
+  if (!message.ragSources || typeof message.ragSources !== "object") return false;
+  return (message.ragSources as { intent?: unknown }).intent === "summary";
 }
 
 function getUniqueSources(sources: RagSource[]) {
@@ -761,6 +767,7 @@ export type TutorChatMessagesProps = {
   loadingSession: boolean;
   sending: boolean;
   sendingStage?: "preparing" | "generating" | null;
+  onCreateSummary?: (anchorMessageId: string) => void;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -772,6 +779,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   loadingSession,
   sending,
   sendingStage,
+  onCreateSummary,
   scrollContainerRef,
   messagesEndRef,
 }: TutorChatMessagesProps) {
@@ -921,6 +929,13 @@ export const TutorChatMessages = memo(function TutorChatMessages({
             const sources = getUniqueSources(getMessageSources(message));
             const sourceGroups = groupCitationSources(sources);
             const isStreaming = sending && message.id.startsWith("streaming-");
+            const canCreateSummary =
+              !isUser &&
+              !isStreaming &&
+              !isSummaryResponse(message) &&
+              message.content.trim().length > 0 &&
+              sources.length > 0 &&
+              Boolean(onCreateSummary);
             const relatedQuestion = isUser
               ? ""
               : activeSession.messages
@@ -1010,6 +1025,34 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                         )}
                       </div>
 
+                      {!isStreaming && (
+                        <MessageSources
+                          sourceGroups={sourceGroups}
+                          relatedQuestion={relatedQuestion}
+                          onOpenSource={openSource}
+                        />
+                      )}
+
+                      {canCreateSummary && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="lg"
+                          disabled={sending}
+                          onClick={() => onCreateSummary?.(message.id)}
+                          aria-label="Buat ringkasan materi dari jawaban ini"
+                          className="mt-4 h-auto w-full justify-between gap-4 rounded-2xl border-border bg-card px-5 py-4 text-left whitespace-normal hover:bg-muted/60"
+                        >
+                          <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                            <span className="font-medium text-foreground">Buat ringkasan materi ini</span>
+                            <span className="text-sm font-normal text-muted-foreground">
+                              Poin inti, istilah penting, dan hubungan konsep
+                            </span>
+                          </span>
+                          <ArrowRight data-icon="inline-end" className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        </Button>
+                      )}
+
                       {!isStreaming && message.content.trim() && (
                         <div className="mt-3 flex flex-wrap items-center gap-1">
                           <Tooltip>
@@ -1079,13 +1122,6 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                     </>
                   )}
 
-                  {!isUser && !isStreaming && (
-                    <MessageSources
-                      sourceGroups={sourceGroups}
-                      relatedQuestion={relatedQuestion}
-                      onOpenSource={openSource}
-                    />
-                  )}
                 </div>
               </div>
             );

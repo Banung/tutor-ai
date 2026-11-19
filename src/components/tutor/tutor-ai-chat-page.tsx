@@ -200,6 +200,7 @@ export function TutorAiChatPage({
     handleDeleteSession,
     handleStop,
     handleSend,
+    handleCreateSummary,
   } = useTutorChat({
     courseId,
     initialSessionId,
@@ -461,6 +462,7 @@ export function TutorAiChatPage({
             activeSession={null}
             loadingSession
             sending={false}
+            onCreateSummary={handleCreateSummary}
             scrollContainerRef={scrollContainerRef}
             messagesEndRef={messagesEndRef}
           />
@@ -526,6 +528,7 @@ export function TutorAiChatPage({
             loadingSession={loadingSession}
             sending={sending}
             sendingStage={sendingStage}
+            onCreateSummary={handleCreateSummary}
             scrollContainerRef={scrollContainerRef}
             messagesEndRef={messagesEndRef}
           />
