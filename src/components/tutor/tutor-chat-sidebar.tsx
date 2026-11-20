@@ -13,7 +13,6 @@ import {
   Pencil,
   Plus,
   Search,
-  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -152,20 +151,8 @@ export function TutorChatSidebar({
         )}
       >
         {/* Sidebar Header */}
-        <div className={cn("flex h-16 shrink-0 items-center", sidebarOpen ? "justify-between px-3" : "justify-center px-0")}>
-          {sidebarOpen && (
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand">
-                <Sparkles className="size-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-bold leading-none">Tutor AI</span>
-                <span className="mt-1 block text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  Ruang belajar
-                </span>
-              </span>
-            </div>
-          )}
+        <div className={cn("flex h-14 shrink-0 items-center", sidebarOpen ? "justify-between px-3" : "justify-center px-0")}>
+          {sidebarOpen && <span className="truncate text-lg font-bold">Tutor AI Chat</span>}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
