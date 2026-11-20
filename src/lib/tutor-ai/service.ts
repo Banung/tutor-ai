@@ -9,7 +9,11 @@ import { MATERIAL_EMBEDDING_MODEL, MATERIAL_EMBEDDING_DIMENSIONS } from "@/lib/m
 import { getPromptContent } from "@/lib/services/tutor-prompt.service";
 
 import { getSocialAnswer, selectCitedSources } from "@/lib/tutor-ai/grounding";
-import { MAX_TUTOR_CONTEXT_CHUNKS, MIN_TUTOR_CONTEXT_SIMILARITY } from "@/lib/tutor-ai/retrieval-config";
+import {
+  MAX_TUTOR_CONTEXT_CHUNKS,
+  MAX_TUTOR_SUMMARY_CONTEXT_CHUNKS,
+  MIN_TUTOR_CONTEXT_SIMILARITY,
+} from "@/lib/tutor-ai/retrieval-config";
 
 type AcademicLevel = "S1" | "S2" | "S3";
 type TutorResponseMode = "chat" | "avatar";
@@ -453,6 +457,20 @@ function buildHistoryBlock(messages: { senderType: string; content: string }[]) 
   })));
 }
 
+function buildSummaryRetrievalQuestion(
+  history: { senderType: string; content: string }[],
+  fallbackQuestion: string
+) {
+  const originalQuestion = history.find((message) => message.senderType === "user")?.content;
+  const originalAnswer = [...history].reverse().find((message) => message.senderType === "ai")?.content;
+  const retrievalContext = [
+    originalQuestion ? `Topik yang ditanyakan: ${truncateText(originalQuestion, 600)}` : null,
+    originalAnswer ? `Konsep yang perlu dikembangkan: ${truncateText(originalAnswer, 1200)}` : null,
+  ].filter((value): value is string => value !== null);
+
+  return retrievalContext.length > 0 ? retrievalContext.join("\n") : fallbackQuestion;
+}
+
 function buildPrompt(input: {
   course: TutorCourse;
   question: string;
@@ -464,7 +482,7 @@ function buildPrompt(input: {
 }) {
   const answerInstruction =
     input.intent === "summary"
-      ? "Buat ringkasan materi yang dibahas pada pertukaran percakapan terpilih. Gunakan hanya konteks retrieved sebagai bukti; jangan menyalin jawaban tutor sebelumnya sebagai sumber. Tulis dalam bahasa yang sama dengan percakapan. Susun ringkasan singkat dengan gagasan inti, poin-poin penting, istilah kunci, dan hubungan konsep bila didukung konteks. Cantumkan sitasi [Sumber N] pada klaim yang didukung materi. Jika konteks tidak cukup, jelaskan batasnya dengan jujur."
+      ? "Tulis satu artikel belajar yang utuh dan mendalam tentang topik pada pertukaran percakapan terpilih; jangan membuat ringkasan pendek atau kerangka berisi poin-poin. Gunakan pertanyaan dan jawaban tutor sebelumnya hanya untuk memahami topik serta cakupannya, bukan sebagai bukti. Gunakan konteks retrieved dari PDF sebagai bukti untuk klaim tentang materi kuliah. Tulis dalam bahasa yang sama dengan pertanyaan terpilih. Mulai dengan judul yang jelas dan pengantar singkat, lalu jelaskan konsep secara runtut dalam beberapa bagian dengan paragraf yang saling terhubung. Uraikan definisi, cara kerja atau alasan, hubungan antarkonsep, serta contoh atau perbandingan hanya jika didukung konteks. Utamakan narasi; gunakan daftar hanya jika memang diperlukan. Targetkan sekitar 700–1.100 kata, tetapi tulis lebih singkat bila bukti yang tersedia terbatas dan jangan menambah isi hanya untuk memenuhi panjang. Cantumkan sitasi [Sumber N] tepat pada klaim yang didukung halaman PDF. Akhiri dengan sintesis singkat yang merangkum bagaimana konsep-konsep utama saling terkait. Jika konteks tidak cukup, jelaskan batasnya dengan jujur dan jangan mengarang detail."
       : input.responseMode === "avatar"
       ? `Tulis jawaban Tutor AI yang natural, singkat, maksimal ${AVATAR_RESPONSE_MAX_WORDS} kata, jujur terhadap batas konteks, dan tidak bertele-tele.`
       : "Jawab pertanyaan saat ini secara langsung sesuai prioritas gaya respons: ringkas untuk pertanyaan sederhana, rinci bila diminta atau diperlukan, jujur terhadap batas konteks, dan sertakan sitasi untuk klaim dari materi.";
@@ -680,6 +698,7 @@ async function retrieveRelevantChunks(input: {
   courseId: string;
   selectedMaterialIds: string[];
   questionEmbedding: number[];
+  limit?: number;
 }) {
   if (input.selectedMaterialIds.length === 0) return [];
 
@@ -711,7 +730,7 @@ async function retrieveRelevantChunks(input: {
       AND m."id" IN (${Prisma.join(input.selectedMaterialIds)})
       AND s."isActive" = true
     ORDER BY c."embedding" <=> ${queryVector}::vector
-    LIMIT ${MAX_TUTOR_CONTEXT_CHUNKS}
+    LIMIT ${input.limit ?? MAX_TUTOR_CONTEXT_CHUNKS}
   `;
 
   return rows.filter((row) => Number(row.similarity) >= MIN_TUTOR_CONTEXT_SIMILARITY);
@@ -921,9 +940,13 @@ async function prepareTutorTurnFromContext(input: TutorTurnContext) {
   if (!selectedMaterialIds.length) {
     return { ...empty, fixedAnswer: fallback, reason: "no_selected_materials" };
   }
-  const retrievalQuestion = await resolveRetrievalQuestion(question, history, input.signal);
+  const retrievalQuestion =
+    intent === "summary"
+      ? buildSummaryRetrievalQuestion(history, question)
+      : await resolveRetrievalQuestion(question, history, input.signal);
   const questionEmbedding = await embedTutorQuestion(retrievalQuestion, input.signal);
-  const retrieved = await retrieveRelevantChunks({ courseId, selectedMaterialIds, questionEmbedding });
+  const contextLimit = intent === "summary" ? MAX_TUTOR_SUMMARY_CONTEXT_CHUNKS : MAX_TUTOR_CONTEXT_CHUNKS;
+  const retrieved = await retrieveRelevantChunks({ courseId, selectedMaterialIds, questionEmbedding, limit: contextLimit });
   const corrections = await findApplicableCorrections({ courseId, selectedMaterialIds, question: retrievalQuestion, questionEmbedding });
   const correctionChunks = await correctionContextChunks(corrections, { courseId, selectedMaterialIds, questionEmbedding });
   const uniqueChunks = new Map<string, RetrievedChunkRow>();
@@ -931,7 +954,7 @@ async function prepareTutorTurnFromContext(input: TutorTurnContext) {
     const existing = uniqueChunks.get(chunk.chunkId);
     if (!existing || Number(chunk.similarity) > Number(existing.similarity)) uniqueChunks.set(chunk.chunkId, chunk);
   }
-  const chunks = [...uniqueChunks.values()].sort((a, b) => Number(b.similarity) - Number(a.similarity)).slice(0, MAX_TUTOR_CONTEXT_CHUNKS);
+  const chunks = [...uniqueChunks.values()].sort((a, b) => Number(b.similarity) - Number(a.similarity)).slice(0, contextLimit);
   input.signal?.throwIfAborted();
   if (!chunks.length) return { ...empty, fixedAnswer: fallback, reason: "no_relevant_evidence" };
   const sourceNumbers = buildPageSourceNumbers(chunks);

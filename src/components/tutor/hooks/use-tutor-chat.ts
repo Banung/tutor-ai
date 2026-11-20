@@ -602,7 +602,7 @@ export function useTutorChat({
   }
 
   async function handleCreateSummary(anchorMessageId: string) {
-    await sendMessage("Buat ringkasan materi ini.", {
+    await sendMessage("Buat artikel belajar mendalam tentang topik materi ini.", {
       intent: "summary",
       anchorMessageId,
       preserveInput: true,
