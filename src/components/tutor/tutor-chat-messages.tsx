@@ -1040,13 +1040,13 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                           size="lg"
                           disabled={sending}
                           onClick={() => onCreateSummary?.(message.id)}
-                          aria-label="Buat ringkasan materi dari jawaban ini"
+                          aria-label="Buat artikel belajar mendalam dari jawaban ini"
                           className="mt-4 h-auto w-full justify-between gap-4 rounded-2xl border-border bg-card px-5 py-4 text-left whitespace-normal hover:bg-muted/60"
                         >
                           <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
-                            <span className="font-medium text-foreground">Buat ringkasan materi ini</span>
+                            <span className="font-medium text-foreground">Buat artikel belajar dari materi ini</span>
                             <span className="text-sm font-normal text-muted-foreground">
-                              Poin inti, istilah penting, dan hubungan konsep
+                              Satu bacaan utuh dengan penjelasan yang lebih mendalam
                             </span>
                           </span>
                           <ArrowRight data-icon="inline-end" className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
