@@ -344,23 +344,7 @@ function prepareSpeechText(value: string) {
 }
 
 function getBrowserVoices() {
-  const voices = window.speechSynthesis.getVoices();
-  if (voices.length > 0) return Promise.resolve(voices);
-
-  return new Promise<SpeechSynthesisVoice[]>((resolve) => {
-    const timeoutId = window.setTimeout(() => {
-      window.speechSynthesis.removeEventListener("voiceschanged", handleVoicesChanged);
-      resolve(window.speechSynthesis.getVoices());
-    }, 500);
-
-    function handleVoicesChanged() {
-      window.clearTimeout(timeoutId);
-      window.speechSynthesis.removeEventListener("voiceschanged", handleVoicesChanged);
-      resolve(window.speechSynthesis.getVoices());
-    }
-
-    window.speechSynthesis.addEventListener("voiceschanged", handleVoicesChanged);
-  });
+  return window.speechSynthesis.getVoices();
 }
 
 const INDONESIAN_WORD_HINTS = ["adalah", "akan", "atau", "dalam", "dan", "dengan", "dari", "di", "ini", "itu", "jika", "karena", "ke", "pada", "sebagai", "tidak", "untuk", "yang"];
@@ -869,13 +853,14 @@ export const TutorChatMessages = memo(function TutorChatMessages({
     }
   }
 
-  async function handleSpeakMessage(message: TutorMessage) {
+  function handleSpeakMessage(message: TutorMessage) {
     if (speakingMessageId === message.id) {
       stopSpeech();
       return;
     }
 
     if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+      toast.error("Browser ini tidak mendukung text-to-speech.");
       return;
     }
 
@@ -888,8 +873,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
     setSpeakingMessageId(message.id);
 
     const speechLanguage = detectSpeechLanguage(text);
-    const selectedVoice = chooseTutorVoice(await getBrowserVoices(), speechLanguage);
-    if (speechRequestIdRef.current !== requestId) return;
+    const selectedVoice = chooseTutorVoice(getBrowserVoices(), speechLanguage);
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.voice = selectedVoice;
@@ -900,12 +884,22 @@ export const TutorChatMessages = memo(function TutorChatMessages({
     utterance.onend = () => {
       if (speechRequestIdRef.current === requestId) stopSpeech();
     };
-    utterance.onerror = () => {
-      if (speechRequestIdRef.current === requestId) stopSpeech();
+    utterance.onerror = (event) => {
+      if (speechRequestIdRef.current !== requestId) return;
+
+      stopSpeech();
+      if (event.error !== "canceled" && event.error !== "interrupted") {
+        toast.error(`Gagal memutar suara (${event.error}). Periksa pengaturan audio browser.`);
+      }
     };
 
     speechUtteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      stopSpeech();
+      toast.error("Gagal memutar suara. Periksa pengaturan audio browser.");
+    }
   }
 
   return (
