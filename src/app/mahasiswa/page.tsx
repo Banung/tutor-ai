@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowRight,
   BookOpen,
+  Building2,
   CalendarDays,
   FileText,
   GraduationCap,
@@ -27,6 +28,7 @@ interface MahasiswaCourse {
   createdAt: string;
   creator: { id: string; name: string };
   instructors: { id: string; user: { id: string; name: string } }[];
+  studyProgram: { name: string; faculty: { name: string } } | null;
   _count: { instructors: number; sessions: number };
 }
 
@@ -44,6 +46,12 @@ const PREVIEW_LIMIT = 4;
 
 function courseDetailHref(courseId: string) {
   return `/mahasiswa/courses/${courseId}`;
+}
+
+function formatAcademicUnitName(name: string) {
+  const trimmedName = name.trim();
+  if (/^(fakultas|sekolah)\b/i.test(trimmedName)) return trimmedName;
+  return `Fakultas ${trimmedName}`;
 }
 
 function CourseCard({ course }: { course: MahasiswaCourse }) {
@@ -80,6 +88,22 @@ function CourseCard({ course }: { course: MahasiswaCourse }) {
             {course._count.sessions} Sesi
           </span>
         </div>
+        {course.studyProgram && (
+          <div className="flex flex-wrap items-start gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+            <span className="flex min-w-0 items-start gap-1">
+              <Building2 className="size-3.5 shrink-0" />
+              <span className="whitespace-normal break-words leading-snug">
+                {formatAcademicUnitName(course.studyProgram.faculty.name)}
+              </span>
+            </span>
+            <span className="flex min-w-0 items-start gap-1">
+              <BookOpen className="size-3.5 shrink-0" />
+              <span className="whitespace-normal break-words leading-snug">
+                {course.studyProgram.name}
+              </span>
+            </span>
+          </div>
+        )}
         <Button
           type="button"
           size="sm"

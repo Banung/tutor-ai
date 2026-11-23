@@ -66,6 +66,12 @@ export async function listMahasiswaCourses(mahasiswaId: string, search?: string)
           user: { select: { id: true, name: true } },
         },
       },
+      studyProgram: {
+        select: {
+          name: true,
+          faculty: { select: { name: true } },
+        },
+      },
       _count: { select: { instructors: true, sessions: true } },
     },
     orderBy: { createdAt: "desc" },
