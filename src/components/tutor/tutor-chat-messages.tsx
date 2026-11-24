@@ -710,6 +710,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                                 onClick={() => onOpenStudioAction?.(suggestion, message)}
                                 className={cn(
                                   "group flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                                  isStudioPinned && actionSuggestions.length !== 2 && "sm:col-span-2",
                                   isStudioPinned
                                     ? "border-brand/35 bg-brand/5 hover:border-brand/60 hover:bg-brand/10"
                                     : "border-border bg-card hover:border-brand/35 hover:bg-muted/60"

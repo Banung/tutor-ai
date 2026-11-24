@@ -274,7 +274,7 @@ test("buildTutorActionSuggestions pins summary to Studio first and adapts contex
 
   assert.equal(proceduralSuggestions[0]?.id, "summary_studio");
   assert.equal(proceduralSuggestions[0]?.badgeLabel, "Studio");
-  assert.equal(proceduralSuggestions.length, 4);
+  assert.equal(proceduralSuggestions.length, 3);
   assert.ok(proceduralSuggestions.some((item) => item.id === "worked_example"));
   assert.ok(proceduralSuggestions.some((item) => item.id === "comparison_table"));
 
@@ -294,6 +294,7 @@ test("buildTutorActionSuggestions pins summary to Studio first and adapts contex
 
   assert.equal(alreadySteppedSuggestions[0]?.title, "Buka ringkasan di Studio");
   assert.equal(alreadySteppedSuggestions[0]?.alreadySavedArtifactId, "sum-saved-1");
+  assert.ok(alreadySteppedSuggestions.length <= 3);
   assert.equal(
     alreadySteppedSuggestions.some((item) => item.id === "worked_example"),
     false

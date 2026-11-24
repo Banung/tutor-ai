@@ -31,7 +31,7 @@ export type BuildTutorActionSuggestionsInput = {
   existingFlashcardsArtifactId?: string | null;
 };
 
-const MAX_CONTEXTUAL_FOLLOW_UPS = 3;
+const MAX_CONTEXTUAL_FOLLOW_UPS = 2;
 
 const MATH_OR_PROCEDURE_RE =
   /(?:\$\$?|\\frac|\\sum|\\int|\\cdot|=|langkah|algoritma|hitung|rumus|persamaan|kompleksitas|pseudocode|kode|fungsi|turunan|integral|matriks|graf|rekursi|simulasi|prosedur)/i;
@@ -66,8 +66,8 @@ export function deriveSuggestionTopic(
 }
 
 /**
- * Build up to 4 contextual actionable cards for a grounded AI message:
- * Card 1 is always pinned to Summary -> Studio, followed by up to 3 diverse
+ * Build up to 3 contextual actionable cards for a grounded AI message:
+ * Card 1 is always pinned to Summary -> Studio, followed by up to 2 diverse
  * study actions inferred deterministically from the question and answer structure.
  */
 export function buildTutorActionSuggestions(
