@@ -1300,3 +1300,28 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
     cancel() { cancellation.abort(); },
   });
 }
+
+export type {
+  AcademicLevel,
+  RagSource,
+  ReadyMaterial,
+  RetrievedChunkRow,
+  RetrievedPageSource,
+  TutorCourse,
+  TutorResponseMode,
+  TutorUser,
+};
+
+export {
+  buildContextBlock,
+  buildSummaryRetrievalQuestion,
+  buildSystemInstruction,
+  getSessionOrThrow,
+  getStoredSelectedMaterialIds,
+  getSummaryAnchor,
+  getTutorAccess,
+  groupRetrievedChunksByPage,
+  listReadyMaterialsForCourse,
+  retrieveRelevantChunks,
+  toRagSource,
+};

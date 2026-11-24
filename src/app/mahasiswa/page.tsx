@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  CourseAcademicLabels,
+  type CourseStudyProgram,
+} from "@/components/courses/course-academic-labels";
+import {
   ArrowRight,
   BookOpen,
   CalendarDays,
+  Compass,
   FileText,
   GraduationCap,
   MessageCircle,
@@ -27,6 +33,7 @@ interface MahasiswaCourse {
   createdAt: string;
   creator: { id: string; name: string };
   instructors: { id: string; user: { id: string; name: string } }[];
+  studyProgram: CourseStudyProgram | null;
   _count: { instructors: number; sessions: number };
 }
 
@@ -80,6 +87,7 @@ function CourseCard({ course }: { course: MahasiswaCourse }) {
             {course._count.sessions} Sesi
           </span>
         </div>
+        <CourseAcademicLabels studyProgram={course.studyProgram} />
         <Button
           type="button"
           size="sm"
@@ -305,6 +313,12 @@ export default function MahasiswaDashboardPage() {
               <p className="mt-1 text-sm text-muted-foreground/70">
                 Anda belum terdaftar ke course apa pun.
               </p>
+              <Button asChild size="sm" className="mt-4 bg-brand text-black hover:bg-brand/90">
+                <Link href="/mahasiswa/catalog">
+                  <Compass data-icon="inline-start" />
+                  Jelajahi Katalog Course
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         ) : (

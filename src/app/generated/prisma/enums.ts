@@ -56,3 +56,13 @@ export const CatalogStatus = {
 } as const
 
 export type CatalogStatus = (typeof CatalogStatus)[keyof typeof CatalogStatus]
+
+
+export const TutorStudioArtifactType = {
+  SUMMARY: 'SUMMARY',
+  QUIZ: 'QUIZ',
+  FLASHCARDS: 'FLASHCARDS',
+  NOTE: 'NOTE'
+} as const
+
+export type TutorStudioArtifactType = (typeof TutorStudioArtifactType)[keyof typeof TutorStudioArtifactType]

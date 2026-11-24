@@ -3,12 +3,13 @@
 import { authClient } from "@/lib/auth-client";
 import { usePathname } from "next/navigation";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Loader2, LayoutDashboard, BookOpen, UserRound } from "lucide-react";
+import { Loader2, LayoutDashboard, BookOpen, Compass, UserRound } from "lucide-react";
 import { PanelSidebar } from "@/components/panel-sidebar";
 
 const NAV_ITEMS = [
   { title: "Dashboard", href: "/mahasiswa", icon: LayoutDashboard, exact: true },
   { title: "My Courses", href: "/mahasiswa/courses", icon: BookOpen },
+  { title: "Katalog Course", href: "/mahasiswa/catalog", icon: Compass },
   { title: "Profile", href: "/mahasiswa/profile", icon: UserRound },
 ];
 

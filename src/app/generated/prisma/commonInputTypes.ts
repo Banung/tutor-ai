@@ -473,6 +473,23 @@ export type BoolNullableWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedBoolNullableFilter<$PrismaModel>
 }
 
+export type EnumTutorStudioArtifactTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.TutorStudioArtifactType | Prisma.EnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.TutorStudioArtifactType[] | Prisma.ListEnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TutorStudioArtifactType[] | Prisma.ListEnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTutorStudioArtifactTypeFilter<$PrismaModel> | $Enums.TutorStudioArtifactType
+}
+
+export type EnumTutorStudioArtifactTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TutorStudioArtifactType | Prisma.EnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.TutorStudioArtifactType[] | Prisma.ListEnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TutorStudioArtifactType[] | Prisma.ListEnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTutorStudioArtifactTypeWithAggregatesFilter<$PrismaModel> | $Enums.TutorStudioArtifactType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTutorStudioArtifactTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTutorStudioArtifactTypeFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -878,6 +895,23 @@ export type NestedBoolNullableWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedBoolNullableFilter<$PrismaModel>
   _max?: Prisma.NestedBoolNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumTutorStudioArtifactTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.TutorStudioArtifactType | Prisma.EnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.TutorStudioArtifactType[] | Prisma.ListEnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TutorStudioArtifactType[] | Prisma.ListEnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTutorStudioArtifactTypeFilter<$PrismaModel> | $Enums.TutorStudioArtifactType
+}
+
+export type NestedEnumTutorStudioArtifactTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TutorStudioArtifactType | Prisma.EnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.TutorStudioArtifactType[] | Prisma.ListEnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TutorStudioArtifactType[] | Prisma.ListEnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTutorStudioArtifactTypeWithAggregatesFilter<$PrismaModel> | $Enums.TutorStudioArtifactType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTutorStudioArtifactTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTutorStudioArtifactTypeFilter<$PrismaModel>
 }
 
 

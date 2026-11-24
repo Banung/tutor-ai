@@ -7,6 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import {
+  CourseAcademicLabels,
+  type CourseStudyProgram,
+} from "@/components/courses/course-academic-labels";
 import { DosenUsageInsights } from "@/app/dosen/usage-insights";
 import {
   BookOpen,
@@ -31,6 +35,7 @@ interface DosenCourse {
   isActive: boolean;
   createdAt: string;
   creator: { id: string; name: string };
+  studyProgram: CourseStudyProgram | null;
   _count: { enrollments: number; sessions: number };
 }
 
@@ -127,6 +132,7 @@ function CourseCard({ course }: { course: DosenCourse }) {
             {course._count.sessions} Sesi Materi
           </span>
         </div>
+        <CourseAcademicLabels studyProgram={course.studyProgram} />
       </CardContent>
     </Card>
   );

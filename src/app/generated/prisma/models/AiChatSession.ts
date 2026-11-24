@@ -203,6 +203,7 @@ export type AiChatSessionWhereInput = {
   courseSession?: Prisma.XOR<Prisma.CourseSessionScalarRelationFilter, Prisma.CourseSessionWhereInput>
   responseRuns?: Prisma.AiResponseRunListRelationFilter
   messages?: Prisma.AiChatMessageListRelationFilter
+  studioArtifacts?: Prisma.TutorStudioArtifactListRelationFilter
 }
 
 export type AiChatSessionOrderByWithRelationInput = {
@@ -218,6 +219,7 @@ export type AiChatSessionOrderByWithRelationInput = {
   courseSession?: Prisma.CourseSessionOrderByWithRelationInput
   responseRuns?: Prisma.AiResponseRunOrderByRelationAggregateInput
   messages?: Prisma.AiChatMessageOrderByRelationAggregateInput
+  studioArtifacts?: Prisma.TutorStudioArtifactOrderByRelationAggregateInput
 }
 
 export type AiChatSessionWhereUniqueInput = Prisma.AtLeast<{
@@ -236,6 +238,7 @@ export type AiChatSessionWhereUniqueInput = Prisma.AtLeast<{
   courseSession?: Prisma.XOR<Prisma.CourseSessionScalarRelationFilter, Prisma.CourseSessionWhereInput>
   responseRuns?: Prisma.AiResponseRunListRelationFilter
   messages?: Prisma.AiChatMessageListRelationFilter
+  studioArtifacts?: Prisma.TutorStudioArtifactListRelationFilter
 }, "id">
 
 export type AiChatSessionOrderByWithAggregationInput = {
@@ -274,6 +277,7 @@ export type AiChatSessionCreateInput = {
   courseSession: Prisma.CourseSessionCreateNestedOneWithoutAiChatSessionsInput
   responseRuns?: Prisma.AiResponseRunCreateNestedManyWithoutAiChatSessionInput
   messages?: Prisma.AiChatMessageCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionUncheckedCreateInput = {
@@ -286,6 +290,7 @@ export type AiChatSessionUncheckedCreateInput = {
   lastActiveAt?: Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedCreateNestedManyWithoutAiChatSessionInput
   messages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionUpdateInput = {
@@ -298,6 +303,7 @@ export type AiChatSessionUpdateInput = {
   courseSession?: Prisma.CourseSessionUpdateOneRequiredWithoutAiChatSessionsNestedInput
   responseRuns?: Prisma.AiResponseRunUpdateManyWithoutAiChatSessionNestedInput
   messages?: Prisma.AiChatMessageUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionUncheckedUpdateInput = {
@@ -310,6 +316,7 @@ export type AiChatSessionUncheckedUpdateInput = {
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedUpdateManyWithoutAiChatSessionNestedInput
   messages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionCreateManyInput = {
@@ -382,6 +389,11 @@ export type AiChatSessionMinOrderByAggregateInput = {
 export type AiChatSessionScalarRelationFilter = {
   is?: Prisma.AiChatSessionWhereInput
   isNot?: Prisma.AiChatSessionWhereInput
+}
+
+export type AiChatSessionNullableScalarRelationFilter = {
+  is?: Prisma.AiChatSessionWhereInput | null
+  isNot?: Prisma.AiChatSessionWhereInput | null
 }
 
 export type AiChatSessionCreateNestedManyWithoutUserInput = {
@@ -538,6 +550,22 @@ export type AiChatSessionUpdateOneRequiredWithoutResponseRunsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.AiChatSessionUpdateToOneWithWhereWithoutResponseRunsInput, Prisma.AiChatSessionUpdateWithoutResponseRunsInput>, Prisma.AiChatSessionUncheckedUpdateWithoutResponseRunsInput>
 }
 
+export type AiChatSessionCreateNestedOneWithoutStudioArtifactsInput = {
+  create?: Prisma.XOR<Prisma.AiChatSessionCreateWithoutStudioArtifactsInput, Prisma.AiChatSessionUncheckedCreateWithoutStudioArtifactsInput>
+  connectOrCreate?: Prisma.AiChatSessionCreateOrConnectWithoutStudioArtifactsInput
+  connect?: Prisma.AiChatSessionWhereUniqueInput
+}
+
+export type AiChatSessionUpdateOneWithoutStudioArtifactsNestedInput = {
+  create?: Prisma.XOR<Prisma.AiChatSessionCreateWithoutStudioArtifactsInput, Prisma.AiChatSessionUncheckedCreateWithoutStudioArtifactsInput>
+  connectOrCreate?: Prisma.AiChatSessionCreateOrConnectWithoutStudioArtifactsInput
+  upsert?: Prisma.AiChatSessionUpsertWithoutStudioArtifactsInput
+  disconnect?: Prisma.AiChatSessionWhereInput | boolean
+  delete?: Prisma.AiChatSessionWhereInput | boolean
+  connect?: Prisma.AiChatSessionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AiChatSessionUpdateToOneWithWhereWithoutStudioArtifactsInput, Prisma.AiChatSessionUpdateWithoutStudioArtifactsInput>, Prisma.AiChatSessionUncheckedUpdateWithoutStudioArtifactsInput>
+}
+
 export type AiChatSessionCreateWithoutUserInput = {
   id: string
   customTitle?: string | null
@@ -547,6 +575,7 @@ export type AiChatSessionCreateWithoutUserInput = {
   courseSession: Prisma.CourseSessionCreateNestedOneWithoutAiChatSessionsInput
   responseRuns?: Prisma.AiResponseRunCreateNestedManyWithoutAiChatSessionInput
   messages?: Prisma.AiChatMessageCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionUncheckedCreateWithoutUserInput = {
@@ -558,6 +587,7 @@ export type AiChatSessionUncheckedCreateWithoutUserInput = {
   lastActiveAt?: Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedCreateNestedManyWithoutAiChatSessionInput
   messages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionCreateOrConnectWithoutUserInput = {
@@ -608,6 +638,7 @@ export type AiChatSessionCreateWithoutCourseInput = {
   courseSession: Prisma.CourseSessionCreateNestedOneWithoutAiChatSessionsInput
   responseRuns?: Prisma.AiResponseRunCreateNestedManyWithoutAiChatSessionInput
   messages?: Prisma.AiChatMessageCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionUncheckedCreateWithoutCourseInput = {
@@ -619,6 +650,7 @@ export type AiChatSessionUncheckedCreateWithoutCourseInput = {
   lastActiveAt?: Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedCreateNestedManyWithoutAiChatSessionInput
   messages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionCreateOrConnectWithoutCourseInput = {
@@ -656,6 +688,7 @@ export type AiChatSessionCreateWithoutCourseSessionInput = {
   course: Prisma.CourseCreateNestedOneWithoutAiChatSessionsInput
   responseRuns?: Prisma.AiResponseRunCreateNestedManyWithoutAiChatSessionInput
   messages?: Prisma.AiChatMessageCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionUncheckedCreateWithoutCourseSessionInput = {
@@ -667,6 +700,7 @@ export type AiChatSessionUncheckedCreateWithoutCourseSessionInput = {
   lastActiveAt?: Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedCreateNestedManyWithoutAiChatSessionInput
   messages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionCreateOrConnectWithoutCourseSessionInput = {
@@ -704,6 +738,7 @@ export type AiChatSessionCreateWithoutMessagesInput = {
   course: Prisma.CourseCreateNestedOneWithoutAiChatSessionsInput
   courseSession: Prisma.CourseSessionCreateNestedOneWithoutAiChatSessionsInput
   responseRuns?: Prisma.AiResponseRunCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionUncheckedCreateWithoutMessagesInput = {
@@ -715,6 +750,7 @@ export type AiChatSessionUncheckedCreateWithoutMessagesInput = {
   startedAt?: Date | string
   lastActiveAt?: Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionCreateOrConnectWithoutMessagesInput = {
@@ -742,6 +778,7 @@ export type AiChatSessionUpdateWithoutMessagesInput = {
   course?: Prisma.CourseUpdateOneRequiredWithoutAiChatSessionsNestedInput
   courseSession?: Prisma.CourseSessionUpdateOneRequiredWithoutAiChatSessionsNestedInput
   responseRuns?: Prisma.AiResponseRunUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionUncheckedUpdateWithoutMessagesInput = {
@@ -753,6 +790,7 @@ export type AiChatSessionUncheckedUpdateWithoutMessagesInput = {
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionCreateWithoutResponseRunsInput = {
@@ -764,6 +802,7 @@ export type AiChatSessionCreateWithoutResponseRunsInput = {
   course: Prisma.CourseCreateNestedOneWithoutAiChatSessionsInput
   courseSession: Prisma.CourseSessionCreateNestedOneWithoutAiChatSessionsInput
   messages?: Prisma.AiChatMessageCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionUncheckedCreateWithoutResponseRunsInput = {
@@ -775,6 +814,7 @@ export type AiChatSessionUncheckedCreateWithoutResponseRunsInput = {
   startedAt?: Date | string
   lastActiveAt?: Date | string
   messages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutAiChatSessionInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutChatSessionInput
 }
 
 export type AiChatSessionCreateOrConnectWithoutResponseRunsInput = {
@@ -802,6 +842,7 @@ export type AiChatSessionUpdateWithoutResponseRunsInput = {
   course?: Prisma.CourseUpdateOneRequiredWithoutAiChatSessionsNestedInput
   courseSession?: Prisma.CourseSessionUpdateOneRequiredWithoutAiChatSessionsNestedInput
   messages?: Prisma.AiChatMessageUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionUncheckedUpdateWithoutResponseRunsInput = {
@@ -812,6 +853,71 @@ export type AiChatSessionUncheckedUpdateWithoutResponseRunsInput = {
   customTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  messages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutChatSessionNestedInput
+}
+
+export type AiChatSessionCreateWithoutStudioArtifactsInput = {
+  id: string
+  customTitle?: string | null
+  startedAt?: Date | string
+  lastActiveAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutAiChatSessionsInput
+  course: Prisma.CourseCreateNestedOneWithoutAiChatSessionsInput
+  courseSession: Prisma.CourseSessionCreateNestedOneWithoutAiChatSessionsInput
+  responseRuns?: Prisma.AiResponseRunCreateNestedManyWithoutAiChatSessionInput
+  messages?: Prisma.AiChatMessageCreateNestedManyWithoutAiChatSessionInput
+}
+
+export type AiChatSessionUncheckedCreateWithoutStudioArtifactsInput = {
+  id: string
+  userId: string
+  courseId: string
+  courseSessionId: string
+  customTitle?: string | null
+  startedAt?: Date | string
+  lastActiveAt?: Date | string
+  responseRuns?: Prisma.AiResponseRunUncheckedCreateNestedManyWithoutAiChatSessionInput
+  messages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutAiChatSessionInput
+}
+
+export type AiChatSessionCreateOrConnectWithoutStudioArtifactsInput = {
+  where: Prisma.AiChatSessionWhereUniqueInput
+  create: Prisma.XOR<Prisma.AiChatSessionCreateWithoutStudioArtifactsInput, Prisma.AiChatSessionUncheckedCreateWithoutStudioArtifactsInput>
+}
+
+export type AiChatSessionUpsertWithoutStudioArtifactsInput = {
+  update: Prisma.XOR<Prisma.AiChatSessionUpdateWithoutStudioArtifactsInput, Prisma.AiChatSessionUncheckedUpdateWithoutStudioArtifactsInput>
+  create: Prisma.XOR<Prisma.AiChatSessionCreateWithoutStudioArtifactsInput, Prisma.AiChatSessionUncheckedCreateWithoutStudioArtifactsInput>
+  where?: Prisma.AiChatSessionWhereInput
+}
+
+export type AiChatSessionUpdateToOneWithWhereWithoutStudioArtifactsInput = {
+  where?: Prisma.AiChatSessionWhereInput
+  data: Prisma.XOR<Prisma.AiChatSessionUpdateWithoutStudioArtifactsInput, Prisma.AiChatSessionUncheckedUpdateWithoutStudioArtifactsInput>
+}
+
+export type AiChatSessionUpdateWithoutStudioArtifactsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  customTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutAiChatSessionsNestedInput
+  course?: Prisma.CourseUpdateOneRequiredWithoutAiChatSessionsNestedInput
+  courseSession?: Prisma.CourseSessionUpdateOneRequiredWithoutAiChatSessionsNestedInput
+  responseRuns?: Prisma.AiResponseRunUpdateManyWithoutAiChatSessionNestedInput
+  messages?: Prisma.AiChatMessageUpdateManyWithoutAiChatSessionNestedInput
+}
+
+export type AiChatSessionUncheckedUpdateWithoutStudioArtifactsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  courseId?: Prisma.StringFieldUpdateOperationsInput | string
+  courseSessionId?: Prisma.StringFieldUpdateOperationsInput | string
+  customTitle?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  startedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  responseRuns?: Prisma.AiResponseRunUncheckedUpdateManyWithoutAiChatSessionNestedInput
   messages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutAiChatSessionNestedInput
 }
 
@@ -833,6 +939,7 @@ export type AiChatSessionUpdateWithoutUserInput = {
   courseSession?: Prisma.CourseSessionUpdateOneRequiredWithoutAiChatSessionsNestedInput
   responseRuns?: Prisma.AiResponseRunUpdateManyWithoutAiChatSessionNestedInput
   messages?: Prisma.AiChatMessageUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionUncheckedUpdateWithoutUserInput = {
@@ -844,6 +951,7 @@ export type AiChatSessionUncheckedUpdateWithoutUserInput = {
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedUpdateManyWithoutAiChatSessionNestedInput
   messages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionUncheckedUpdateManyWithoutUserInput = {
@@ -873,6 +981,7 @@ export type AiChatSessionUpdateWithoutCourseInput = {
   courseSession?: Prisma.CourseSessionUpdateOneRequiredWithoutAiChatSessionsNestedInput
   responseRuns?: Prisma.AiResponseRunUpdateManyWithoutAiChatSessionNestedInput
   messages?: Prisma.AiChatMessageUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionUncheckedUpdateWithoutCourseInput = {
@@ -884,6 +993,7 @@ export type AiChatSessionUncheckedUpdateWithoutCourseInput = {
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedUpdateManyWithoutAiChatSessionNestedInput
   messages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionUncheckedUpdateManyWithoutCourseInput = {
@@ -913,6 +1023,7 @@ export type AiChatSessionUpdateWithoutCourseSessionInput = {
   course?: Prisma.CourseUpdateOneRequiredWithoutAiChatSessionsNestedInput
   responseRuns?: Prisma.AiResponseRunUpdateManyWithoutAiChatSessionNestedInput
   messages?: Prisma.AiChatMessageUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionUncheckedUpdateWithoutCourseSessionInput = {
@@ -924,6 +1035,7 @@ export type AiChatSessionUncheckedUpdateWithoutCourseSessionInput = {
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   responseRuns?: Prisma.AiResponseRunUncheckedUpdateManyWithoutAiChatSessionNestedInput
   messages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutAiChatSessionNestedInput
+  studioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutChatSessionNestedInput
 }
 
 export type AiChatSessionUncheckedUpdateManyWithoutCourseSessionInput = {
@@ -943,11 +1055,13 @@ export type AiChatSessionUncheckedUpdateManyWithoutCourseSessionInput = {
 export type AiChatSessionCountOutputType = {
   responseRuns: number
   messages: number
+  studioArtifacts: number
 }
 
 export type AiChatSessionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   responseRuns?: boolean | AiChatSessionCountOutputTypeCountResponseRunsArgs
   messages?: boolean | AiChatSessionCountOutputTypeCountMessagesArgs
+  studioArtifacts?: boolean | AiChatSessionCountOutputTypeCountStudioArtifactsArgs
 }
 
 /**
@@ -974,6 +1088,13 @@ export type AiChatSessionCountOutputTypeCountMessagesArgs<ExtArgs extends runtim
   where?: Prisma.AiChatMessageWhereInput
 }
 
+/**
+ * AiChatSessionCountOutputType without action
+ */
+export type AiChatSessionCountOutputTypeCountStudioArtifactsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TutorStudioArtifactWhereInput
+}
+
 
 export type AiChatSessionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -988,6 +1109,7 @@ export type AiChatSessionSelect<ExtArgs extends runtime.Types.Extensions.Interna
   courseSession?: boolean | Prisma.CourseSessionDefaultArgs<ExtArgs>
   responseRuns?: boolean | Prisma.AiChatSession$responseRunsArgs<ExtArgs>
   messages?: boolean | Prisma.AiChatSession$messagesArgs<ExtArgs>
+  studioArtifacts?: boolean | Prisma.AiChatSession$studioArtifactsArgs<ExtArgs>
   _count?: boolean | Prisma.AiChatSessionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aiChatSession"]>
 
@@ -1034,6 +1156,7 @@ export type AiChatSessionInclude<ExtArgs extends runtime.Types.Extensions.Intern
   courseSession?: boolean | Prisma.CourseSessionDefaultArgs<ExtArgs>
   responseRuns?: boolean | Prisma.AiChatSession$responseRunsArgs<ExtArgs>
   messages?: boolean | Prisma.AiChatSession$messagesArgs<ExtArgs>
+  studioArtifacts?: boolean | Prisma.AiChatSession$studioArtifactsArgs<ExtArgs>
   _count?: boolean | Prisma.AiChatSessionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AiChatSessionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1055,6 +1178,7 @@ export type $AiChatSessionPayload<ExtArgs extends runtime.Types.Extensions.Inter
     courseSession: Prisma.$CourseSessionPayload<ExtArgs>
     responseRuns: Prisma.$AiResponseRunPayload<ExtArgs>[]
     messages: Prisma.$AiChatMessagePayload<ExtArgs>[]
+    studioArtifacts: Prisma.$TutorStudioArtifactPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1463,6 +1587,7 @@ export interface Prisma__AiChatSessionClient<T, Null = never, ExtArgs extends ru
   courseSession<T extends Prisma.CourseSessionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CourseSessionDefaultArgs<ExtArgs>>): Prisma.Prisma__CourseSessionClient<runtime.Types.Result.GetResult<Prisma.$CourseSessionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   responseRuns<T extends Prisma.AiChatSession$responseRunsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiChatSession$responseRunsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiResponseRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   messages<T extends Prisma.AiChatSession$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiChatSession$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiChatMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  studioArtifacts<T extends Prisma.AiChatSession$studioArtifactsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AiChatSession$studioArtifactsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TutorStudioArtifactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1945,6 +2070,30 @@ export type AiChatSession$messagesArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.AiChatMessageScalarFieldEnum | Prisma.AiChatMessageScalarFieldEnum[]
+}
+
+/**
+ * AiChatSession.studioArtifacts
+ */
+export type AiChatSession$studioArtifactsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TutorStudioArtifact
+   */
+  select?: Prisma.TutorStudioArtifactSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TutorStudioArtifact
+   */
+  omit?: Prisma.TutorStudioArtifactOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TutorStudioArtifactInclude<ExtArgs> | null
+  where?: Prisma.TutorStudioArtifactWhereInput
+  orderBy?: Prisma.TutorStudioArtifactOrderByWithRelationInput | Prisma.TutorStudioArtifactOrderByWithRelationInput[]
+  cursor?: Prisma.TutorStudioArtifactWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TutorStudioArtifactScalarFieldEnum | Prisma.TutorStudioArtifactScalarFieldEnum[]
 }
 
 /**
