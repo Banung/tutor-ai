@@ -20,10 +20,17 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: bash scripts/reproduce-ai-baseline.sh
-      - run: pnpm test
+      - run: pnpm check
       - run: pnpm test:pdf
-      - run: pnpm typecheck
-      # Full-repository lint has pre-existing UI errors; see docs/ai/verification.md.
-      - run: pnpm exec eslint src/lib/tutor-ai src/lib/material-processing/pdf.ts src/lib/material-processing/embedding.ts src/lib/services/tutor-prompt.service.ts prisma/seed-prompts.ts tests scripts
+      - name: Lint changed files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ "$BASE_SHA" == 0000000000000000000000000000000000000000 ]]; then
+            BASE_SHA=$(git hash-object -t tree /dev/null)
+          elif ! git cat-file -e "$BASE_SHA^{commit}"; then
+            git fetch --no-tags origin "$BASE_SHA"
+          fi
+          pnpm lint:changed "$BASE_SHA"
       - run: pnpm build
       - run: pnpm eval:ai

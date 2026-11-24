@@ -3,6 +3,7 @@ allowBuilds:
   '@prisma/engines': true
   canvas: true
   esbuild: true
+  lefthook: false
   msgpackr-extract: true
   msw: true
   prisma: true
