@@ -1,0 +1,8 @@
+assert_lefthook_installed: true
+
+pre-commit:
+  commands:
+    lint:
+      run: pnpm lint:changed
+    check:
+      run: pnpm check

@@ -97,6 +97,9 @@ Instal seluruh package dan dependensi dengan perintah:
 pnpm install
 ```
 
+Aktifkan pemeriksaan sebelum commit dengan `pnpm exec lefthook install`.
+Hook menjalankan lint pada file yang di-stage serta memeriksa tipe dan unit test.
+
 ### 4. Konfigurasi Environment Variables
 Salin contoh konfigurasi ke dalam file `.env`:
 ```bash
