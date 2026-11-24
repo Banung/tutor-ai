@@ -129,6 +129,12 @@ export async function listDosenCourses(dosenId: string, search?: string) {
     where: whereClause,
     include: {
       creator: { select: { id: true, name: true } },
+      studyProgram: {
+        select: {
+          name: true,
+          faculty: { select: { name: true } },
+        },
+      },
       _count: { select: { enrollments: true, sessions: true } },
     },
     orderBy: { createdAt: "desc" },
