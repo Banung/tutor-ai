@@ -4,7 +4,10 @@ import assert from "node:assert/strict";
 process.env.DATABASE_URL = "postgresql://test:test@127.0.0.1:1/synthetic_no_database";
 process.env.GEMINI_API_KEY = "synthetic-test-key-never-use-live";
 
-import { buildTutorActionSuggestions } from "../src/lib/tutor-ai/action-suggestions";
+import {
+  buildTutorActionSuggestions,
+  parsePersistedSuggestedActions,
+} from "../src/lib/tutor-ai/action-suggestions";
 import {
   buildStudioArtifactMarkdown,
   buildStudioExportFilename,
@@ -273,10 +276,42 @@ test("buildTutorActionSuggestions pins summary to Studio first and adapts contex
   });
 
   assert.equal(proceduralSuggestions[0]?.id, "summary_studio");
-  assert.equal(proceduralSuggestions[0]?.badgeLabel, "Studio");
   assert.equal(proceduralSuggestions.length, 3);
   assert.ok(proceduralSuggestions.some((item) => item.id === "worked_example"));
   assert.ok(proceduralSuggestions.some((item) => item.id === "comparison_table"));
+  assert.match(proceduralSuggestions[1]?.title ?? "", /Merge Sort & Quick Sort/);
+
+  // Prefer persisted LLM adaptive suggestions when provided
+  const adaptiveSuggestions = buildTutorActionSuggestions({
+    messageId: "m-1",
+    questionContent: "Bagaimana Merge Sort bekerja?",
+    answerContent: "Merge Sort membagi array lalu menggabungkannya.",
+    sourcesCount: 2,
+    persistedSuggestions: [
+      {
+        target: "studio",
+        artifactType: "SUMMARY",
+        label: "Ringkas mekanisme Merge Sort ke Studio",
+        prompt: "Ringkas Merge Sort",
+      },
+      {
+        target: "chat",
+        label: "Bagaimana trace rekursi Merge Sort pada 6 elemen?",
+        prompt: "Tunjukkan trace rekursi Merge Sort pada 6 angka.",
+      },
+      {
+        target: "chat",
+        label: "Kapan Merge Sort lebih unggul dibanding Quick Sort?",
+        prompt: "Kapan Merge Sort lebih baik?",
+      },
+    ],
+  });
+
+  assert.equal(adaptiveSuggestions.length, 3);
+  assert.equal(adaptiveSuggestions[0]?.title, "Ringkas mekanisme Merge Sort ke Studio");
+  assert.equal(adaptiveSuggestions[1]?.id, "adaptive_1");
+  assert.equal(adaptiveSuggestions[1]?.title, "Bagaimana trace rekursi Merge Sort pada 6 elemen?");
+  assert.equal(adaptiveSuggestions[2]?.id, "adaptive_2");
 
   // Suppress worked_example when answer already contains a tutorsteps block
   const alreadySteppedSuggestions = buildTutorActionSuggestions({
@@ -292,13 +327,159 @@ test("buildTutorActionSuggestions pins summary to Studio first and adapts contex
     existingSummaryArtifactId: "sum-saved-1",
   });
 
-  assert.equal(alreadySteppedSuggestions[0]?.title, "Buka ringkasan di Studio");
+  assert.match(alreadySteppedSuggestions[0]?.title ?? "", /^Buka ringkasan/);
   assert.equal(alreadySteppedSuggestions[0]?.alreadySavedArtifactId, "sum-saved-1");
   assert.ok(alreadySteppedSuggestions.length <= 3);
   assert.equal(
     alreadySteppedSuggestions.some((item) => item.id === "worked_example"),
     false
   );
+});
+
+test("generateAndCacheMessageSuggestions generates, persists once, and falls back safely", async (t) => {
+  const { default: prisma } = await import("../src/lib/prisma");
+  const { generateAndCacheMessageSuggestions } = await import("../src/lib/tutor-ai/suggestions");
+
+  function replace(target: object, key: string, value: unknown) {
+    const record = target as Record<string, unknown>;
+    const original = record[key];
+    record[key] = value;
+    t.after(() => {
+      record[key] = original;
+    });
+  }
+
+  let storedRagSources: Record<string, unknown> = {
+    intent: "chat",
+    sources: [
+      {
+        chunkId: "chunk-1",
+        materialId: "material-1",
+        materialTitle: "Modul Graph",
+        fileName: "graph.pdf",
+        publicUrl: null,
+        sessionTitle: "Pertemuan 5",
+        pageNumber: 4,
+        chunkIndex: 0,
+        similarity: 0.9,
+        snippet: "BFS menelusuri simpul per level menggunakan queue FIFO.",
+        sourceNumber: 1,
+      },
+    ],
+  };
+
+  let llmMode: "json" | "invalid" = "json";
+  let generateCallCount = 0;
+
+  replace(prisma.user, "findUnique", async () => ({
+    id: "student-1",
+    name: "Nadia",
+    role: "mahasiswa",
+    academicLevel: "S1",
+  }));
+
+  replace(prisma.course, "findFirst", async () => ({
+    id: "course-1",
+    title: "Struktur Data",
+    description: null,
+    isActive: true,
+  }));
+
+  replace(prisma.aiChatSession, "findFirst", async () => ({
+    id: "chat-1",
+    userId: "student-1",
+    courseId: "course-1",
+    messages: [
+      {
+        id: "user-1",
+        senderType: "user",
+        content: "Apa fungsi queue pada algoritma BFS?",
+        ragSources: null,
+        responseTimeMs: null,
+        feedbacks: [],
+        createdAt: new Date(),
+      },
+      {
+        id: "ai-1",
+        senderType: "ai",
+        content: "**BFS** menggunakan struktur **Queue** FIFO untuk menelusuri graf per level [Sumber 1].",
+        ragSources: storedRagSources,
+        responseTimeMs: 300,
+        feedbacks: [],
+        createdAt: new Date(),
+      },
+    ],
+  }));
+
+  replace(prisma.aiChatMessage, "update", async ({ data }: { data: { ragSources: Record<string, unknown> } }) => {
+    storedRagSources = data.ragSources;
+    return { id: "ai-1", ragSources: storedRagSources };
+  });
+
+  t.mock.method(globalThis, "fetch", async () => {
+    generateCallCount += 1;
+    const text =
+      llmMode === "json"
+        ? JSON.stringify([
+            {
+              target: "studio",
+              artifactType: "SUMMARY",
+              label: "Ringkas cara kerja BFS & Queue ke Studio",
+              prompt: "Ringkas materi BFS dan penggunaan queue ke Studio.",
+            },
+            {
+              target: "chat",
+              label: "Bagaimana trace urutan kunjungan BFS pada graf berbobot?",
+              prompt: "Tunjukkan trace urutan kunjungan BFS langkah demi langkah.",
+            },
+            {
+              target: "chat",
+              label: "Apa bedanya antrean BFS dengan stack pada DFS?",
+              prompt: "Bandingkan queue BFS dan stack DFS berdasarkan materi.",
+            },
+          ])
+        : "bukan json yang valid";
+
+    return Response.json({
+      candidates: [{ content: { role: "model", parts: [{ text }] }, finishReason: "STOP" }],
+    });
+  });
+
+  // Invalid LLM output falls back without throwing or persisting broken cache
+  llmMode = "invalid";
+  const fallbackResult = await generateAndCacheMessageSuggestions({
+    courseId: "course-1",
+    userId: "student-1",
+    sessionId: "chat-1",
+    messageId: "ai-1",
+  });
+  assert.equal(fallbackResult.cached, false);
+  assert.equal(fallbackResult.suggestedActions.length, 3);
+  assert.equal(parsePersistedSuggestedActions(storedRagSources).length, 0);
+
+  // Valid LLM output generates 3 adaptive cards and persists into ragSources
+  llmMode = "json";
+  const freshResult = await generateAndCacheMessageSuggestions({
+    courseId: "course-1",
+    userId: "student-1",
+    sessionId: "chat-1",
+    messageId: "ai-1",
+  });
+  assert.equal(freshResult.cached, false);
+  assert.equal(freshResult.suggestedActions[0]?.label, "Ringkas cara kerja BFS & Queue ke Studio");
+  assert.equal(freshResult.suggestedActions.length, 3);
+  assert.equal(parsePersistedSuggestedActions(storedRagSources).length, 3);
+
+  // Subsequent call uses cache without calling Gemini
+  const callsAfterPersist = generateCallCount;
+  const cachedResult = await generateAndCacheMessageSuggestions({
+    courseId: "course-1",
+    userId: "student-1",
+    sessionId: "chat-1",
+    messageId: "ai-1",
+  });
+  assert.equal(cachedResult.cached, true);
+  assert.equal(generateCallCount, callsAfterPersist);
 });
 
 test("studio export helpers format filename, Markdown, and escaped printable HTML", () => {

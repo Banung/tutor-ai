@@ -51,7 +51,11 @@ import {
   type TutorAvatarCustomization,
 } from "./tutor-avatar-customization";
 
-import type { TutorActionSuggestion } from "@/lib/tutor-ai/action-suggestions";
+import {
+  parsePersistedSuggestedActions,
+  type PersistedSuggestedAction,
+  type TutorActionSuggestion,
+} from "@/lib/tutor-ai/action-suggestions";
 import type { TutorAiChatPageProps, TutorMessage } from "./tutor-chat-types";
 import { useTutorChat } from "./hooks/use-tutor-chat";
 import { useTutorSpeech } from "./hooks/use-tutor-speech";
@@ -155,6 +159,10 @@ export function TutorAiChatPage({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [panelMode, setPanelMode] = useState<TutorPanelMode>("chat");
+  const [dynamicSuggestionsByMessage, setDynamicSuggestionsByMessage] = useState<
+    Map<string, PersistedSuggestedAction[]>
+  >(() => new Map());
+  const requestedSuggestionIdsRef = useRef<Set<string>>(new Set());
   const [landingMessageIndex] = useState(() =>
     Math.floor(Math.random() * CHAT_LANDING_MESSAGES.length)
   );
@@ -236,6 +244,65 @@ export function TutorAiChatPage({
     courseId,
     activeSessionId: activeSession?.id ?? null,
   });
+
+  useEffect(() => {
+    if (!activeSession || sending) return;
+
+    const latestGroundedAi = [...activeSession.messages]
+      .reverse()
+      .find((msg) => {
+        if (msg.senderType !== "ai" || msg.id.startsWith("streaming-")) return false;
+        if (!msg.content.trim()) return false;
+        const meta =
+          msg.ragSources && typeof msg.ragSources === "object" && !Array.isArray(msg.ragSources)
+            ? (msg.ragSources as { intent?: unknown })
+            : null;
+        if (meta?.intent === "summary") return false;
+        return extractRagSources(msg.ragSources).length > 0;
+      });
+
+    if (!latestGroundedAi) return;
+    if (parsePersistedSuggestedActions(latestGroundedAi.ragSources).length >= 2) return;
+    if (dynamicSuggestionsByMessage.has(latestGroundedAi.id)) return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      if (requestedSuggestionIdsRef.current.has(latestGroundedAi.id)) return;
+      requestedSuggestionIdsRef.current.add(latestGroundedAi.id);
+
+      void fetch(
+        `/api/courses/${courseId}/tutor/sessions/${activeSession.id}/messages/${latestGroundedAi.id}/suggestions`,
+        {
+          method: "POST",
+          signal: controller.signal,
+        }
+      )
+        .then(async (response) => {
+          if (!response.ok) return;
+          const payload = (await response.json().catch(() => ({}))) as {
+            suggestedActions?: PersistedSuggestedAction[];
+          };
+          const suggestedActions = payload.suggestedActions;
+          if (!Array.isArray(suggestedActions) || suggestedActions.length === 0) return;
+
+          setDynamicSuggestionsByMessage((prev) => {
+            const next = new Map(prev);
+            next.set(latestGroundedAi.id, suggestedActions);
+            return next;
+          });
+        })
+        .catch((err) => {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            requestedSuggestionIdsRef.current.delete(latestGroundedAi.id);
+          }
+        });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [activeSession, courseId, dynamicSuggestionsByMessage, sending]);
 
   const handleOpenStudioAction = useCallback(
     (suggestion: TutorActionSuggestion, message: TutorMessage) => {
@@ -625,6 +692,7 @@ export function TutorAiChatPage({
             studioActionLoadingKey={studio.generatingKey}
             savingNoteMessageIds={studio.savingNoteMessageIds}
             studioArtifactsByMessage={studio.artifactsByMessage}
+            dynamicSuggestionsByMessage={dynamicSuggestionsByMessage}
             scrollContainerRef={scrollContainerRef}
             messagesEndRef={messagesEndRef}
           />

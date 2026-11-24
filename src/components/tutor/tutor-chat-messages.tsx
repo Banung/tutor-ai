@@ -17,6 +17,8 @@ import {
   BookOpenCheck,
   Check,
   Copy,
+  CornerDownRight,
+  FileText,
   Loader2,
   Square,
   Volume2,
@@ -34,7 +36,6 @@ import { toast } from "sonner";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -42,6 +43,8 @@ import {
 } from "@/components/ui/tooltip";
 import {
   buildTutorActionSuggestions,
+  parsePersistedSuggestedActions,
+  type PersistedSuggestedAction,
   type TutorActionSuggestion,
 } from "@/lib/tutor-ai/action-suggestions";
 import type { TutorStudioArtifactType } from "@/lib/tutor-ai/studio-schema";
@@ -390,6 +393,7 @@ export type TutorChatMessagesProps = {
   studioActionLoadingKey?: string | null;
   savingNoteMessageIds?: ReadonlySet<string>;
   studioArtifactsByMessage?: ReadonlyMap<string, Partial<Record<TutorStudioArtifactType, string>>>;
+  dynamicSuggestionsByMessage?: ReadonlyMap<string, PersistedSuggestedAction[]>;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -407,6 +411,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   studioActionLoadingKey,
   savingNoteMessageIds,
   studioArtifactsByMessage,
+  dynamicSuggestionsByMessage,
   scrollContainerRef,
   messagesEndRef,
 }: TutorChatMessagesProps) {
@@ -600,6 +605,9 @@ export const TutorChatMessages = memo(function TutorChatMessages({
               if (previewState) setCitationPreview(previewState);
             };
             const messageArtifactIds = studioArtifactsByMessage?.get(message.id);
+            const persistedSuggestions =
+              dynamicSuggestionsByMessage?.get(message.id) ??
+              parsePersistedSuggestedActions(message.ragSources);
             const actionSuggestions =
               !isUser &&
               !isStreaming &&
@@ -615,6 +623,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                     existingSummaryArtifactId: messageArtifactIds?.SUMMARY ?? null,
                     existingQuizArtifactId: messageArtifactIds?.QUIZ ?? null,
                     existingFlashcardsArtifactId: messageArtifactIds?.FLASHCARDS ?? null,
+                    persistedSuggestions,
                   })
                 : [];
             const savedNoteId = messageArtifactIds?.NOTE ?? null;
@@ -692,83 +701,6 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                           relatedQuestion={relatedQuestion}
                           onOpenSource={openSource}
                         />
-                      )}
-
-                      {actionSuggestions.length > 0 ? (
-                        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          {actionSuggestions.map((suggestion) => {
-                            const cardKey = `${suggestion.id}:${message.id}`;
-                            const isLoadingCard = studioActionLoadingKey === cardKey;
-                            const isSavedCard = Boolean(suggestion.alreadySavedArtifactId);
-                            const isStudioPinned = suggestion.id === "summary_studio";
-
-                            return (
-                              <button
-                                key={suggestion.id}
-                                type="button"
-                                disabled={sending || Boolean(studioActionLoadingKey)}
-                                onClick={() => onOpenStudioAction?.(suggestion, message)}
-                                className={cn(
-                                  "group flex w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-                                  isStudioPinned && actionSuggestions.length !== 2 && "sm:col-span-2",
-                                  isStudioPinned
-                                    ? "border-brand/35 bg-brand/5 hover:border-brand/60 hover:bg-brand/10"
-                                    : "border-border bg-card hover:border-brand/35 hover:bg-muted/60"
-                                )}
-                              >
-                                <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
-                                  <span className="flex flex-wrap items-center gap-1.5">
-                                    <Badge
-                                      variant={isStudioPinned || isSavedCard ? "secondary" : "outline"}
-                                      className={cn(
-                                        "px-1.5 py-0 text-[10px]",
-                                        (isStudioPinned || isSavedCard) && "bg-brand/15 text-brand"
-                                      )}
-                                    >
-                                      {suggestion.badgeLabel}
-                                    </Badge>
-                                    <span className="text-xs font-semibold text-foreground">
-                                      {suggestion.title}
-                                    </span>
-                                  </span>
-                                  <span className="line-clamp-2 text-[11px] font-normal leading-snug text-muted-foreground">
-                                    {suggestion.description}
-                                  </span>
-                                </span>
-                                {isLoadingCard ? (
-                                  <Loader2 className="size-4 shrink-0 animate-spin text-brand" aria-hidden="true" />
-                                ) : isSavedCard ? (
-                                  <BookOpenCheck className="size-4 shrink-0 text-brand" aria-hidden="true" />
-                                ) : (
-                                  <ArrowRight
-                                    className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
-                                    aria-hidden="true"
-                                  />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        canCreateSummary && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="lg"
-                            disabled={sending}
-                            onClick={() => onCreateSummary?.(message.id)}
-                            aria-label="Buat artikel belajar mendalam dari jawaban ini"
-                            className="mt-4 h-auto w-full justify-between gap-4 rounded-2xl border-border bg-card px-5 py-4 text-left whitespace-normal hover:bg-muted/60"
-                          >
-                            <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
-                              <span className="font-medium text-foreground">Buat artikel belajar dari materi ini</span>
-                              <span className="text-sm font-normal text-muted-foreground">
-                                Satu bacaan utuh dengan penjelasan yang lebih mendalam
-                              </span>
-                            </span>
-                            <ArrowRight data-icon="inline-end" className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                          </Button>
-                        )
                       )}
 
                       {!isStreaming && message.content.trim() && (
@@ -872,6 +804,72 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                             />
                           )}
                         </div>
+                      )}
+
+                      {actionSuggestions.length > 0 ? (
+                        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                          {actionSuggestions.map((suggestion) => {
+                            const cardKey = `${suggestion.id}:${message.id}`;
+                            const isLoadingCard = studioActionLoadingKey === cardKey;
+                            const isSavedCard = Boolean(suggestion.alreadySavedArtifactId);
+                            const isStudioTarget = suggestion.target === "studio";
+
+                            return (
+                              <button
+                                key={suggestion.id}
+                                type="button"
+                                disabled={sending || Boolean(studioActionLoadingKey)}
+                                onClick={() => onOpenStudioAction?.(suggestion, message)}
+                                className="group flex min-h-[100px] w-full flex-col justify-between gap-3 rounded-2xl border border-border/50 bg-muted/45 px-4 py-3.5 text-left transition-colors hover:border-border hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <span className="line-clamp-3 text-[13px] font-normal leading-snug text-foreground">
+                                  {suggestion.title}
+                                </span>
+                                <span className="flex items-center gap-1.5 text-muted-foreground">
+                                  {isLoadingCard ? (
+                                    <Loader2 className="size-4 animate-spin text-brand" aria-hidden="true" />
+                                  ) : isStudioTarget ? (
+                                    <>
+                                      {isSavedCard ? (
+                                        <BookOpenCheck className="size-3.5 text-brand" aria-hidden="true" />
+                                      ) : (
+                                        <FileText className="size-3.5 text-brand" aria-hidden="true" />
+                                      )}
+                                      <span className="text-[11px] font-medium">
+                                        {isSavedCard ? "Tersimpan di Studio" : "Studio"}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <CornerDownRight
+                                      className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        canCreateSummary && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="lg"
+                            disabled={sending}
+                            onClick={() => onCreateSummary?.(message.id)}
+                            aria-label="Buat artikel belajar mendalam dari jawaban ini"
+                            className="mt-4 h-auto w-full justify-between gap-4 rounded-2xl border-border bg-card px-5 py-4 text-left whitespace-normal hover:bg-muted/60"
+                          >
+                            <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                              <span className="font-medium text-foreground">Buat artikel belajar dari materi ini</span>
+                              <span className="text-sm font-normal text-muted-foreground">
+                                Satu bacaan utuh dengan penjelasan yang lebih mendalam
+                              </span>
+                            </span>
+                            <ArrowRight data-icon="inline-end" className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          </Button>
+                        )
                       )}
                     </>
                   )}
