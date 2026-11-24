@@ -1195,3 +1195,283 @@ test("publication endpoint rejects non-admin sessions", async () => {
     restore();
   }
 });
+
+async function withSession<T>(
+  session: { user: { id: string; role: string } } | null,
+  run: () => Promise<T>
+) {
+  const { auth } = await import("../src/lib/auth");
+  const restore = replaceMethod(auth.api, "getSession", async () =>
+    session ? { user: session.user, session: { id: "session-1" } } : null
+  );
+  try {
+    return await run();
+  } finally {
+    restore();
+  }
+}
+
+test("searchAvailableCourses applies faculty, studyProgram, enrollment, and multi-field search without exposing enrollmentKey", async () => {
+  const { prisma, mahasiswaService } = await loadServices();
+  const capturedArgs: Array<{ where: Record<string, unknown>; include: Record<string, unknown> }> = [];
+  const customCover = "https://example.test/storage/catalog-cover.png";
+
+  const restoreFindMany = replaceMethod(prisma.course, "findMany", async (args: unknown) => {
+    capturedArgs.push(args as { where: Record<string, unknown>; include: Record<string, unknown> });
+    return [
+      {
+        id: "course-1",
+        title: "Pemrograman Web",
+        courseCode: "IF1234",
+        description: "Belajar web",
+        learningOutcomes: null,
+        coverImage: customCover,
+        enrollmentKey: "SECRET99",
+        isActive: true,
+        createdAt: new Date("2026-11-01T00:00:00Z"),
+        creator: { id: "dosen-1", name: "Dosen Satu" },
+        instructors: [{ id: "ci-1", user: { id: "dosen-1", name: "Dosen Satu" } }],
+        studyProgram: {
+          id: "prog-1",
+          name: "Informatika",
+          faculty: { id: "fac-1", name: "MIPA" },
+        },
+        _count: { instructors: 1, sessions: 6 },
+        enrollments: [{ id: "enr-1" }],
+      },
+    ];
+  });
+  const restoreUpdate = replaceMethod(prisma.course, "update", async () => {
+    throw new Error("custom cover must not be regenerated");
+  });
+
+  try {
+    const notEnrolledResults = await mahasiswaService.searchAvailableCourses("student-1", {
+      search: " IF1234 ",
+      facultyId: " fac-1 ",
+      studyProgramId: " prog-1 ",
+      enrollment: "not_enrolled",
+    });
+
+    const firstWhere = capturedArgs[0].where;
+    assert.equal(firstWhere.isActive, true);
+    assert.equal(firstWhere.catalogStatus, "PUBLISHED");
+    assert.equal(firstWhere.studyProgramId, "prog-1");
+    assert.deepEqual(firstWhere.studyProgram, { facultyId: "fac-1" });
+    assert.deepEqual(firstWhere.enrollments, {
+      none: { userId: "student-1", isActive: true },
+    });
+    const orClauses = firstWhere.OR as Array<Record<string, unknown>>;
+    assert.ok(Array.isArray(orClauses));
+    assert.equal(orClauses.length, 6);
+    assert.deepEqual(orClauses[1], { courseCode: { contains: "IF1234", mode: "insensitive" } });
+    assert.deepEqual(orClauses[5], {
+      instructors: { some: { user: { name: { contains: "IF1234", mode: "insensitive" } } } },
+    });
+
+    assert.equal(notEnrolledResults.length, 1);
+    assert.equal("enrollmentKey" in notEnrolledResults[0], false);
+    assert.equal(notEnrolledResults[0].enrollments, undefined);
+    assert.equal(notEnrolledResults[0].isEnrolled, true);
+
+    await mahasiswaService.searchAvailableCourses("student-1", {
+      enrollment: "enrolled",
+    });
+    assert.deepEqual(capturedArgs[1].where.enrollments, {
+      some: { userId: "student-1", isActive: true },
+    });
+  } finally {
+    restoreFindMany();
+    restoreUpdate();
+  }
+});
+
+test("listMahasiswaCatalogDirectory counts only active published courses per faculty and program", async () => {
+  const { prisma, mahasiswaService } = await loadServices();
+  let capturedCountWhere: Record<string, unknown> | null = null;
+  let capturedFacultyArgs: Record<string, unknown> | null = null;
+
+  const restoreCount = replaceMethod(prisma.course, "count", async (args: unknown) => {
+    capturedCountWhere = (args as { where: Record<string, unknown> }).where;
+    return 3;
+  });
+  const restoreFacultyFindMany = replaceMethod(prisma.faculty, "findMany", async (args: unknown) => {
+    capturedFacultyArgs = args as Record<string, unknown>;
+    return [
+      {
+        id: "fac-1",
+        name: "Sekolah Vokasi",
+        code: "SV",
+        studyPrograms: [
+          { id: "prog-1", name: "TRPL", code: "TRPL", _count: { courses: 2 } },
+          { id: "prog-2", name: "Akuntansi", code: "AKP", _count: { courses: 1 } },
+        ],
+      },
+      {
+        id: "fac-2",
+        name: "MIPA",
+        code: "FMIPA",
+        studyPrograms: [
+          { id: "prog-3", name: "Matematika", code: "MAT", _count: { courses: 0 } },
+        ],
+      },
+    ];
+  });
+
+  try {
+    const directory = await mahasiswaService.listMahasiswaCatalogDirectory();
+    assert.deepEqual(capturedCountWhere, { isActive: true, catalogStatus: "PUBLISHED" });
+    assert.ok(capturedFacultyArgs);
+    assert.deepEqual(directory, {
+      totalCourses: 3,
+      faculties: [
+        {
+          id: "fac-1",
+          name: "Sekolah Vokasi",
+          code: "SV",
+          courseCount: 3,
+          studyPrograms: [
+            { id: "prog-1", name: "TRPL", code: "TRPL", courseCount: 2 },
+            { id: "prog-2", name: "Akuntansi", code: "AKP", courseCount: 1 },
+          ],
+        },
+        {
+          id: "fac-2",
+          name: "MIPA",
+          code: "FMIPA",
+          courseCount: 0,
+          studyPrograms: [
+            { id: "prog-3", name: "Matematika", code: "MAT", courseCount: 0 },
+          ],
+        },
+      ],
+    });
+  } finally {
+    restoreCount();
+    restoreFacultyFindMany();
+  }
+});
+
+test("GET /api/mahasiswa/courses/available validates enrollment filter, forwards params, enforces role, and hides errors", async () => {
+  const { prisma } = await loadServices();
+  const { GET } = await import("../src/app/api/mahasiswa/courses/available/route");
+
+  await withSession(null, async () => {
+    const response = await GET(new NextRequest("http://localhost/api/mahasiswa/courses/available"));
+    assert.equal(response.status, 401);
+  });
+
+  await withSession({ user: { id: "dosen-1", role: "dosen" } }, async () => {
+    const response = await GET(new NextRequest("http://localhost/api/mahasiswa/courses/available"));
+    assert.equal(response.status, 403);
+  });
+
+  await withSession({ user: { id: "mahasiswa-1", role: "mahasiswa" } }, async () => {
+    const badResponse = await GET(
+      new NextRequest("http://localhost/api/mahasiswa/courses/available?enrollment=invalid")
+    );
+    assert.equal(badResponse.status, 400);
+
+    let capturedWhere: Record<string, unknown> | null = null;
+    const restoreFindMany = replaceMethod(prisma.course, "findMany", async (args: unknown) => {
+      capturedWhere = (args as { where: Record<string, unknown> }).where;
+      return [];
+    });
+
+    try {
+      const okResponse = await GET(
+        new NextRequest(
+          "http://localhost/api/mahasiswa/courses/available?search=algo&facultyId=fac-1&studyProgramId=prog-1&enrollment=not_enrolled"
+        )
+      );
+      assert.equal(okResponse.status, 200);
+      assert.deepEqual(await okResponse.json(), []);
+      assert.equal(capturedWhere?.["studyProgramId"], "prog-1");
+      assert.deepEqual(capturedWhere?.["studyProgram"], { facultyId: "fac-1" });
+      assert.deepEqual(capturedWhere?.["enrollments"], {
+        none: { userId: "mahasiswa-1", isActive: true },
+      });
+    } finally {
+      restoreFindMany();
+    }
+
+    const marker = "INTERNAL_CATALOG_ERROR_91a";
+    const restoreFail = replaceMethod(prisma.course, "findMany", async () => {
+      throw new Error(marker);
+    });
+    try {
+      const errResponse = await GET(
+        new NextRequest("http://localhost/api/mahasiswa/courses/available")
+      );
+      assert.equal(errResponse.status, 500);
+      assert.equal((await errResponse.text()).includes(marker), false);
+    } finally {
+      restoreFail();
+    }
+  });
+});
+
+test("GET /api/mahasiswa/catalog/directory enforces mahasiswa role, returns directory, and hides errors", async () => {
+  const { prisma } = await loadServices();
+  const { GET } = await import("../src/app/api/mahasiswa/catalog/directory/route");
+
+  await withSession(null, async () => {
+    const response = await GET(new NextRequest("http://localhost/api/mahasiswa/catalog/directory"));
+    assert.equal(response.status, 401);
+  });
+
+  await withSession({ user: { id: "admin-1", role: "admin" } }, async () => {
+    const response = await GET(new NextRequest("http://localhost/api/mahasiswa/catalog/directory"));
+    assert.equal(response.status, 403);
+  });
+
+  await withSession({ user: { id: "mahasiswa-1", role: "mahasiswa" } }, async () => {
+    const restoreCount = replaceMethod(prisma.course, "count", async () => 1);
+    const restoreFaculty = replaceMethod(prisma.faculty, "findMany", async () => [
+      {
+        id: "fac-1",
+        name: "MIPA",
+        code: "FMIPA",
+        studyPrograms: [{ id: "prog-1", name: "Ilmu Komputer", code: "ILKOM", _count: { courses: 1 } }],
+      },
+    ]);
+
+    try {
+      const okResponse = await GET(
+        new NextRequest("http://localhost/api/mahasiswa/catalog/directory")
+      );
+      assert.equal(okResponse.status, 200);
+      assert.deepEqual(await okResponse.json(), {
+        totalCourses: 1,
+        faculties: [
+          {
+            id: "fac-1",
+            name: "MIPA",
+            code: "FMIPA",
+            courseCount: 1,
+            studyPrograms: [
+              { id: "prog-1", name: "Ilmu Komputer", code: "ILKOM", courseCount: 1 },
+            ],
+          },
+        ],
+      });
+    } finally {
+      restoreCount();
+      restoreFaculty();
+    }
+
+    const marker = "INTERNAL_DIR_ERROR_7b2";
+    const restoreFail = replaceMethod(prisma.course, "count", async () => {
+      throw new Error(marker);
+    });
+    try {
+      const errResponse = await GET(
+        new NextRequest("http://localhost/api/mahasiswa/catalog/directory")
+      );
+      assert.equal(errResponse.status, 500);
+      assert.equal((await errResponse.text()).includes(marker), false);
+    } finally {
+      restoreFail();
+    }
+  });
+});

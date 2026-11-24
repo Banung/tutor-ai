@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   ArrowRight,
   BookOpen,
   CalendarDays,
+  Compass,
   FileText,
   GraduationCap,
   MessageCircle,
@@ -311,6 +313,12 @@ export default function MahasiswaDashboardPage() {
               <p className="mt-1 text-sm text-muted-foreground/70">
                 Anda belum terdaftar ke course apa pun.
               </p>
+              <Button asChild size="sm" className="mt-4 bg-brand text-black hover:bg-brand/90">
+                <Link href="/mahasiswa/catalog">
+                  <Compass data-icon="inline-start" />
+                  Jelajahi Katalog Course
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         ) : (

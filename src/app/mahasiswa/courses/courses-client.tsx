@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  CourseAcademicLabels,
+  type CourseStudyProgram,
+} from "@/components/courses/course-academic-labels";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -24,11 +29,11 @@ import {
 import {
   BookOpen,
   CalendarDays,
+  Compass,
   GraduationCap,
   KeyRound,
   LayoutGrid,
   Loader2,
-  Plus,
   Search,
   X,
 } from "lucide-react";
@@ -43,6 +48,7 @@ interface MahasiswaCourse {
   createdAt: string;
   creator: { id: string; name: string };
   instructors: { id: string; user: { id: string; name: string } }[];
+  studyProgram?: CourseStudyProgram | null;
   _count: { instructors: number; sessions: number };
   isEnrolled?: boolean;
 }
@@ -87,6 +93,7 @@ function CourseCard({ course }: { course: MahasiswaCourse }) {
             {course._count.sessions} Sesi
           </span>
         </div>
+        <CourseAcademicLabels studyProgram={course.studyProgram ?? null} />
       </CardContent>
     </Card>
   );
@@ -357,13 +364,18 @@ export function MahasiswaCoursesClient({ initialSearch }: { initialSearch: strin
             Semua mata kuliah yang sedang Anda ikuti
           </p>
         </div>
-        <Button
-          onClick={() => setEnrollDialogOpen(true)}
-          className="bg-brand text-black shadow-sm hover:bg-brand/90"
-        >
-          <Plus data-icon="inline-start" />
-          Tambah Course
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => setEnrollDialogOpen(true)}>
+            <KeyRound data-icon="inline-start" />
+            Gabung Cepat
+          </Button>
+          <Button asChild className="bg-brand text-black shadow-sm hover:bg-brand/90">
+            <Link href="/mahasiswa/catalog">
+              <Compass data-icon="inline-start" />
+              Jelajahi Katalog
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -451,6 +463,14 @@ export function MahasiswaCoursesClient({ initialSearch }: { initialSearch: strin
                 ? "Coba gunakan kata kunci yang berbeda"
                 : "Anda belum terdaftar ke course apa pun."}
             </p>
+            {!search && (
+              <Button asChild variant="outline" className="mt-4">
+                <Link href="/mahasiswa/catalog">
+                  <Compass data-icon="inline-start" />
+                  Jelajahi Katalog Course
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
