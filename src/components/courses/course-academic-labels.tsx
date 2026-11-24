@@ -5,7 +5,7 @@ export type CourseStudyProgram = {
   faculty: { name: string };
 };
 
-function formatAcademicUnitName(name: string) {
+export function formatAcademicUnitName(name: string) {
   const trimmedName = name.trim();
   if (/^(fakultas|sekolah)\b/i.test(trimmedName)) return trimmedName;
   return `Fakultas ${trimmedName}`;

@@ -1,5 +1,15 @@
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@/app/generated/prisma/client";
 import { generateCourseCover, isCurrentCourseCover, isCustomCourseCover } from "@/lib/course-cover";
+
+export type AvailableCoursesEnrollmentFilter = "all" | "not_enrolled" | "enrolled";
+
+export type AvailableCoursesFilters = {
+  search?: string;
+  facultyId?: string;
+  studyProgramId?: string;
+  enrollment?: AvailableCoursesEnrollmentFilter;
+};
 
 type CourseWithCover = {
   id: string;
@@ -81,26 +91,58 @@ export async function listMahasiswaCourses(mahasiswaId: string, search?: string)
   return coursesWithCover.map(hideEnrollmentKey);
 }
 
-export async function searchAvailableCourses(mahasiswaId: string, search?: string) {
-  const query = search?.trim();
-  const courses = await prisma.course.findMany({
-    where: {
-      isActive: true,
-      catalogStatus: "PUBLISHED",
-      ...(query
-        ? {
-            OR: [
-              { title: { contains: query, mode: "insensitive" as const } },
-              { description: { contains: query, mode: "insensitive" as const } },
-            ],
-          }
+export async function searchAvailableCourses(
+  mahasiswaId: string,
+  searchOrFilters?: string | AvailableCoursesFilters
+) {
+  const filters: AvailableCoursesFilters =
+    typeof searchOrFilters === "string"
+      ? { search: searchOrFilters }
+      : (searchOrFilters ?? {});
+
+  const query = filters.search?.trim();
+  const facultyId = filters.facultyId?.trim();
+  const studyProgramId = filters.studyProgramId?.trim();
+  const enrollment = filters.enrollment ?? "all";
+
+  const where: Prisma.CourseWhereInput = {
+    isActive: true,
+    catalogStatus: "PUBLISHED",
+    ...(studyProgramId ? { studyProgramId } : {}),
+    ...(facultyId ? { studyProgram: { facultyId } } : {}),
+    ...(enrollment === "enrolled"
+      ? { enrollments: { some: { userId: mahasiswaId, isActive: true } } }
+      : enrollment === "not_enrolled"
+        ? { enrollments: { none: { userId: mahasiswaId, isActive: true } } }
         : {}),
-    },
+    ...(query
+      ? {
+          OR: [
+            { title: { contains: query, mode: "insensitive" } },
+            { courseCode: { contains: query, mode: "insensitive" } },
+            { description: { contains: query, mode: "insensitive" } },
+            { studyProgram: { name: { contains: query, mode: "insensitive" } } },
+            { studyProgram: { faculty: { name: { contains: query, mode: "insensitive" } } } },
+            { instructors: { some: { user: { name: { contains: query, mode: "insensitive" } } } } },
+          ],
+        }
+      : {}),
+  };
+
+  const courses = await prisma.course.findMany({
+    where,
     include: {
       creator: { select: { id: true, name: true } },
       instructors: {
         include: {
           user: { select: { id: true, name: true } },
+        },
+      },
+      studyProgram: {
+        select: {
+          id: true,
+          name: true,
+          faculty: { select: { id: true, name: true } },
         },
       },
       _count: { select: { instructors: true, sessions: true } },
@@ -115,6 +157,63 @@ export async function searchAvailableCourses(mahasiswaId: string, search?: strin
     isEnrolled: course.enrollments.length > 0,
     enrollments: undefined,
   }));
+}
+
+export async function listMahasiswaCatalogDirectory() {
+  const [totalCourses, rawFaculties] = await Promise.all([
+    prisma.course.count({
+      where: {
+        isActive: true,
+        catalogStatus: "PUBLISHED",
+      },
+    }),
+    prisma.faculty.findMany({
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        studyPrograms: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            _count: {
+              select: {
+                courses: {
+                  where: {
+                    isActive: true,
+                    catalogStatus: "PUBLISHED",
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { name: "asc" },
+        },
+      },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const faculties = rawFaculties.map((faculty) => {
+    const studyPrograms = faculty.studyPrograms.map((program) => ({
+      id: program.id,
+      name: program.name,
+      code: program.code,
+      courseCount: program._count.courses,
+    }));
+    const courseCount = studyPrograms.reduce((sum, program) => sum + program.courseCount, 0);
+
+    return {
+      id: faculty.id,
+      name: faculty.name,
+      code: faculty.code,
+      courseCount,
+      studyPrograms,
+    };
+  });
+
+  return { totalCourses, faculties };
 }
 
 export async function enrollMahasiswaCourse(
