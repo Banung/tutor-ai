@@ -415,7 +415,8 @@ export const ModelName = {
   AiFeedbackReviewEvent: 'AiFeedbackReviewEvent',
   AiAnswerCorrection: 'AiAnswerCorrection',
   TutorAlignmentSession: 'TutorAlignmentSession',
-  TutorAlignmentCase: 'TutorAlignmentCase'
+  TutorAlignmentCase: 'TutorAlignmentCase',
+  TutorStudioArtifact: 'TutorStudioArtifact'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -431,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userRoleAudit" | "userSecurityLog" | "courseInstructorMappingLog" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "academicCourseReference" | "lecturerReference" | "academicImportBatch" | "academicImportRowOutcome" | "course" | "courseCatalogStatusLog" | "courseInvitation" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback" | "aiFeedbackReviewEvent" | "aiAnswerCorrection" | "tutorAlignmentSession" | "tutorAlignmentCase"
+    modelProps: "user" | "userRoleAudit" | "userSecurityLog" | "courseInstructorMappingLog" | "session" | "account" | "verification" | "faculty" | "studyProgram" | "academicCourseReference" | "lecturerReference" | "academicImportBatch" | "academicImportRowOutcome" | "course" | "courseCatalogStatusLog" | "courseInvitation" | "courseInstructor" | "enrollment" | "courseSession" | "material" | "materialPage" | "materialChunk" | "materialProcessingLog" | "aiChatSession" | "aiChatMessage" | "tutorPromptConfig" | "aiResponseRun" | "aiMessageFeedback" | "aiFeedbackReviewEvent" | "aiAnswerCorrection" | "tutorAlignmentSession" | "tutorAlignmentCase" | "tutorStudioArtifact"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2803,6 +2804,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TutorStudioArtifact: {
+      payload: Prisma.$TutorStudioArtifactPayload<ExtArgs>
+      fields: Prisma.TutorStudioArtifactFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TutorStudioArtifactFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TutorStudioArtifactFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload>
+        }
+        findFirst: {
+          args: Prisma.TutorStudioArtifactFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TutorStudioArtifactFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload>
+        }
+        findMany: {
+          args: Prisma.TutorStudioArtifactFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload>[]
+        }
+        create: {
+          args: Prisma.TutorStudioArtifactCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload>
+        }
+        createMany: {
+          args: Prisma.TutorStudioArtifactCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TutorStudioArtifactCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload>[]
+        }
+        delete: {
+          args: Prisma.TutorStudioArtifactDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload>
+        }
+        update: {
+          args: Prisma.TutorStudioArtifactUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload>
+        }
+        deleteMany: {
+          args: Prisma.TutorStudioArtifactDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TutorStudioArtifactUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TutorStudioArtifactUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload>[]
+        }
+        upsert: {
+          args: Prisma.TutorStudioArtifactUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TutorStudioArtifactPayload>
+        }
+        aggregate: {
+          args: Prisma.TutorStudioArtifactAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTutorStudioArtifact>
+        }
+        groupBy: {
+          args: Prisma.TutorStudioArtifactGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TutorStudioArtifactGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TutorStudioArtifactCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TutorStudioArtifactCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3382,6 +3457,25 @@ export const TutorAlignmentCaseScalarFieldEnum = {
 export type TutorAlignmentCaseScalarFieldEnum = (typeof TutorAlignmentCaseScalarFieldEnum)[keyof typeof TutorAlignmentCaseScalarFieldEnum]
 
 
+export const TutorStudioArtifactScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  userId: 'userId',
+  chatSessionId: 'chatSessionId',
+  sourceMessageId: 'sourceMessageId',
+  type: 'type',
+  title: 'title',
+  content: 'content',
+  sources: 'sources',
+  materialIds: 'materialIds',
+  materialTitles: 'materialTitles',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TutorStudioArtifactScalarFieldEnum = (typeof TutorStudioArtifactScalarFieldEnum)[keyof typeof TutorStudioArtifactScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -3596,6 +3690,20 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
+
+/**
+ * Reference to a field of type 'TutorStudioArtifactType'
+ */
+export type EnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TutorStudioArtifactType'>
+    
+
+
+/**
+ * Reference to a field of type 'TutorStudioArtifactType[]'
+ */
+export type ListEnumTutorStudioArtifactTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TutorStudioArtifactType[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -3738,6 +3846,7 @@ export type GlobalOmitConfig = {
   aiAnswerCorrection?: Prisma.AiAnswerCorrectionOmit
   tutorAlignmentSession?: Prisma.TutorAlignmentSessionOmit
   tutorAlignmentCase?: Prisma.TutorAlignmentCaseOmit
+  tutorStudioArtifact?: Prisma.TutorStudioArtifactOmit
 }
 
 /* Types for Logging */

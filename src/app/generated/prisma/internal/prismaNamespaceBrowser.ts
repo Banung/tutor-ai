@@ -82,7 +82,8 @@ export const ModelName = {
   AiFeedbackReviewEvent: 'AiFeedbackReviewEvent',
   AiAnswerCorrection: 'AiAnswerCorrection',
   TutorAlignmentSession: 'TutorAlignmentSession',
-  TutorAlignmentCase: 'TutorAlignmentCase'
+  TutorAlignmentCase: 'TutorAlignmentCase',
+  TutorStudioArtifact: 'TutorStudioArtifact'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -639,6 +640,25 @@ export const TutorAlignmentCaseScalarFieldEnum = {
 } as const
 
 export type TutorAlignmentCaseScalarFieldEnum = (typeof TutorAlignmentCaseScalarFieldEnum)[keyof typeof TutorAlignmentCaseScalarFieldEnum]
+
+
+export const TutorStudioArtifactScalarFieldEnum = {
+  id: 'id',
+  courseId: 'courseId',
+  userId: 'userId',
+  chatSessionId: 'chatSessionId',
+  sourceMessageId: 'sourceMessageId',
+  type: 'type',
+  title: 'title',
+  content: 'content',
+  sources: 'sources',
+  materialIds: 'materialIds',
+  materialTitles: 'materialTitles',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TutorStudioArtifactScalarFieldEnum = (typeof TutorStudioArtifactScalarFieldEnum)[keyof typeof TutorStudioArtifactScalarFieldEnum]
 
 
 export const SortOrder = {

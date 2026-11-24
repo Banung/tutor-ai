@@ -177,3 +177,8 @@ export type TutorAlignmentSession = Prisma.TutorAlignmentSessionModel
  * 
  */
 export type TutorAlignmentCase = Prisma.TutorAlignmentCaseModel
+/**
+ * Model TutorStudioArtifact
+ * 
+ */
+export type TutorStudioArtifact = Prisma.TutorStudioArtifactModel

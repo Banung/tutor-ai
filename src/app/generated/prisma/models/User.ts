@@ -305,6 +305,7 @@ export type UserWhereInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackListRelationFilter
   aiChatSessions?: Prisma.AiChatSessionListRelationFilter
   alignmentSessions?: Prisma.TutorAlignmentSessionListRelationFilter
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -338,6 +339,7 @@ export type UserOrderByWithRelationInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackOrderByRelationAggregateInput
   aiChatSessions?: Prisma.AiChatSessionOrderByRelationAggregateInput
   alignmentSessions?: Prisma.TutorAlignmentSessionOrderByRelationAggregateInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -374,6 +376,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   feedbackReviews?: Prisma.AiMessageFeedbackListRelationFilter
   aiChatSessions?: Prisma.AiChatSessionListRelationFilter
   alignmentSessions?: Prisma.TutorAlignmentSessionListRelationFilter
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactListRelationFilter
 }, "id" | "email" | "npm" | "nip" | "nidn">
 
 export type UserOrderByWithAggregationInput = {
@@ -457,6 +460,7 @@ export type UserCreateInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -490,6 +494,7 @@ export type UserUncheckedCreateInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -523,6 +528,7 @@ export type UserUpdateInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -556,6 +562,7 @@ export type UserUncheckedUpdateInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -876,6 +883,20 @@ export type UserUpdateOneRequiredWithoutAlignmentSessionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAlignmentSessionsInput, Prisma.UserUpdateWithoutAlignmentSessionsInput>, Prisma.UserUncheckedUpdateWithoutAlignmentSessionsInput>
 }
 
+export type UserCreateNestedOneWithoutTutorStudioArtifactsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTutorStudioArtifactsInput, Prisma.UserUncheckedCreateWithoutTutorStudioArtifactsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTutorStudioArtifactsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutTutorStudioArtifactsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutTutorStudioArtifactsInput, Prisma.UserUncheckedCreateWithoutTutorStudioArtifactsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTutorStudioArtifactsInput
+  upsert?: Prisma.UserUpsertWithoutTutorStudioArtifactsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTutorStudioArtifactsInput, Prisma.UserUpdateWithoutTutorStudioArtifactsInput>, Prisma.UserUncheckedUpdateWithoutTutorStudioArtifactsInput>
+}
+
 export type UserCreateWithoutSessionsInput = {
   id: string
   name: string
@@ -906,6 +927,7 @@ export type UserCreateWithoutSessionsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -938,6 +960,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -986,6 +1009,7 @@ export type UserUpdateWithoutSessionsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1018,6 +1042,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -1050,6 +1075,7 @@ export type UserCreateWithoutAccountsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -1082,6 +1108,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -1130,6 +1157,7 @@ export type UserUpdateWithoutAccountsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -1162,6 +1190,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCoursesCreatedInput = {
@@ -1194,6 +1223,7 @@ export type UserCreateWithoutCoursesCreatedInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCoursesCreatedInput = {
@@ -1226,6 +1256,7 @@ export type UserUncheckedCreateWithoutCoursesCreatedInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCoursesCreatedInput = {
@@ -1274,6 +1305,7 @@ export type UserUpdateWithoutCoursesCreatedInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCoursesCreatedInput = {
@@ -1306,6 +1338,7 @@ export type UserUncheckedUpdateWithoutCoursesCreatedInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCourseInstructorInput = {
@@ -1338,6 +1371,7 @@ export type UserCreateWithoutCourseInstructorInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCourseInstructorInput = {
@@ -1370,6 +1404,7 @@ export type UserUncheckedCreateWithoutCourseInstructorInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCourseInstructorInput = {
@@ -1418,6 +1453,7 @@ export type UserUpdateWithoutCourseInstructorInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCourseInstructorInput = {
@@ -1450,6 +1486,7 @@ export type UserUncheckedUpdateWithoutCourseInstructorInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutEnrollmentsInput = {
@@ -1482,6 +1519,7 @@ export type UserCreateWithoutEnrollmentsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutEnrollmentsInput = {
@@ -1514,6 +1552,7 @@ export type UserUncheckedCreateWithoutEnrollmentsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutEnrollmentsInput = {
@@ -1562,6 +1601,7 @@ export type UserUpdateWithoutEnrollmentsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEnrollmentsInput = {
@@ -1594,6 +1634,7 @@ export type UserUncheckedUpdateWithoutEnrollmentsInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCourseSessionsMadeInput = {
@@ -1626,6 +1667,7 @@ export type UserCreateWithoutCourseSessionsMadeInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCourseSessionsMadeInput = {
@@ -1658,6 +1700,7 @@ export type UserUncheckedCreateWithoutCourseSessionsMadeInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCourseSessionsMadeInput = {
@@ -1706,6 +1749,7 @@ export type UserUpdateWithoutCourseSessionsMadeInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCourseSessionsMadeInput = {
@@ -1738,6 +1782,7 @@ export type UserUncheckedUpdateWithoutCourseSessionsMadeInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMaterialsUploadedInput = {
@@ -1770,6 +1815,7 @@ export type UserCreateWithoutMaterialsUploadedInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMaterialsUploadedInput = {
@@ -1802,6 +1848,7 @@ export type UserUncheckedCreateWithoutMaterialsUploadedInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMaterialsUploadedInput = {
@@ -1850,6 +1897,7 @@ export type UserUpdateWithoutMaterialsUploadedInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMaterialsUploadedInput = {
@@ -1882,6 +1930,7 @@ export type UserUncheckedUpdateWithoutMaterialsUploadedInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAiChatSessionsInput = {
@@ -1914,6 +1963,7 @@ export type UserCreateWithoutAiChatSessionsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackCreateNestedManyWithoutUserInput
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAiChatSessionsInput = {
@@ -1946,6 +1996,7 @@ export type UserUncheckedCreateWithoutAiChatSessionsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAiChatSessionsInput = {
@@ -1994,6 +2045,7 @@ export type UserUpdateWithoutAiChatSessionsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackUpdateManyWithoutUserNestedInput
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAiChatSessionsInput = {
@@ -2026,6 +2078,7 @@ export type UserUncheckedUpdateWithoutAiChatSessionsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAiMessageFeedbackInput = {
@@ -2058,6 +2111,7 @@ export type UserCreateWithoutAiMessageFeedbackInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
@@ -2090,6 +2144,7 @@ export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAiMessageFeedbackInput = {
@@ -2127,6 +2182,7 @@ export type UserCreateWithoutFeedbackReviewsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackCreateNestedManyWithoutUserInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutFeedbackReviewsInput = {
@@ -2159,6 +2215,7 @@ export type UserUncheckedCreateWithoutFeedbackReviewsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutFeedbackReviewsInput = {
@@ -2207,6 +2264,7 @@ export type UserUpdateWithoutAiMessageFeedbackInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
@@ -2239,6 +2297,7 @@ export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutFeedbackReviewsInput = {
@@ -2282,6 +2341,7 @@ export type UserUpdateWithoutFeedbackReviewsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackUpdateManyWithoutUserNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFeedbackReviewsInput = {
@@ -2314,6 +2374,7 @@ export type UserUncheckedUpdateWithoutFeedbackReviewsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
   alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAlignmentSessionsInput = {
@@ -2346,6 +2407,7 @@ export type UserCreateWithoutAlignmentSessionsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackCreateNestedManyWithoutUserInput
   feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAlignmentSessionsInput = {
@@ -2378,6 +2440,7 @@ export type UserUncheckedCreateWithoutAlignmentSessionsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAlignmentSessionsInput = {
@@ -2426,6 +2489,7 @@ export type UserUpdateWithoutAlignmentSessionsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackUpdateManyWithoutUserNestedInput
   feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAlignmentSessionsInput = {
@@ -2458,6 +2522,155 @@ export type UserUncheckedUpdateWithoutAlignmentSessionsInput = {
   aiMessageFeedback?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutTutorStudioArtifactsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified: boolean
+  image?: string | null
+  role?: string
+  isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
+  academicLevel?: string | null
+  npm?: string | null
+  nip?: string | null
+  nidn?: string | null
+  major?: string | null
+  faculty?: string | null
+  bio?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  coursesCreated?: Prisma.CourseCreateNestedManyWithoutCreatorInput
+  courseInstructor?: Prisma.CourseInstructorCreateNestedManyWithoutUserInput
+  enrollments?: Prisma.EnrollmentCreateNestedManyWithoutUserInput
+  courseSessionsMade?: Prisma.CourseSessionCreateNestedManyWithoutCreatorInput
+  materialsUploaded?: Prisma.MaterialCreateNestedManyWithoutUploaderInput
+  aiMessageFeedback?: Prisma.AiMessageFeedbackCreateNestedManyWithoutUserInput
+  feedbackReviews?: Prisma.AiMessageFeedbackCreateNestedManyWithoutReviewerInput
+  aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutUserInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutAuthorInput
+}
+
+export type UserUncheckedCreateWithoutTutorStudioArtifactsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified: boolean
+  image?: string | null
+  role?: string
+  isActive?: boolean
+  isFrozen?: boolean
+  frozenAt?: Date | string | null
+  frozenReason?: string | null
+  academicLevel?: string | null
+  npm?: string | null
+  nip?: string | null
+  nidn?: string | null
+  major?: string | null
+  faculty?: string | null
+  bio?: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  coursesCreated?: Prisma.CourseUncheckedCreateNestedManyWithoutCreatorInput
+  courseInstructor?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutUserInput
+  enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutUserInput
+  courseSessionsMade?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCreatorInput
+  materialsUploaded?: Prisma.MaterialUncheckedCreateNestedManyWithoutUploaderInput
+  aiMessageFeedback?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+  feedbackReviews?: Prisma.AiMessageFeedbackUncheckedCreateNestedManyWithoutReviewerInput
+  aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutUserInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutAuthorInput
+}
+
+export type UserCreateOrConnectWithoutTutorStudioArtifactsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutTutorStudioArtifactsInput, Prisma.UserUncheckedCreateWithoutTutorStudioArtifactsInput>
+}
+
+export type UserUpsertWithoutTutorStudioArtifactsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutTutorStudioArtifactsInput, Prisma.UserUncheckedUpdateWithoutTutorStudioArtifactsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutTutorStudioArtifactsInput, Prisma.UserUncheckedCreateWithoutTutorStudioArtifactsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutTutorStudioArtifactsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutTutorStudioArtifactsInput, Prisma.UserUncheckedUpdateWithoutTutorStudioArtifactsInput>
+}
+
+export type UserUpdateWithoutTutorStudioArtifactsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  coursesCreated?: Prisma.CourseUpdateManyWithoutCreatorNestedInput
+  courseInstructor?: Prisma.CourseInstructorUpdateManyWithoutUserNestedInput
+  enrollments?: Prisma.EnrollmentUpdateManyWithoutUserNestedInput
+  courseSessionsMade?: Prisma.CourseSessionUpdateManyWithoutCreatorNestedInput
+  materialsUploaded?: Prisma.MaterialUpdateManyWithoutUploaderNestedInput
+  aiMessageFeedback?: Prisma.AiMessageFeedbackUpdateManyWithoutUserNestedInput
+  feedbackReviews?: Prisma.AiMessageFeedbackUpdateManyWithoutReviewerNestedInput
+  aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutUserNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutAuthorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutTutorStudioArtifactsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isFrozen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  frozenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  frozenReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  academicLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  npm?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nip?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nidn?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  major?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  faculty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  coursesCreated?: Prisma.CourseUncheckedUpdateManyWithoutCreatorNestedInput
+  courseInstructor?: Prisma.CourseInstructorUncheckedUpdateManyWithoutUserNestedInput
+  enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutUserNestedInput
+  courseSessionsMade?: Prisma.CourseSessionUncheckedUpdateManyWithoutCreatorNestedInput
+  materialsUploaded?: Prisma.MaterialUncheckedUpdateManyWithoutUploaderNestedInput
+  aiMessageFeedback?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+  feedbackReviews?: Prisma.AiMessageFeedbackUncheckedUpdateManyWithoutReviewerNestedInput
+  aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutUserNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
 
@@ -2477,6 +2690,7 @@ export type UserCountOutputType = {
   feedbackReviews: number
   aiChatSessions: number
   alignmentSessions: number
+  tutorStudioArtifacts: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2491,6 +2705,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   feedbackReviews?: boolean | UserCountOutputTypeCountFeedbackReviewsArgs
   aiChatSessions?: boolean | UserCountOutputTypeCountAiChatSessionsArgs
   alignmentSessions?: boolean | UserCountOutputTypeCountAlignmentSessionsArgs
+  tutorStudioArtifacts?: boolean | UserCountOutputTypeCountTutorStudioArtifactsArgs
 }
 
 /**
@@ -2580,6 +2795,13 @@ export type UserCountOutputTypeCountAlignmentSessionsArgs<ExtArgs extends runtim
   where?: Prisma.TutorAlignmentSessionWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountTutorStudioArtifactsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TutorStudioArtifactWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2612,6 +2834,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   feedbackReviews?: boolean | Prisma.User$feedbackReviewsArgs<ExtArgs>
   aiChatSessions?: boolean | Prisma.User$aiChatSessionsArgs<ExtArgs>
   alignmentSessions?: boolean | Prisma.User$alignmentSessionsArgs<ExtArgs>
+  tutorStudioArtifacts?: boolean | Prisma.User$tutorStudioArtifactsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -2694,6 +2917,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   feedbackReviews?: boolean | Prisma.User$feedbackReviewsArgs<ExtArgs>
   aiChatSessions?: boolean | Prisma.User$aiChatSessionsArgs<ExtArgs>
   alignmentSessions?: boolean | Prisma.User$alignmentSessionsArgs<ExtArgs>
+  tutorStudioArtifacts?: boolean | Prisma.User$tutorStudioArtifactsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -2713,6 +2937,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     feedbackReviews: Prisma.$AiMessageFeedbackPayload<ExtArgs>[]
     aiChatSessions: Prisma.$AiChatSessionPayload<ExtArgs>[]
     alignmentSessions: Prisma.$TutorAlignmentSessionPayload<ExtArgs>[]
+    tutorStudioArtifacts: Prisma.$TutorStudioArtifactPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3139,6 +3364,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   feedbackReviews<T extends Prisma.User$feedbackReviewsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$feedbackReviewsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiChatSessions<T extends Prisma.User$aiChatSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$aiChatSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiChatSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   alignmentSessions<T extends Prisma.User$alignmentSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$alignmentSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TutorAlignmentSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  tutorStudioArtifacts<T extends Prisma.User$tutorStudioArtifactsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$tutorStudioArtifactsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TutorStudioArtifactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3841,6 +4067,30 @@ export type User$alignmentSessionsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.TutorAlignmentSessionScalarFieldEnum | Prisma.TutorAlignmentSessionScalarFieldEnum[]
+}
+
+/**
+ * User.tutorStudioArtifacts
+ */
+export type User$tutorStudioArtifactsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TutorStudioArtifact
+   */
+  select?: Prisma.TutorStudioArtifactSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TutorStudioArtifact
+   */
+  omit?: Prisma.TutorStudioArtifactOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TutorStudioArtifactInclude<ExtArgs> | null
+  where?: Prisma.TutorStudioArtifactWhereInput
+  orderBy?: Prisma.TutorStudioArtifactOrderByWithRelationInput | Prisma.TutorStudioArtifactOrderByWithRelationInput[]
+  cursor?: Prisma.TutorStudioArtifactWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TutorStudioArtifactScalarFieldEnum | Prisma.TutorStudioArtifactScalarFieldEnum[]
 }
 
 /**

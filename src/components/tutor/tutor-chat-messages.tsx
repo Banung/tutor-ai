@@ -12,10 +12,12 @@ import {
 } from "react";
 import {
   ArrowRight,
+  BookmarkCheck,
+  BookmarkPlus,
+  BookOpenCheck,
   Check,
-  ChevronRight,
   Copy,
-  ExternalLink,
+  CornerDownRight,
   FileText,
   Loader2,
   Square,
@@ -35,33 +37,31 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  buildTutorActionSuggestions,
+  parsePersistedSuggestedActions,
+  type PersistedSuggestedAction,
+  type TutorActionSuggestion,
+} from "@/lib/tutor-ai/action-suggestions";
+import type { TutorStudioArtifactType } from "@/lib/tutor-ai/studio-schema";
 import { cn } from "@/lib/utils";
+import {
+  buildCitationPreviewState,
+  CitationPreviewSheet,
+  extractRagSources,
+  groupCitationSources,
+  linkifySourceCitations,
+  MessageSources,
+  type CitationPreviewState,
+} from "./tutor-citation-preview";
 import type { RagSource, TutorChatSession, TutorMessage } from "./tutor-chat-types";
 
 function getMessageSources(message: TutorMessage): RagSource[] {
-  if (!message.ragSources || typeof message.ragSources !== "object") return [];
-  const sources = (message.ragSources as { sources?: unknown }).sources;
-  if (!Array.isArray(sources)) return [];
-
-  return sources.filter((source): source is RagSource => {
-    return (
-      typeof source === "object" &&
-      source !== null &&
-      "chunkId" in source &&
-      "materialTitle" in source
-    );
-  });
+  return extractRagSources(message.ragSources);
 }
 
 function isSummaryResponse(message: TutorMessage) {
@@ -77,189 +77,6 @@ function getUniqueSources(sources: RagSource[]) {
     seen.add(key);
     return true;
   });
-}
-
-const SOURCE_KEYWORD_STOPWORDS = new Set([
-  "about", "after", "also", "among", "because", "being", "between", "could", "does", "from", "have", "into", "more", "most", "other", "over", "same", "should", "some", "source", "such", "than", "that", "their", "there", "these", "they", "this", "those", "through", "under", "using", "very", "what", "when", "where", "which", "while", "were", "with", "would",
-  "akan", "atau", "bagi", "bahwa", "banyak", "belum", "bisa", "dalam", "dan", "dapat", "dari", "dengan", "di", "ini", "itu", "juga", "karena", "ke", "lebih", "oleh", "pada", "para", "saat", "sebagai", "secara", "sehingga", "seperti", "sudah", "sumber", "telah", "tentang", "tersebut", "tidak", "untuk", "yang",
-]);
-
-function countSourceTerms(text: string) {
-  const counts = new Map<string, number>();
-  for (const match of text.toLocaleLowerCase().matchAll(/[\p{L}\p{N}][\p{L}\p{N}-]{3,}/gu)) {
-    const term = match[0].replace(/-+$/g, "");
-    if (term.length < 4 || SOURCE_KEYWORD_STOPWORDS.has(term)) continue;
-    counts.set(term, (counts.get(term) ?? 0) + 1);
-  }
-  return counts;
-}
-
-function normalizeSourceTerm(term: string) {
-  const normalized = term.toLocaleLowerCase();
-  if (normalized.endsWith("ies") && normalized.length > 5) return `${normalized.slice(0, -3)}y`;
-  if (/(ses|xes|zes|ches|shes|oes)$/.test(normalized) && normalized.length > 5) {
-    return normalized.slice(0, -2);
-  }
-  if (normalized.endsWith("s") && normalized.length > 4 && !normalized.endsWith("ss")) return normalized.slice(0, -1);
-  return normalized;
-}
-
-function getRelatedTopic(evidence: CitationEvidence[], question: string) {
-  const questionTerms = [...countSourceTerms(question).keys()];
-  const pageTerms = new Set(
-    [...countSourceTerms(evidence.map(({ source }) => source.snippet).join(" ")).keys()]
-      .map(normalizeSourceTerm),
-  );
-  let bestPhrase: string[] = [];
-  let currentPhrase: string[] = [];
-
-  for (const term of questionTerms) {
-    if (pageTerms.has(normalizeSourceTerm(term))) {
-      currentPhrase.push(term);
-      if (currentPhrase.length > bestPhrase.length) bestPhrase = [...currentPhrase];
-    } else {
-      currentPhrase = [];
-    }
-  }
-
-  return bestPhrase.length > 0 ? bestPhrase.join(" ") : null;
-}
-
-function getMostRelatedEvidence(evidence: CitationEvidence[], question: string) {
-  return [...evidence].sort((left, right) => {
-    const leftTopic = getRelatedTopic([left], question);
-    const rightTopic = getRelatedTopic([right], question);
-    const topicLength = (topic: string | null) => topic?.split(/\s+/).length ?? 0;
-    return topicLength(rightTopic) - topicLength(leftTopic)
-      || right.source.similarity - left.source.similarity;
-  })[0] ?? null;
-}
-
-function splitSourceSentences(text: string) {
-  if (typeof Intl.Segmenter === "function") {
-    return [...new Intl.Segmenter(undefined, { granularity: "sentence" }).segment(text)]
-      .map(({ segment }) => segment.trim())
-      .filter(Boolean);
-  }
-
-  return (text.match(/[^.!?]+[.!?]*/gu) ?? [text]).map((sentence) => sentence.trim()).filter(Boolean);
-}
-
-function getSentenceExcerpt(text: string, topic: string | null, sentenceLimit: number) {
-  const sentences = splitSourceSentences(text);
-  if (sentences.length <= sentenceLimit) return text;
-
-  const topicTerms = new Set([...countSourceTerms(topic ?? "").keys()].map(normalizeSourceTerm));
-  const relatedSentenceIndex = sentences.findIndex((sentence) =>
-    [...countSourceTerms(sentence).keys()].some((term) => topicTerms.has(normalizeSourceTerm(term)))
-  );
-  const startIndex = relatedSentenceIndex < 0 ? 0 : Math.max(0, relatedSentenceIndex - 1);
-  const endIndex = Math.min(sentences.length, startIndex + sentenceLimit);
-  const prefix = startIndex > 0 ? "… " : "";
-  const suffix = endIndex < sentences.length ? " …" : "";
-
-  return `${prefix}${sentences.slice(startIndex, endIndex).join(" ")}${suffix}`;
-}
-
-function highlightSourceKeyword(text: string, keyword: string | null): ReactNode {
-  if (!keyword) return text;
-
-  const terms = [...countSourceTerms(keyword).keys()];
-  if (terms.length === 0) return text;
-  const pattern = terms.map((term) => {
-    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return `${escapedTerm}(?:es|s)?`;
-  }).join("|");
-  const parts = text.split(new RegExp(`\\b(${pattern})\\b`, "gi"));
-  const keywordTerms = new Set(terms.map(normalizeSourceTerm));
-  return parts.map((part, index) => (
-    keywordTerms.has(normalizeSourceTerm(part))
-      ? <mark key={`${keyword}-${index}`} className="rounded-sm bg-amber-300/45 px-0.5 font-medium text-foreground dark:bg-amber-300/25">{part}</mark>
-      : part
-  ));
-}
-
-type CitationEvidence = {
-  source: RagSource;
-  sourceNumber: number;
-};
-
-type CitationSourceGroup = {
-  materialId: string;
-  materialTitle: string;
-  fileName: string;
-  publicUrl: string | null;
-  sessionTitle: string;
-  evidence: CitationEvidence[];
-  sourceNumbers: number[];
-};
-
-function groupCitationSources(sources: RagSource[]): CitationSourceGroup[] {
-  const groups = new Map<string, CitationSourceGroup>();
-
-  sources.forEach((source, index) => {
-    const sourceNumber = source.sourceNumber ?? index + 1;
-    const key = source.materialId || `source-${sourceNumber}`;
-    let group = groups.get(key);
-
-    if (!group) {
-      group = {
-        materialId: source.materialId,
-        materialTitle: source.materialTitle,
-        fileName: source.fileName,
-        publicUrl: source.publicUrl ?? null,
-        sessionTitle: source.sessionTitle,
-        evidence: [],
-        sourceNumbers: [],
-      };
-      groups.set(key, group);
-    }
-
-    if (!group.evidence.some(({ source: item }) => item.chunkId === source.chunkId)) {
-      group.evidence.push({ source, sourceNumber });
-    }
-    if (!group.sourceNumbers.includes(sourceNumber)) {
-      group.sourceNumbers.push(sourceNumber);
-    }
-  });
-
-  return [...groups.values()];
-}
-
-function linkifySourceCitations(markdown: string) {
-  const codeSegment = /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`)/g;
-
-  return markdown.split(codeSegment).map((segment, index) => {
-    if (index % 2 === 1) return segment;
-
-    return segment.replace(
-      /\[((?:Sumber\s+\d+)(?:\s*,\s*(?:Sumber\s+)?\d+)*)\]/gi,
-      (citation, group: string) => {
-        const sourceNumbers = [...group.matchAll(/(?:Sumber\s+)?(\d+)/gi)]
-          .map((match) => Number(match[1]));
-        const uniqueSourceNumbers = [...new Set(sourceNumbers)];
-
-        if (uniqueSourceNumbers.length === 0) return citation;
-
-        return uniqueSourceNumbers
-          .map((sourceNumber) => `[Sumber ${sourceNumber}](#tutor-source-${sourceNumber})`)
-          .join(", ");
-      }
-    );
-  }).join("");
-}
-
-function getPdfPageUrl(publicUrl: string | null, pageNumber: number) {
-  if (!publicUrl || !Number.isInteger(pageNumber) || pageNumber < 1) return null;
-
-  try {
-    const url = new URL(publicUrl);
-    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-    url.hash = `page=${pageNumber}`;
-    return url.toString();
-  } catch {
-    return null;
-  }
 }
 
 
@@ -396,188 +213,7 @@ function chooseTutorVoice(voices: SpeechSynthesisVoice[], lang: "id" | "en") {
   return voices.find(v => v.lang.startsWith(lang)) || voices[0] || null;
 }
 
-function MessageSources({
-  sourceGroups,
-  relatedQuestion,
-  onOpenSource,
-}: {
-  sourceGroups: CitationSourceGroup[];
-  relatedQuestion: string;
-  onOpenSource: (sourceNumber: number) => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
 
-  if (sourceGroups.length === 0) return null;
-
-  return (
-    <div className="mt-5 border-t border-border/50 pt-3">
-      <button
-        type="button"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground/80 transition-colors hover:text-foreground"
-      >
-        <ChevronRight
-          className={cn(
-            "size-3.5 transition-transform duration-200 text-muted-foreground/60",
-            isOpen && "rotate-90 text-brand"
-          )}
-        />
-        <span>Sumber ({sourceGroups.reduce((count, group) => count + group.sourceNumbers.length, 0)})</span>
-      </button>
-
-      {isOpen && (
-        <div className="mt-3 flex flex-col gap-2.5 pl-2 animate-in fade-in-50 slide-in-from-top-1 duration-200">
-          {sourceGroups.map((group) => {
-            const pages = [...new Set(group.evidence.map(({ source }) => source.pageNumber))]
-              .sort((left, right) => left - right);
-            const relatedEvidence = getMostRelatedEvidence(group.evidence, relatedQuestion);
-            const relatedTopic = relatedEvidence ? getRelatedTopic([relatedEvidence], relatedQuestion) : null;
-
-            return (
-              <button
-                key={group.materialId || group.materialTitle}
-                type="button"
-                onClick={() => onOpenSource(relatedEvidence?.sourceNumber ?? group.sourceNumbers[0] ?? 1)}
-                className="group flex w-full flex-col gap-2 rounded-xl border border-border/60 bg-card/45 p-3 text-left text-xs text-muted-foreground transition-all hover:border-brand/35 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60"
-              >
-                <span className="flex min-w-0 items-start justify-between gap-3">
-                  <span className="flex min-w-0 items-start gap-2">
-                    <FileText className="mt-0.5 size-3.5 shrink-0 text-brand" />
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-foreground">{group.materialTitle}</span>
-                      <span className="mt-0.5 block text-[10px] text-muted-foreground">
-                        {pages.length > 0 ? `Hal. ${pages.join(", ")}` : "Kutipan materi"}
-                        {group.evidence.length > 1 ? ` · ${group.evidence.length} kutipan` : ""}
-                      </span>
-                    </span>
-                  </span>
-                  <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
-                </span>
-                <span className="flex flex-wrap items-center gap-1.5 pl-5">
-                  <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">Topik terkait</span>
-                  {relatedTopic ? (
-                    <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand">{relatedTopic}</span>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground">Konteks materi</span>
-                  )}
-                </span>
-                {relatedEvidence?.source.snippet && (
-                  <span className="pl-5 text-[11px] leading-relaxed text-muted-foreground/90">
-                    {highlightSourceKeyword(getSentenceExcerpt(relatedEvidence.source.snippet, relatedTopic, 2), relatedTopic)}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-type CitationPreviewState = {
-  group: CitationSourceGroup;
-  focusedChunkId: string;
-  pageNumber: number;
-  relatedTopic: string | null;
-};
-
-function CitationPreviewSheet({
-  preview,
-  onOpenChange,
-}: {
-  preview: CitationPreviewState | null;
-  onOpenChange: (preview: CitationPreviewState | null) => void;
-}) {
-  const group = preview?.group;
-  const evidence = preview
-    ? group?.evidence.filter(({ source }) => source.pageNumber === preview.pageNumber) ?? []
-    : [];
-  const orderedEvidence = [...evidence].sort(
-    (left, right) => left.source.chunkIndex - right.source.chunkIndex,
-  );
-
-  return (
-    <Sheet
-      open={Boolean(preview)}
-      onOpenChange={(open) => {
-        if (!open) onOpenChange(null);
-      }}
-    >
-      <SheetContent side="right" className="w-[min(92vw,28rem)] gap-0 p-0 sm:max-w-[28rem]">
-        <SheetHeader className="border-b border-border px-5 py-5 pr-14">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand">
-            Pratinjau sumber
-          </p>
-          <SheetTitle className="break-words text-left leading-snug">
-            {group?.materialTitle ?? "Sumber materi"}
-          </SheetTitle>
-          <SheetDescription className="break-all text-left text-xs">
-            {group?.fileName ?? ""}
-            {group?.sessionTitle ? ` · ${group.sessionTitle}` : ""}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="border-b border-border/70 px-5 py-3">
-            <p className="text-sm font-medium text-foreground">Kutipan yang mendukung jawaban</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {evidence.length} potongan dari halaman PDF {preview?.pageNumber}
-            </p>
-            {preview?.relatedTopic && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">Topik terkait</span>
-                <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">{preview.relatedTopic}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-5 py-4">
-            <div className="flex flex-col gap-3">
-              {orderedEvidence.map(({ source }, excerptIndex) => {
-                const pdfPageUrl = getPdfPageUrl(group?.publicUrl ?? null, source.pageNumber);
-                const isFocused = source.chunkId === preview?.focusedChunkId;
-
-                return (
-                  <article
-                    key={source.chunkId}
-                    className={cn(
-                      "rounded-xl border p-4 transition-colors",
-                      isFocused ? "border-brand/35 bg-brand/5" : "border-border/70 bg-card"
-                    )}
-                  >
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-xs font-semibold text-foreground">
-                        Kutipan {excerptIndex + 1} dari {orderedEvidence.length} · Halaman PDF {source.pageNumber}
-                      </p>
-                      {pdfPageUrl && (
-                        <a
-                          href={pdfPageUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-brand underline-offset-4 hover:underline"
-                        >
-                          Buka halaman
-                          <ExternalLink className="size-3" />
-                        </a>
-                      )}
-                    </div>
-                    <blockquote className="border-l-2 border-brand/35 pl-3 text-sm leading-relaxed text-muted-foreground">
-                      {source.snippet
-                        ? highlightSourceKeyword(source.snippet, preview?.relatedTopic ?? null)
-                        : "Kutipan teks tidak tersedia untuk potongan ini."}
-                    </blockquote>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
 
 function extractTextFromReactNode(node: ReactNode): string {
   if (typeof node === "string" || typeof node === "number") {
@@ -639,7 +275,7 @@ type MarkdownPreProps = ComponentPropsWithoutRef<"pre"> & {
   children?: ReactNode;
 };
 
-function MarkdownPre({ node, children, ...props }: MarkdownPreProps) {
+export function MarkdownPre({ node, children, ...props }: MarkdownPreProps) {
   void node;
   const codeElement = Array.isArray(children) ? children[0] : children;
   let codeString = "";
@@ -677,7 +313,7 @@ type MarkdownTableProps = ComponentPropsWithoutRef<"table"> & {
   children?: ReactNode;
 };
 
-function MarkdownTable({ node, children, ...props }: MarkdownTableProps) {
+export function MarkdownTable({ node, children, ...props }: MarkdownTableProps) {
   void node;
   const tableRef = useRef<HTMLTableElement>(null);
   const [copied, setCopied] = useState(false);
@@ -752,6 +388,12 @@ export type TutorChatMessagesProps = {
   sending: boolean;
   sendingStage?: "preparing" | "generating" | null;
   onCreateSummary?: (anchorMessageId: string) => void;
+  onOpenStudioAction?: (suggestion: TutorActionSuggestion, message: TutorMessage) => void;
+  onSaveToStudio?: (message: TutorMessage) => void;
+  studioActionLoadingKey?: string | null;
+  savingNoteMessageIds?: ReadonlySet<string>;
+  studioArtifactsByMessage?: ReadonlyMap<string, Partial<Record<TutorStudioArtifactType, string>>>;
+  dynamicSuggestionsByMessage?: ReadonlyMap<string, PersistedSuggestedAction[]>;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -764,6 +406,12 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   sending,
   sendingStage,
   onCreateSummary,
+  onOpenStudioAction,
+  onSaveToStudio,
+  studioActionLoadingKey,
+  savingNoteMessageIds,
+  studioArtifactsByMessage,
+  dynamicSuggestionsByMessage,
   scrollContainerRef,
   messagesEndRef,
 }: TutorChatMessagesProps) {
@@ -774,11 +422,22 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   const isStreamingEmpty = sending && lastMessage?.senderType === "ai" && !lastMessage.content;
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const [citationPreview, setCitationPreview] = useState<CitationPreviewState | null>(null);
-
-  useEffect(() => {
-    setCitationPreview(null);
-  }, [activeSession?.id]);
+  const [citationPreviewEntry, setCitationPreviewEntry] = useState<{
+    sessionId: string | undefined;
+    preview: CitationPreviewState;
+  } | null>(null);
+  const citationPreview =
+    citationPreviewEntry && citationPreviewEntry.sessionId === activeSession?.id
+      ? citationPreviewEntry.preview
+      : null;
+  const setCitationPreview = useCallback(
+    (next: CitationPreviewState | null) => {
+      setCitationPreviewEntry(
+        next ? { sessionId: activeSession?.id, preview: next } : null
+      );
+    },
+    [activeSession?.id]
+  );
 
   const cancelCurrentSpeech = useCallback(() => {
     if (!("speechSynthesis" in window)) return;
@@ -938,20 +597,37 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                   .find((previousMessage) => previousMessage.senderType === "user")?.content ?? "";
 
             const openSource = (sourceNumber: number) => {
-              const group = sourceGroups.find((item) => item.sourceNumbers.includes(sourceNumber));
-              if (!group) return;
-
-              const citationEvidence = group.evidence.filter((item) => item.sourceNumber === sourceNumber);
-              const focusedEvidence = getMostRelatedEvidence(citationEvidence, relatedQuestion);
-              if (!focusedEvidence) return;
-
-              setCitationPreview({
-                group,
-                focusedChunkId: focusedEvidence.source.chunkId,
-                pageNumber: focusedEvidence.source.pageNumber,
-                relatedTopic: getRelatedTopic([focusedEvidence], relatedQuestion),
-              });
+              const previewState = buildCitationPreviewState(
+                sourceGroups,
+                sourceNumber,
+                relatedQuestion
+              );
+              if (previewState) setCitationPreview(previewState);
             };
+            const messageArtifactIds = studioArtifactsByMessage?.get(message.id);
+            const persistedSuggestions =
+              dynamicSuggestionsByMessage?.get(message.id) ??
+              parsePersistedSuggestedActions(message.ragSources);
+            const actionSuggestions =
+              !isUser &&
+              !isStreaming &&
+              !isSummaryResponse(message) &&
+              message.content.trim().length > 0 &&
+              sources.length > 0 &&
+              onOpenStudioAction
+                ? buildTutorActionSuggestions({
+                    messageId: message.id,
+                    answerContent: message.content,
+                    questionContent: relatedQuestion,
+                    sourcesCount: sources.length,
+                    existingSummaryArtifactId: messageArtifactIds?.SUMMARY ?? null,
+                    existingQuizArtifactId: messageArtifactIds?.QUIZ ?? null,
+                    existingFlashcardsArtifactId: messageArtifactIds?.FLASHCARDS ?? null,
+                    persistedSuggestions,
+                  })
+                : [];
+            const savedNoteId = messageArtifactIds?.NOTE ?? null;
+            const isSavingNote = savingNoteMessageIds?.has(message.id) ?? false;
 
             // Skip rendering empty streaming messages — show spinner below instead
             if (isStreaming && !message.content) return null;
@@ -1027,26 +703,6 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                         />
                       )}
 
-                      {canCreateSummary && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="lg"
-                          disabled={sending}
-                          onClick={() => onCreateSummary?.(message.id)}
-                          aria-label="Buat artikel belajar mendalam dari jawaban ini"
-                          className="mt-4 h-auto w-full justify-between gap-4 rounded-2xl border-border bg-card px-5 py-4 text-left whitespace-normal hover:bg-muted/60"
-                        >
-                          <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
-                            <span className="font-medium text-foreground">Buat artikel belajar dari materi ini</span>
-                            <span className="text-sm font-normal text-muted-foreground">
-                              Satu bacaan utuh dengan penjelasan yang lebih mendalam
-                            </span>
-                          </span>
-                          <ArrowRight data-icon="inline-end" className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                        </Button>
-                      )}
-
                       {!isStreaming && message.content.trim() && (
                         <div className="mt-3 flex flex-wrap items-center gap-1">
                           <Tooltip>
@@ -1102,6 +758,42 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                               {copiedMessageId === message.id ? "Copied" : "Copy Response"}
                             </TooltipContent>
                           </Tooltip>
+
+                          {onSaveToStudio && !isSummaryResponse(message) && !message.id.startsWith("streaming-") && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={isSavingNote}
+                                  className={cn(
+                                    "h-8 rounded-full px-2.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground",
+                                    savedNoteId && "text-brand hover:text-brand"
+                                  )}
+                                  onClick={() => onSaveToStudio(message)}
+                                  aria-label={
+                                    savedNoteId
+                                      ? "Buka catatan tersimpan di Studio"
+                                      : "Simpan jawaban ke Studio"
+                                  }
+                                >
+                                  {isSavingNote ? (
+                                    <Loader2 data-icon="inline-start" className="animate-spin" />
+                                  ) : savedNoteId ? (
+                                    <BookmarkCheck data-icon="inline-start" />
+                                  ) : (
+                                    <BookmarkPlus data-icon="inline-start" />
+                                  )}
+                                  <span>{savedNoteId ? "Tersimpan di Studio" : "Simpan ke Studio"}</span>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {savedNoteId ? "Buka catatan tersimpan di Studio" : "Simpan ke Studio"}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+
                           {canGiveFeedback && activeSession && !message.id.startsWith("streaming-") && (
                             <TutorMessageFeedback
                               key={`${message.id}-${message.feedback?.updatedAt ?? "none"}`}
@@ -1112,6 +804,72 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                             />
                           )}
                         </div>
+                      )}
+
+                      {actionSuggestions.length > 0 ? (
+                        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                          {actionSuggestions.map((suggestion) => {
+                            const cardKey = `${suggestion.id}:${message.id}`;
+                            const isLoadingCard = studioActionLoadingKey === cardKey;
+                            const isSavedCard = Boolean(suggestion.alreadySavedArtifactId);
+                            const isStudioTarget = suggestion.target === "studio";
+
+                            return (
+                              <button
+                                key={suggestion.id}
+                                type="button"
+                                disabled={sending || Boolean(studioActionLoadingKey)}
+                                onClick={() => onOpenStudioAction?.(suggestion, message)}
+                                className="group flex min-h-[100px] w-full flex-col justify-between gap-3 rounded-2xl border border-border/50 bg-muted/45 px-4 py-3.5 text-left transition-colors hover:border-border hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <span className="line-clamp-3 text-[13px] font-normal leading-snug text-foreground">
+                                  {suggestion.title}
+                                </span>
+                                <span className="flex items-center gap-1.5 text-muted-foreground">
+                                  {isLoadingCard ? (
+                                    <Loader2 className="size-4 animate-spin text-brand" aria-hidden="true" />
+                                  ) : isStudioTarget ? (
+                                    <>
+                                      {isSavedCard ? (
+                                        <BookOpenCheck className="size-3.5 text-brand" aria-hidden="true" />
+                                      ) : (
+                                        <FileText className="size-3.5 text-brand" aria-hidden="true" />
+                                      )}
+                                      <span className="text-[11px] font-medium">
+                                        {isSavedCard ? "Tersimpan di Studio" : "Studio"}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <CornerDownRight
+                                      className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        canCreateSummary && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="lg"
+                            disabled={sending}
+                            onClick={() => onCreateSummary?.(message.id)}
+                            aria-label="Buat artikel belajar mendalam dari jawaban ini"
+                            className="mt-4 h-auto w-full justify-between gap-4 rounded-2xl border-border bg-card px-5 py-4 text-left whitespace-normal hover:bg-muted/60"
+                          >
+                            <span className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                              <span className="font-medium text-foreground">Buat artikel belajar dari materi ini</span>
+                              <span className="text-sm font-normal text-muted-foreground">
+                                Satu bacaan utuh dengan penjelasan yang lebih mendalam
+                              </span>
+                            </span>
+                            <ArrowRight data-icon="inline-end" className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          </Button>
+                        )
                       )}
                     </>
                   )}
