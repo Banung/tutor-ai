@@ -4,12 +4,14 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
+  Layers,
   Loader2,
   MessageCircle,
   Search,
   Settings2,
   UserPen,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -49,9 +51,17 @@ import {
   type TutorAvatarCustomization,
 } from "./tutor-avatar-customization";
 
-import type { TutorAiChatPageProps } from "./tutor-chat-types";
+import type { TutorActionSuggestion } from "@/lib/tutor-ai/action-suggestions";
+import type { TutorAiChatPageProps, TutorMessage } from "./tutor-chat-types";
 import { useTutorChat } from "./hooks/use-tutor-chat";
 import { useTutorSpeech } from "./hooks/use-tutor-speech";
+import { useTutorStudio } from "./hooks/use-tutor-studio";
+import { extractRagSources } from "./tutor-citation-preview";
+import { TutorStudioSidebar } from "./tutor-studio-sidebar";
+import {
+  downloadStudioMarkdown,
+  TutorStudioReaderDialog,
+} from "./tutor-studio-reader-dialog";
 
 const CHAT_INPUT_MIN_HEIGHT = 44;
 const CHAT_STARTER_PROMPTS = [
@@ -141,12 +151,22 @@ export function TutorAiChatPage({
   const [avatarCustomizationOpen, setAvatarCustomizationOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [studioOpen, setStudioOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [panelMode, setPanelMode] = useState<TutorPanelMode>("chat");
   const [landingMessageIndex] = useState(() =>
     Math.floor(Math.random() * CHAT_LANDING_MESSAGES.length)
   );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (window.innerWidth >= 1280) {
+        setStudioOpen(true);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const updateTutorUrl = useCallback((nextHref: string) => {
     if (typeof window === "undefined") return;
@@ -200,6 +220,7 @@ export function TutorAiChatPage({
     handleDeleteSession,
     handleStop,
     handleSend,
+    handleSendPrompt,
     handleCreateSummary,
   } = useTutorChat({
     courseId,
@@ -210,6 +231,58 @@ export function TutorAiChatPage({
     setInput: updateInput,
     panelMode,
   });
+
+  const studio = useTutorStudio({
+    courseId,
+    activeSessionId: activeSession?.id ?? null,
+  });
+
+  const handleOpenStudioAction = useCallback(
+    (suggestion: TutorActionSuggestion, message: TutorMessage) => {
+      if (suggestion.alreadySavedArtifactId) {
+        setStudioOpen(true);
+        void studio.openArtifactById(suggestion.alreadySavedArtifactId);
+        return;
+      }
+
+      if (suggestion.target === "studio" && suggestion.artifactType) {
+        setStudioOpen(true);
+        void studio.generateArtifact({
+          type: suggestion.artifactType,
+          chatSessionId: activeSession?.id ?? null,
+          anchorMessageId: message.id,
+          materialIds: activeSession?.selectedMaterialIds,
+          topic: suggestion.topicHint,
+          actionKey: `${suggestion.id}:${message.id}`,
+        });
+        return;
+      }
+
+      if (suggestion.target === "chat" && suggestion.prompt) {
+        void handleSendPrompt(suggestion.prompt);
+      }
+    },
+    [activeSession, handleSendPrompt, studio]
+  );
+
+  const handleSaveToStudio = useCallback(
+    (message: TutorMessage) => {
+      const savedNoteId = studio.artifactsByMessage.get(message.id)?.NOTE;
+      if (savedNoteId) {
+        setStudioOpen(true);
+        void studio.openArtifactById(savedNoteId);
+        return;
+      }
+
+      void studio.saveMessageToNote({
+        chatSessionId: activeSession?.id ?? null,
+        sourceMessageId: message.id,
+        content: message.content,
+        sources: extractRagSources(message.ragSources),
+      });
+    },
+    [activeSession?.id, studio]
+  );
 
   const {
     recording,
@@ -453,6 +526,23 @@ export function TutorAiChatPage({
               Sumber materi ({readyMaterials.length} materi siap)
             </TooltipContent>
           </Tooltip>
+
+          <Button
+            type="button"
+            variant={studioOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setStudioOpen((prev) => !prev)}
+            aria-pressed={studioOpen}
+            aria-label="Buka atau tutup panel Studio"
+          >
+            <Layers data-icon="inline-start" />
+            <span>Studio</span>
+            {studio.artifacts.length > 0 && (
+              <Badge variant="secondary" className="ml-0.5 px-1.5 py-0 text-[10px]">
+                {studio.artifacts.length}
+              </Badge>
+            )}
+          </Button>
         </header>
 
         {/* Messages area */}
@@ -530,6 +620,11 @@ export function TutorAiChatPage({
             sending={sending}
             sendingStage={sendingStage}
             onCreateSummary={handleCreateSummary}
+            onOpenStudioAction={handleOpenStudioAction}
+            onSaveToStudio={handleSaveToStudio}
+            studioActionLoadingKey={studio.generatingKey}
+            savingNoteMessageIds={studio.savingNoteMessageIds}
+            studioArtifactsByMessage={studio.artifactsByMessage}
             scrollContainerRef={scrollContainerRef}
             messagesEndRef={messagesEndRef}
           />
@@ -658,6 +753,80 @@ export function TutorAiChatPage({
               disabled={deletingSession}
             >
               {deletingSession ? "Menghapus..." : "Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ==================== RIGHT STUDIO SIDEBAR ==================== */}
+      <TutorStudioSidebar
+        open={studioOpen}
+        onClose={() => setStudioOpen(false)}
+        selectedMaterialCount={selectedMaterialSet.size}
+        totalMaterialCount={readyMaterials.length}
+        activeSessionId={activeSession?.id ?? null}
+        artifacts={studio.filteredArtifacts}
+        totalArtifactCount={studio.artifacts.length}
+        loadingArtifacts={studio.loadingArtifacts}
+        generatingType={studio.generatingType}
+        scope={studio.scope}
+        onScopeChange={studio.setScope}
+        typeFilter={studio.typeFilter}
+        onTypeFilterChange={studio.setTypeFilter}
+        renamingArtifactId={studio.renamingArtifactId}
+        setRenamingArtifactId={studio.setRenamingArtifactId}
+        renameValue={studio.renameValue}
+        setRenameValue={studio.setRenameValue}
+        savingRename={studio.savingRename}
+        onRenameArtifact={(artifactId) => void studio.handleRenameArtifact(artifactId)}
+        onRequestDeleteArtifact={(artifactId) => studio.setDeleteArtifactId(artifactId)}
+        onOpenArtifact={(artifact) => studio.setActiveArtifactId(artifact.id)}
+        onDownloadMarkdown={(artifact) => downloadStudioMarkdown(artifact)}
+        onQuickGenerate={(type, topic) => {
+          void studio.generateArtifact({
+            type,
+            chatSessionId: activeSession?.id ?? null,
+            materialIds: Array.from(selectedMaterialSet),
+            topic,
+          });
+        }}
+      />
+
+      {/* ==================== STUDIO READER DIALOG ==================== */}
+      <TutorStudioReaderDialog
+        artifact={studio.activeArtifact}
+        onOpenChange={(open) => {
+          if (!open) studio.setActiveArtifactId(null);
+        }}
+      />
+
+      {/* ==================== DELETE STUDIO ARTIFACT CONFIRMATION ==================== */}
+      <AlertDialog
+        open={Boolean(studio.deleteArtifactId)}
+        onOpenChange={(open) => {
+          if (!open) studio.setDeleteArtifactId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus artefak Studio ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Catatan atau latihan yang tersimpan di Studio akan dihapus secara permanen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={studio.deletingArtifact}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={studio.deletingArtifact}
+              onClick={(event) => {
+                event.preventDefault();
+                if (studio.deleteArtifactId) {
+                  void studio.handleDeleteArtifact(studio.deleteArtifactId);
+                }
+              }}
+            >
+              {studio.deletingArtifact ? "Menghapus..." : "Hapus"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

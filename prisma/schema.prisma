@@ -49,6 +49,7 @@ model User {
   feedbackReviews    AiMessageFeedback[] @relation("FeedbackReviewer")
   aiChatSessions     AiChatSession[]
   alignmentSessions  TutorAlignmentSession[] @relation("AlignmentAuthor")
+  tutorStudioArtifacts TutorStudioArtifact[]
 
   @@map("user")
 }
@@ -320,6 +321,7 @@ model Course {
   sessions       CourseSession[]
   materialChunks MaterialChunk[]
   aiChatSessions AiChatSession[]
+  tutorStudioArtifacts TutorStudioArtifact[]
   invitation    CourseInvitation?
 
   @@unique([studyProgramId, courseCode])
@@ -537,6 +539,7 @@ model AiChatSession {
   courseSession CourseSession   @relation(fields: [courseSessionId], references: [id], onDelete: Cascade)
   responseRuns  AiResponseRun[]
   messages      AiChatMessage[]
+  studioArtifacts TutorStudioArtifact[]
 
   @@index([userId, courseSessionId])
   @@index([userId])
@@ -746,4 +749,40 @@ model TutorAlignmentCase {
 
   @@index([sessionId, selected, isApproved])
   @@map("tutor_alignment_case")
+}
+
+// ==========================================
+// TUTOR AI — STUDIO ARTIFACTS (NOTEBOOKLM-STYLE)
+// ==========================================
+
+enum TutorStudioArtifactType {
+  SUMMARY
+  QUIZ
+  FLASHCARDS
+  NOTE
+}
+
+model TutorStudioArtifact {
+  id              String                  @id @default(cuid())
+  courseId        String
+  userId          String
+  chatSessionId   String?
+  sourceMessageId String?
+  type            TutorStudioArtifactType
+  title           String
+  content         String
+  sources         Json                    @default("[]")
+  materialIds     Json                    @default("[]")
+  materialTitles  Json                    @default("[]")
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatSession AiChatSession? @relation(fields: [chatSessionId], references: [id], onDelete: SetNull)
+
+  @@index([courseId, userId, updatedAt])
+  @@index([courseId, userId, chatSessionId, updatedAt])
+  @@index([sourceMessageId])
+  @@map("tutor_studio_artifact")
 }

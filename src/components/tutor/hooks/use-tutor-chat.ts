@@ -601,6 +601,10 @@ export function useTutorChat({
     await sendMessage(input);
   }
 
+  async function handleSendPrompt(promptText: string) {
+    await sendMessage(promptText, { preserveInput: true });
+  }
+
   async function handleCreateSummary(anchorMessageId: string) {
     await sendMessage("Buat artikel belajar mendalam tentang topik materi ini.", {
       intent: "summary",
@@ -643,6 +647,7 @@ export function useTutorChat({
     handleDeleteSession,
     handleStop,
     handleSend,
+    handleSendPrompt,
     handleCreateSummary,
   };
 }

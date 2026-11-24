@@ -279,6 +279,7 @@ export type CourseWhereInput = {
   sessions?: Prisma.CourseSessionListRelationFilter
   materialChunks?: Prisma.MaterialChunkListRelationFilter
   aiChatSessions?: Prisma.AiChatSessionListRelationFilter
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactListRelationFilter
   invitation?: Prisma.XOR<Prisma.CourseInvitationNullableScalarRelationFilter, Prisma.CourseInvitationWhereInput> | null
 }
 
@@ -308,6 +309,7 @@ export type CourseOrderByWithRelationInput = {
   sessions?: Prisma.CourseSessionOrderByRelationAggregateInput
   materialChunks?: Prisma.MaterialChunkOrderByRelationAggregateInput
   aiChatSessions?: Prisma.AiChatSessionOrderByRelationAggregateInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactOrderByRelationAggregateInput
   invitation?: Prisma.CourseInvitationOrderByWithRelationInput
 }
 
@@ -341,6 +343,7 @@ export type CourseWhereUniqueInput = Prisma.AtLeast<{
   sessions?: Prisma.CourseSessionListRelationFilter
   materialChunks?: Prisma.MaterialChunkListRelationFilter
   aiChatSessions?: Prisma.AiChatSessionListRelationFilter
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactListRelationFilter
   invitation?: Prisma.XOR<Prisma.CourseInvitationNullableScalarRelationFilter, Prisma.CourseInvitationWhereInput> | null
 }, "id" | "enrollmentKey" | "studyProgramId_courseCode">
 
@@ -412,6 +415,7 @@ export type CourseCreateInput = {
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -439,6 +443,7 @@ export type CourseUncheckedCreateInput = {
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -466,6 +471,7 @@ export type CourseUpdateInput = {
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -493,6 +499,7 @@ export type CourseUncheckedUpdateInput = {
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
 }
 
@@ -828,6 +835,20 @@ export type CourseUpdateOneRequiredWithoutAlignmentSessionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CourseUpdateToOneWithWhereWithoutAlignmentSessionsInput, Prisma.CourseUpdateWithoutAlignmentSessionsInput>, Prisma.CourseUncheckedUpdateWithoutAlignmentSessionsInput>
 }
 
+export type CourseCreateNestedOneWithoutTutorStudioArtifactsInput = {
+  create?: Prisma.XOR<Prisma.CourseCreateWithoutTutorStudioArtifactsInput, Prisma.CourseUncheckedCreateWithoutTutorStudioArtifactsInput>
+  connectOrCreate?: Prisma.CourseCreateOrConnectWithoutTutorStudioArtifactsInput
+  connect?: Prisma.CourseWhereUniqueInput
+}
+
+export type CourseUpdateOneRequiredWithoutTutorStudioArtifactsNestedInput = {
+  create?: Prisma.XOR<Prisma.CourseCreateWithoutTutorStudioArtifactsInput, Prisma.CourseUncheckedCreateWithoutTutorStudioArtifactsInput>
+  connectOrCreate?: Prisma.CourseCreateOrConnectWithoutTutorStudioArtifactsInput
+  upsert?: Prisma.CourseUpsertWithoutTutorStudioArtifactsInput
+  connect?: Prisma.CourseWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CourseUpdateToOneWithWhereWithoutTutorStudioArtifactsInput, Prisma.CourseUpdateWithoutTutorStudioArtifactsInput>, Prisma.CourseUncheckedUpdateWithoutTutorStudioArtifactsInput>
+}
+
 export type CourseCreateWithoutCreatorInput = {
   id: string
   title: string
@@ -851,6 +872,7 @@ export type CourseCreateWithoutCreatorInput = {
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -877,6 +899,7 @@ export type CourseUncheckedCreateWithoutCreatorInput = {
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -951,6 +974,7 @@ export type CourseCreateWithoutStudyProgramInput = {
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -977,6 +1001,7 @@ export type CourseUncheckedCreateWithoutStudyProgramInput = {
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -1030,6 +1055,7 @@ export type CourseCreateWithoutInvitationInput = {
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
 }
 
 export type CourseUncheckedCreateWithoutInvitationInput = {
@@ -1056,6 +1082,7 @@ export type CourseUncheckedCreateWithoutInvitationInput = {
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
 }
 
 export type CourseCreateOrConnectWithoutInvitationInput = {
@@ -1098,6 +1125,7 @@ export type CourseUpdateWithoutInvitationInput = {
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
 }
 
 export type CourseUncheckedUpdateWithoutInvitationInput = {
@@ -1124,6 +1152,7 @@ export type CourseUncheckedUpdateWithoutInvitationInput = {
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
 }
 
 export type CourseCreateWithoutInstructorsInput = {
@@ -1149,6 +1178,7 @@ export type CourseCreateWithoutInstructorsInput = {
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -1175,6 +1205,7 @@ export type CourseUncheckedCreateWithoutInstructorsInput = {
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -1217,6 +1248,7 @@ export type CourseUpdateWithoutInstructorsInput = {
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -1243,6 +1275,7 @@ export type CourseUncheckedUpdateWithoutInstructorsInput = {
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
 }
 
@@ -1269,6 +1302,7 @@ export type CourseCreateWithoutEnrollmentsInput = {
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -1295,6 +1329,7 @@ export type CourseUncheckedCreateWithoutEnrollmentsInput = {
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -1337,6 +1372,7 @@ export type CourseUpdateWithoutEnrollmentsInput = {
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -1363,6 +1399,7 @@ export type CourseUncheckedUpdateWithoutEnrollmentsInput = {
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
 }
 
@@ -1389,6 +1426,7 @@ export type CourseCreateWithoutSessionsInput = {
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -1415,6 +1453,7 @@ export type CourseUncheckedCreateWithoutSessionsInput = {
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -1457,6 +1496,7 @@ export type CourseUpdateWithoutSessionsInput = {
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -1483,6 +1523,7 @@ export type CourseUncheckedUpdateWithoutSessionsInput = {
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
 }
 
@@ -1509,6 +1550,7 @@ export type CourseCreateWithoutMaterialChunksInput = {
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -1535,6 +1577,7 @@ export type CourseUncheckedCreateWithoutMaterialChunksInput = {
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -1577,6 +1620,7 @@ export type CourseUpdateWithoutMaterialChunksInput = {
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -1603,6 +1647,7 @@ export type CourseUncheckedUpdateWithoutMaterialChunksInput = {
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
 }
 
@@ -1629,6 +1674,7 @@ export type CourseCreateWithoutAiChatSessionsInput = {
   enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -1655,6 +1701,7 @@ export type CourseUncheckedCreateWithoutAiChatSessionsInput = {
   enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -1697,6 +1744,7 @@ export type CourseUpdateWithoutAiChatSessionsInput = {
   enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -1723,6 +1771,7 @@ export type CourseUncheckedUpdateWithoutAiChatSessionsInput = {
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
 }
 
@@ -1749,6 +1798,7 @@ export type CourseCreateWithoutAnswerCorrectionsInput = {
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -1775,6 +1825,7 @@ export type CourseUncheckedCreateWithoutAnswerCorrectionsInput = {
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -1817,6 +1868,7 @@ export type CourseUpdateWithoutAnswerCorrectionsInput = {
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -1843,6 +1895,7 @@ export type CourseUncheckedUpdateWithoutAnswerCorrectionsInput = {
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
 }
 
@@ -1869,6 +1922,7 @@ export type CourseCreateWithoutAlignmentSessionsInput = {
   sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
 }
 
@@ -1895,6 +1949,7 @@ export type CourseUncheckedCreateWithoutAlignmentSessionsInput = {
   sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
   materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedCreateNestedManyWithoutCourseInput
   invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
 }
 
@@ -1937,6 +1992,7 @@ export type CourseUpdateWithoutAlignmentSessionsInput = {
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -1958,6 +2014,131 @@ export type CourseUncheckedUpdateWithoutAlignmentSessionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
   answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
+  enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
+  sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
+  materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
+  aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
+  invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
+}
+
+export type CourseCreateWithoutTutorStudioArtifactsInput = {
+  id: string
+  title: string
+  description?: string | null
+  coverImage?: string | null
+  coverStoragePath?: string | null
+  enrollmentKey: string
+  isActive?: boolean
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
+  answerCorrections?: Prisma.AiAnswerCorrectionCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionCreateNestedManyWithoutCourseInput
+  creator: Prisma.UserCreateNestedOneWithoutCoursesCreatedInput
+  studyProgram?: Prisma.StudyProgramCreateNestedOneWithoutCoursesInput
+  instructors?: Prisma.CourseInstructorCreateNestedManyWithoutCourseInput
+  enrollments?: Prisma.EnrollmentCreateNestedManyWithoutCourseInput
+  sessions?: Prisma.CourseSessionCreateNestedManyWithoutCourseInput
+  materialChunks?: Prisma.MaterialChunkCreateNestedManyWithoutCourseInput
+  aiChatSessions?: Prisma.AiChatSessionCreateNestedManyWithoutCourseInput
+  invitation?: Prisma.CourseInvitationCreateNestedOneWithoutCourseInput
+}
+
+export type CourseUncheckedCreateWithoutTutorStudioArtifactsInput = {
+  id: string
+  createdBy: string
+  title: string
+  description?: string | null
+  coverImage?: string | null
+  coverStoragePath?: string | null
+  enrollmentKey: string
+  isActive?: boolean
+  studyProgramId?: string | null
+  courseCode?: string | null
+  learningOutcomes?: string | null
+  hasArModule?: boolean
+  catalogStatus?: $Enums.CatalogStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  alignmentAutoRerun?: boolean
+  answerCorrections?: Prisma.AiAnswerCorrectionUncheckedCreateNestedManyWithoutCourseInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedCreateNestedManyWithoutCourseInput
+  instructors?: Prisma.CourseInstructorUncheckedCreateNestedManyWithoutCourseInput
+  enrollments?: Prisma.EnrollmentUncheckedCreateNestedManyWithoutCourseInput
+  sessions?: Prisma.CourseSessionUncheckedCreateNestedManyWithoutCourseInput
+  materialChunks?: Prisma.MaterialChunkUncheckedCreateNestedManyWithoutCourseInput
+  aiChatSessions?: Prisma.AiChatSessionUncheckedCreateNestedManyWithoutCourseInput
+  invitation?: Prisma.CourseInvitationUncheckedCreateNestedOneWithoutCourseInput
+}
+
+export type CourseCreateOrConnectWithoutTutorStudioArtifactsInput = {
+  where: Prisma.CourseWhereUniqueInput
+  create: Prisma.XOR<Prisma.CourseCreateWithoutTutorStudioArtifactsInput, Prisma.CourseUncheckedCreateWithoutTutorStudioArtifactsInput>
+}
+
+export type CourseUpsertWithoutTutorStudioArtifactsInput = {
+  update: Prisma.XOR<Prisma.CourseUpdateWithoutTutorStudioArtifactsInput, Prisma.CourseUncheckedUpdateWithoutTutorStudioArtifactsInput>
+  create: Prisma.XOR<Prisma.CourseCreateWithoutTutorStudioArtifactsInput, Prisma.CourseUncheckedCreateWithoutTutorStudioArtifactsInput>
+  where?: Prisma.CourseWhereInput
+}
+
+export type CourseUpdateToOneWithWhereWithoutTutorStudioArtifactsInput = {
+  where?: Prisma.CourseWhereInput
+  data: Prisma.XOR<Prisma.CourseUpdateWithoutTutorStudioArtifactsInput, Prisma.CourseUncheckedUpdateWithoutTutorStudioArtifactsInput>
+}
+
+export type CourseUpdateWithoutTutorStudioArtifactsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  answerCorrections?: Prisma.AiAnswerCorrectionUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUpdateManyWithoutCourseNestedInput
+  creator?: Prisma.UserUpdateOneRequiredWithoutCoursesCreatedNestedInput
+  studyProgram?: Prisma.StudyProgramUpdateOneWithoutCoursesNestedInput
+  instructors?: Prisma.CourseInstructorUpdateManyWithoutCourseNestedInput
+  enrollments?: Prisma.EnrollmentUpdateManyWithoutCourseNestedInput
+  sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
+  materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
+  aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
+}
+
+export type CourseUncheckedUpdateWithoutTutorStudioArtifactsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdBy?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverStoragePath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.StringFieldUpdateOperationsInput | string
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  studyProgramId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  courseCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  learningOutcomes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  hasArModule?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  catalogStatus?: Prisma.EnumCatalogStatusFieldUpdateOperationsInput | $Enums.CatalogStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alignmentAutoRerun?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  answerCorrections?: Prisma.AiAnswerCorrectionUncheckedUpdateManyWithoutCourseNestedInput
+  alignmentSessions?: Prisma.TutorAlignmentSessionUncheckedUpdateManyWithoutCourseNestedInput
   instructors?: Prisma.CourseInstructorUncheckedUpdateManyWithoutCourseNestedInput
   enrollments?: Prisma.EnrollmentUncheckedUpdateManyWithoutCourseNestedInput
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
@@ -2007,6 +2188,7 @@ export type CourseUpdateWithoutCreatorInput = {
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -2033,6 +2215,7 @@ export type CourseUncheckedUpdateWithoutCreatorInput = {
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
 }
 
@@ -2095,6 +2278,7 @@ export type CourseUpdateWithoutStudyProgramInput = {
   sessions?: Prisma.CourseSessionUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUpdateOneWithoutCourseNestedInput
 }
 
@@ -2121,6 +2305,7 @@ export type CourseUncheckedUpdateWithoutStudyProgramInput = {
   sessions?: Prisma.CourseSessionUncheckedUpdateManyWithoutCourseNestedInput
   materialChunks?: Prisma.MaterialChunkUncheckedUpdateManyWithoutCourseNestedInput
   aiChatSessions?: Prisma.AiChatSessionUncheckedUpdateManyWithoutCourseNestedInput
+  tutorStudioArtifacts?: Prisma.TutorStudioArtifactUncheckedUpdateManyWithoutCourseNestedInput
   invitation?: Prisma.CourseInvitationUncheckedUpdateOneWithoutCourseNestedInput
 }
 
@@ -2155,6 +2340,7 @@ export type CourseCountOutputType = {
   sessions: number
   materialChunks: number
   aiChatSessions: number
+  tutorStudioArtifacts: number
 }
 
 export type CourseCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2165,6 +2351,7 @@ export type CourseCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions
   sessions?: boolean | CourseCountOutputTypeCountSessionsArgs
   materialChunks?: boolean | CourseCountOutputTypeCountMaterialChunksArgs
   aiChatSessions?: boolean | CourseCountOutputTypeCountAiChatSessionsArgs
+  tutorStudioArtifacts?: boolean | CourseCountOutputTypeCountTutorStudioArtifactsArgs
 }
 
 /**
@@ -2226,6 +2413,13 @@ export type CourseCountOutputTypeCountAiChatSessionsArgs<ExtArgs extends runtime
   where?: Prisma.AiChatSessionWhereInput
 }
 
+/**
+ * CourseCountOutputType without action
+ */
+export type CourseCountOutputTypeCountTutorStudioArtifactsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TutorStudioArtifactWhereInput
+}
+
 
 export type CourseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2253,6 +2447,7 @@ export type CourseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   sessions?: boolean | Prisma.Course$sessionsArgs<ExtArgs>
   materialChunks?: boolean | Prisma.Course$materialChunksArgs<ExtArgs>
   aiChatSessions?: boolean | Prisma.Course$aiChatSessionsArgs<ExtArgs>
+  tutorStudioArtifacts?: boolean | Prisma.Course$tutorStudioArtifactsArgs<ExtArgs>
   invitation?: boolean | Prisma.Course$invitationArgs<ExtArgs>
   _count?: boolean | Prisma.CourseCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["course"]>
@@ -2329,6 +2524,7 @@ export type CourseInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   sessions?: boolean | Prisma.Course$sessionsArgs<ExtArgs>
   materialChunks?: boolean | Prisma.Course$materialChunksArgs<ExtArgs>
   aiChatSessions?: boolean | Prisma.Course$aiChatSessionsArgs<ExtArgs>
+  tutorStudioArtifacts?: boolean | Prisma.Course$tutorStudioArtifactsArgs<ExtArgs>
   invitation?: boolean | Prisma.Course$invitationArgs<ExtArgs>
   _count?: boolean | Prisma.CourseCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -2353,6 +2549,7 @@ export type $CoursePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     sessions: Prisma.$CourseSessionPayload<ExtArgs>[]
     materialChunks: Prisma.$MaterialChunkPayload<ExtArgs>[]
     aiChatSessions: Prisma.$AiChatSessionPayload<ExtArgs>[]
+    tutorStudioArtifacts: Prisma.$TutorStudioArtifactPayload<ExtArgs>[]
     invitation: Prisma.$CourseInvitationPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -2775,6 +2972,7 @@ export interface Prisma__CourseClient<T, Null = never, ExtArgs extends runtime.T
   sessions<T extends Prisma.Course$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CourseSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   materialChunks<T extends Prisma.Course$materialChunksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$materialChunksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MaterialChunkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiChatSessions<T extends Prisma.Course$aiChatSessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$aiChatSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiChatSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  tutorStudioArtifacts<T extends Prisma.Course$tutorStudioArtifactsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$tutorStudioArtifactsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TutorStudioArtifactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   invitation<T extends Prisma.Course$invitationArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Course$invitationArgs<ExtArgs>>): Prisma.Prisma__CourseInvitationClient<runtime.Types.Result.GetResult<Prisma.$CourseInvitationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -3406,6 +3604,30 @@ export type Course$aiChatSessionsArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   distinct?: Prisma.AiChatSessionScalarFieldEnum | Prisma.AiChatSessionScalarFieldEnum[]
+}
+
+/**
+ * Course.tutorStudioArtifacts
+ */
+export type Course$tutorStudioArtifactsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TutorStudioArtifact
+   */
+  select?: Prisma.TutorStudioArtifactSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TutorStudioArtifact
+   */
+  omit?: Prisma.TutorStudioArtifactOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TutorStudioArtifactInclude<ExtArgs> | null
+  where?: Prisma.TutorStudioArtifactWhereInput
+  orderBy?: Prisma.TutorStudioArtifactOrderByWithRelationInput | Prisma.TutorStudioArtifactOrderByWithRelationInput[]
+  cursor?: Prisma.TutorStudioArtifactWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TutorStudioArtifactScalarFieldEnum | Prisma.TutorStudioArtifactScalarFieldEnum[]
 }
 
 /**
