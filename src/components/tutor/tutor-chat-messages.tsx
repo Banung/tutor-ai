@@ -19,6 +19,8 @@ import {
   Copy,
   CornerDownRight,
   FileText,
+  Layers,
+  ListChecks,
   Loader2,
   Square,
   Volume2,
@@ -47,7 +49,16 @@ import {
   type PersistedSuggestedAction,
   type TutorActionSuggestion,
 } from "@/lib/tutor-ai/action-suggestions";
-import type { TutorStudioArtifactType } from "@/lib/tutor-ai/studio-schema";
+import {
+  getDefaultChatStudioLaunchTitle,
+  parseChatStudioLaunchMeta,
+  type TutorChatStudioLaunchMeta,
+} from "@/lib/tutor-ai/chat-studio-intent";
+import {
+  TUTOR_STUDIO_TYPE_META,
+  type TutorStudioArtifactDto,
+  type TutorStudioArtifactType,
+} from "@/lib/tutor-ai/studio-schema";
 import { cn } from "@/lib/utils";
 import {
   buildCitationPreviewState,
@@ -389,10 +400,12 @@ export type TutorChatMessagesProps = {
   sendingStage?: "preparing" | "generating" | null;
   onCreateSummary?: (anchorMessageId: string) => void;
   onOpenStudioAction?: (suggestion: TutorActionSuggestion, message: TutorMessage) => void;
+  onOpenStudioLaunch?: (launch: TutorChatStudioLaunchMeta, message: TutorMessage) => void;
   onSaveToStudio?: (message: TutorMessage) => void;
   studioActionLoadingKey?: string | null;
   savingNoteMessageIds?: ReadonlySet<string>;
   studioArtifactsByMessage?: ReadonlyMap<string, Partial<Record<TutorStudioArtifactType, string>>>;
+  studioArtifactsById?: ReadonlyMap<string, TutorStudioArtifactDto>;
   dynamicSuggestionsByMessage?: ReadonlyMap<string, PersistedSuggestedAction[]>;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
@@ -407,10 +420,12 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   sendingStage,
   onCreateSummary,
   onOpenStudioAction,
+  onOpenStudioLaunch,
   onSaveToStudio,
   studioActionLoadingKey,
   savingNoteMessageIds,
   studioArtifactsByMessage,
+  studioArtifactsById,
   dynamicSuggestionsByMessage,
   scrollContainerRef,
   messagesEndRef,
@@ -604,7 +619,16 @@ export const TutorChatMessages = memo(function TutorChatMessages({
               );
               if (previewState) setCitationPreview(previewState);
             };
+            const studioLaunch = !isUser ? parseChatStudioLaunchMeta(message.ragSources) : null;
             const messageArtifactIds = studioArtifactsByMessage?.get(message.id);
+            const launchArtifactId =
+              studioLaunch?.artifactId ??
+              (studioLaunch ? messageArtifactIds?.[studioLaunch.type] : undefined);
+            const launchArtifact = launchArtifactId
+              ? studioArtifactsById?.get(launchArtifactId)
+              : undefined;
+            const isGeneratingLaunch =
+              Boolean(studioLaunch) && studioActionLoadingKey === `launch:${message.id}`;
             const persistedSuggestions =
               dynamicSuggestionsByMessage?.get(message.id) ??
               parsePersistedSuggestedActions(message.ragSources);
@@ -612,6 +636,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
               !isUser &&
               !isStreaming &&
               !isSummaryResponse(message) &&
+              !studioLaunch &&
               message.content.trim().length > 0 &&
               sources.length > 0 &&
               onOpenStudioAction
@@ -695,6 +720,60 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                         )}
                       </div>
 
+                      {!isStreaming && studioLaunch && (
+                        <div className="mt-4">
+                          <button
+                            type="button"
+                            disabled={isGeneratingLaunch || Boolean(studioActionLoadingKey)}
+                            onClick={() => onOpenStudioLaunch?.(studioLaunch, message)}
+                            className={cn(
+                              "group flex w-full max-w-md items-center justify-between gap-4 rounded-2xl border px-4 py-3.5 text-left transition-all disabled:cursor-wait",
+                              "border-brand/30 bg-gradient-to-br from-brand/12 via-brand/5 to-card hover:border-brand/50 hover:from-brand/18 hover:via-brand/8",
+                              "dark:border-brand/35 dark:from-brand/15 dark:via-brand/5 dark:to-card"
+                            )}
+                          >
+                            <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
+                                {isGeneratingLaunch ? (
+                                  <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                                ) : studioLaunch.type === "QUIZ" ? (
+                                  <ListChecks className="size-5" aria-hidden="true" />
+                                ) : studioLaunch.type === "FLASHCARDS" ? (
+                                  <Layers className="size-5" aria-hidden="true" />
+                                ) : (
+                                  <FileText className="size-5" aria-hidden="true" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-foreground">
+                                  {launchArtifact?.title ??
+                                    getDefaultChatStudioLaunchTitle(studioLaunch)}
+                                </p>
+                                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                  {isGeneratingLaunch
+                                    ? "Membuat..."
+                                    : launchArtifact?.structuredData?.kind === "QUIZ"
+                                      ? `Kuis Interaktif · ${launchArtifact.structuredData.questions.length} soal`
+                                      : launchArtifact?.structuredData?.kind === "FLASHCARDS"
+                                        ? `Dek Flashcard · ${launchArtifact.structuredData.cards.length} kartu`
+                                        : launchArtifact
+                                          ? `${TUTOR_STUDIO_TYPE_META[studioLaunch.type].label} · Siap dibuka`
+                                          : launchArtifactId
+                                            ? `${TUTOR_STUDIO_TYPE_META[studioLaunch.type].label} · Klik untuk membuka`
+                                            : `Klik untuk menyusun ${TUTOR_STUDIO_TYPE_META[studioLaunch.type].label}`}
+                                </p>
+                              </div>
+                            </div>
+                            {!isGeneratingLaunch && (
+                              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-background/85 px-2.5 py-1 text-xs font-medium text-foreground shadow-xs ring-1 ring-border/70 transition-transform group-hover:translate-x-0.5">
+                                Buka
+                                <ArrowRight className="size-3.5" aria-hidden="true" />
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
                       {!isStreaming && (
                         <MessageSources
                           sourceGroups={sourceGroups}
@@ -759,7 +838,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
                             </TooltipContent>
                           </Tooltip>
 
-                          {onSaveToStudio && !isSummaryResponse(message) && !message.id.startsWith("streaming-") && (
+                          {onSaveToStudio && !isSummaryResponse(message) && !studioLaunch && !message.id.startsWith("streaming-") && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button

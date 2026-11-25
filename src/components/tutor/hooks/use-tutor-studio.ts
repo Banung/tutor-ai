@@ -134,6 +134,7 @@ export function useTutorStudio({
       type: TutorStudioGeneratableType;
       chatSessionId?: string | null;
       anchorMessageId?: string | null;
+      launchMessageId?: string | null;
       materialIds?: string[];
       topic?: string;
       actionKey?: string;
@@ -150,6 +151,7 @@ export function useTutorStudio({
             type: input.type,
             chatSessionId: input.chatSessionId ?? null,
             anchorMessageId: input.anchorMessageId ?? null,
+            launchMessageId: input.launchMessageId ?? null,
             materialIds: input.materialIds,
             topic: input.topic,
           }),

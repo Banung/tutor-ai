@@ -427,6 +427,7 @@ export async function generateTutorStudioArtifact(input: {
   type: TutorStudioGeneratableType;
   chatSessionId?: string | null;
   anchorMessageId?: string | null;
+  launchMessageId?: string | null;
   materialIds?: string[];
   topic?: string;
   signal?: AbortSignal;
@@ -453,13 +454,15 @@ export async function generateTutorStudioArtifact(input: {
     });
   }
 
-  if (input.anchorMessageId) {
+  const linkedSourceMessageId = input.anchorMessageId ?? input.launchMessageId ?? null;
+
+  if (linkedSourceMessageId) {
     const existing = await prisma.tutorStudioArtifact.findFirst({
       where: {
         courseId: input.courseId,
         userId: input.userId,
         type: input.type,
-        sourceMessageId: input.anchorMessageId,
+        sourceMessageId: linkedSourceMessageId,
       },
     });
     if (existing) {
@@ -627,7 +630,7 @@ export async function generateTutorStudioArtifact(input: {
       courseId: input.courseId,
       userId: input.userId,
       chatSessionId: session?.id ?? null,
-      sourceMessageId: input.anchorMessageId ?? null,
+      sourceMessageId: linkedSourceMessageId,
       type: input.type,
       title,
       content: cited.content,
@@ -639,6 +642,44 @@ export async function generateTutorStudioArtifact(input: {
       materialTitles: materialTitles as unknown as Prisma.InputJsonValue,
     },
   });
+
+  if (input.launchMessageId) {
+    const launchMessage = await prisma.aiChatMessage
+      .findFirst({
+        where: { id: input.launchMessageId, senderType: "ai" },
+        select: { id: true, ragSources: true },
+      })
+      .catch(() => null);
+    if (
+      launchMessage?.ragSources &&
+      typeof launchMessage.ragSources === "object" &&
+      !Array.isArray(launchMessage.ragSources)
+    ) {
+      const currentMeta = launchMessage.ragSources as Record<string, unknown>;
+      const existingLaunch =
+        currentMeta.studioLaunch &&
+        typeof currentMeta.studioLaunch === "object" &&
+        !Array.isArray(currentMeta.studioLaunch)
+          ? (currentMeta.studioLaunch as Record<string, unknown>)
+          : { type: input.type };
+      await prisma.aiChatMessage
+        .update({
+          where: { id: launchMessage.id },
+          data: {
+            ragSources: {
+              ...currentMeta,
+              studioLaunch: {
+                ...existingLaunch,
+                type: input.type,
+                title,
+                artifactId: created.id,
+              },
+            } as unknown as Prisma.InputJsonValue,
+          },
+        })
+        .catch(() => {});
+    }
+  }
 
   return { artifact: toStudioArtifactDto(created), alreadyExisted: false };
 }

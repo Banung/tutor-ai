@@ -56,6 +56,10 @@ import {
   type PersistedSuggestedAction,
   type TutorActionSuggestion,
 } from "@/lib/tutor-ai/action-suggestions";
+import {
+  parseChatStudioLaunchMeta,
+  type TutorChatStudioLaunchMeta,
+} from "@/lib/tutor-ai/chat-studio-intent";
 import type { TutorAiChatPageProps, TutorMessage } from "./tutor-chat-types";
 import { useTutorChat } from "./hooks/use-tutor-chat";
 import { useTutorSpeech } from "./hooks/use-tutor-speech";
@@ -196,6 +200,40 @@ export function TutorAiChatPage({
     [tutorHref, updateTutorUrl]
   );
 
+  const triggerStudioGenerateRef = useRef<
+    | ((input: {
+        type: "SUMMARY" | "QUIZ" | "FLASHCARDS";
+        chatSessionId?: string | null;
+        launchMessageId?: string | null;
+        materialIds?: string[];
+        topic?: string;
+        actionKey?: string;
+      }) => Promise<unknown>)
+    | null
+  >(null);
+
+  const handleAiMessageComplete = useCallback(
+    (payload: {
+      sessionId: string;
+      messageId: string;
+      ragSources: unknown;
+      selectedMaterialIds: string[];
+      previousUserTopic?: string;
+    }) => {
+      const launch = parseChatStudioLaunchMeta(payload.ragSources);
+      if (!launch) return;
+      void triggerStudioGenerateRef.current?.({
+        type: launch.type,
+        chatSessionId: payload.sessionId,
+        launchMessageId: payload.messageId,
+        materialIds: payload.selectedMaterialIds,
+        topic: launch.topic ?? payload.previousUserTopic,
+        actionKey: `launch:${payload.messageId}`,
+      });
+    },
+    []
+  );
+
   const {
     overview,
     chatSessions,
@@ -237,6 +275,7 @@ export function TutorAiChatPage({
     initialSessionId,
     onNewChat: handleNewChatRoute,
     onSessionChange: handleSessionRouteChange,
+    onAiMessageComplete: handleAiMessageComplete,
     input,
     setInput: updateInput,
     panelMode,
@@ -246,6 +285,15 @@ export function TutorAiChatPage({
     courseId,
     activeSessionId: activeSession?.id ?? null,
   });
+
+  useEffect(() => {
+    triggerStudioGenerateRef.current = studio.generateArtifact;
+  }, [studio.generateArtifact]);
+
+  const studioArtifactsById = useMemo(
+    () => new Map(studio.artifacts.map((artifact) => [artifact.id, artifact])),
+    [studio.artifacts]
+  );
 
   const activeStructuredData = studio.activeArtifact?.structuredData ?? null;
   const activeInteractiveKind = activeStructuredData?.kind ?? null;
@@ -258,6 +306,7 @@ export function TutorAiChatPage({
       .find((msg) => {
         if (msg.senderType !== "ai" || msg.id.startsWith("streaming-")) return false;
         if (!msg.content.trim()) return false;
+        if (parseChatStudioLaunchMeta(msg.ragSources)) return false;
         const meta =
           msg.ragSources && typeof msg.ragSources === "object" && !Array.isArray(msg.ragSources)
             ? (msg.ragSources as { intent?: unknown })
@@ -335,6 +384,27 @@ export function TutorAiChatPage({
       }
     },
     [activeSession, handleSendPrompt, studio]
+  );
+
+  const handleOpenStudioLaunch = useCallback(
+    (launch: TutorChatStudioLaunchMeta, message: TutorMessage) => {
+      const existingId =
+        launch.artifactId ?? studio.artifactsByMessage.get(message.id)?.[launch.type];
+      if (existingId) {
+        void studio.openArtifactById(existingId);
+        return;
+      }
+
+      void studio.generateArtifact({
+        type: launch.type,
+        chatSessionId: activeSession?.id ?? null,
+        launchMessageId: message.id,
+        materialIds: activeSession?.selectedMaterialIds,
+        topic: launch.topic,
+        actionKey: `launch:${message.id}`,
+      });
+    },
+    [activeSession, studio]
   );
 
   const handleSaveToStudio = useCallback(
@@ -693,10 +763,12 @@ export function TutorAiChatPage({
             sendingStage={sendingStage}
             onCreateSummary={handleCreateSummary}
             onOpenStudioAction={handleOpenStudioAction}
+            onOpenStudioLaunch={handleOpenStudioLaunch}
             onSaveToStudio={handleSaveToStudio}
             studioActionLoadingKey={studio.generatingKey}
             savingNoteMessageIds={studio.savingNoteMessageIds}
             studioArtifactsByMessage={studio.artifactsByMessage}
+            studioArtifactsById={studioArtifactsById}
             dynamicSuggestionsByMessage={dynamicSuggestionsByMessage}
             scrollContainerRef={scrollContainerRef}
             messagesEndRef={messagesEndRef}
