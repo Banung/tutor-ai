@@ -128,6 +128,10 @@ function renderSourceBadge(source: StudyProgram["source"]) {
 }
 
 export default function StudyProgramsPage() {
+  const [activeTab, setActiveTab] = useState<"study-programs" | "faculties">(
+    "study-programs"
+  );
+
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [facultiesLoading, setFacultiesLoading] = useState(true);
   const [facultiesError, setFacultiesError] = useState<string | null>(null);
@@ -543,25 +547,26 @@ export default function StudyProgramsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
-            variant="outline"
-            onClick={openCreateFaculty}
-            className="gap-2"
-          >
-            <Plus data-icon="inline-start" />
-            Tambah Fakultas
-          </Button>
-          <Button
-            type="button"
-            onClick={openCreateProgram}
+            onClick={
+              activeTab === "faculties" ? openCreateFaculty : openCreateProgram
+            }
             className="gap-2 bg-brand text-black hover:bg-brand/90"
           >
             <Plus data-icon="inline-start" />
-            Tambah Program Studi
+            {activeTab === "faculties"
+              ? "Tambah Fakultas"
+              : "Tambah Program Studi"}
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="study-programs" className="w-full gap-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) =>
+          setActiveTab(v === "faculties" ? "faculties" : "study-programs")
+        }
+        className="w-full gap-4"
+      >
         <TabsList className="!h-10 p-1 flex items-center w-full sm:w-fit">
           <TabsTrigger
             value="study-programs"
@@ -1149,7 +1154,7 @@ export default function StudyProgramsPage() {
                   {faculties.length === 0 && (
                     <p className="text-xs text-muted-foreground">
                       Belum ada fakultas tersedia. Tambahkan fakultas terlebih
-                      dahulu menggunakan tombol &quot;Tambah Fakultas&quot;.
+                      dahulu melalui tab &quot;Fakultas&quot;.
                     </p>
                   )}
                 </div>
