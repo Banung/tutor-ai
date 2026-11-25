@@ -193,14 +193,6 @@ export default function CoursesPage() {
   const [programFilter, setProgramFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Reference dialog
-  const [refsOpen, setRefsOpen] = useState(false);
-  const [newFacultyName, setNewFacultyName] = useState("");
-  const [newProgramName, setNewProgramName] = useState("");
-  const [newProgramFacultyId, setNewProgramFacultyId] = useState("");
-  const [savingFaculty, setSavingFaculty] = useState(false);
-  const [savingProgram, setSavingProgram] = useState(false);
-
   // Custom Cursor-Following Tooltip State
   const [showTooltip, setShowTooltip] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -482,51 +474,6 @@ export default function CoursesPage() {
       toast.error(err instanceof Error ? err.message : "Gagal mengarsipkan course");
     } finally {
       setArchiving(false);
-    }
-  }
-
-  async function handleCreateFaculty() {
-    if (!newFacultyName.trim()) return;
-    setSavingFaculty(true);
-    try {
-      const res = await fetch("/api/admin/academic/faculties", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newFacultyName }),
-      });
-      if (!res.ok) throw new Error(await getErrorMessage(res, "Gagal membuat fakultas"));
-      const created = (await res.json()) as { id: string; name: string };
-      setNewFacultyName("");
-      setNewProgramFacultyId(created.id);
-      await fetchReferences();
-      toast.success("Fakultas ditambahkan");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal membuat fakultas");
-    } finally {
-      setSavingFaculty(false);
-    }
-  }
-
-  async function handleCreateProgram() {
-    if (!newProgramName.trim() || !newProgramFacultyId) return;
-    setSavingProgram(true);
-    try {
-      const res = await fetch("/api/admin/academic/study-programs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          facultyId: newProgramFacultyId,
-          name: newProgramName,
-        }),
-      });
-      if (!res.ok) throw new Error(await getErrorMessage(res, "Gagal membuat program studi"));
-      setNewProgramName("");
-      await fetchReferences();
-      toast.success("Program studi ditambahkan");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal membuat program studi");
-    } finally {
-      setSavingProgram(false);
     }
   }
 
@@ -917,21 +864,16 @@ export default function CoursesPage() {
               </div>
 
               <div className="rounded-lg border bg-muted/20 p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium">Referensi Akademik</p>
-                    <p className="text-xs text-muted-foreground">
-                      Boleh dikosongkan selama entri masih draft.
+                <div className="mb-3">
+                  <p className="text-sm font-medium">Referensi Akademik</p>
+                  <p className="text-xs text-muted-foreground">
+                    Boleh dikosongkan selama entri masih draft.
+                  </p>
+                  {faculties.length === 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Belum ada referensi fakultas. Kelola fakultas dan program studi di tab Program Studi.
                     </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setRefsOpen(true)}
-                  >
-                    Tambah Referensi
-                  </Button>
+                  )}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="grid gap-2">
@@ -1065,93 +1007,6 @@ export default function CoursesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Academic Reference Dialog */}
-      <Dialog open={refsOpen} onOpenChange={setRefsOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>Tambah Referensi Akademik</DialogTitle>
-            <DialogDescription>
-              Referensi ini dipakai sebagai pilihan pada profil mata kuliah.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-6 py-2">
-            <div className="grid gap-2">
-              <Label htmlFor="newFaculty">Fakultas Baru</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="newFaculty"
-                  value={newFacultyName}
-                  onChange={(e) => setNewFacultyName(e.target.value)}
-                  placeholder="Nama fakultas"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCreateFaculty}
-                  disabled={savingFaculty || !newFacultyName.trim()}
-                >
-                  {savingFaculty && <Loader2 className="animate-spin" />}
-                  Tambah
-                </Button>
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="newProgram">Program Studi Baru</Label>
-              <Select
-                value={newProgramFacultyId || "none"}
-                onValueChange={(value) =>
-                  setNewProgramFacultyId(value === "none" ? "" : value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih fakultas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Pilih fakultas</SelectItem>
-                  {faculties.map((faculty) => (
-                    <SelectItem key={faculty.id} value={faculty.id}>
-                      {faculty.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex gap-2">
-                <Input
-                  id="newProgram"
-                  value={newProgramName}
-                  onChange={(e) => setNewProgramName(e.target.value)}
-                  placeholder="Nama program studi"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCreateProgram}
-                  disabled={savingProgram || !newProgramName.trim() || !newProgramFacultyId}
-                >
-                  {savingProgram && <Loader2 className="animate-spin" />}
-                  Tambah
-                </Button>
-              </div>
-            </div>
-            <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
-              {faculties.length === 0
-                ? "Belum ada referensi akademik."
-                : faculties
-                    .map(
-                      (faculty) =>
-                        `${faculty.name}: ${faculty.studyPrograms.map((p) => p.name).join(", ") || "belum ada prodi"}`
-                    )
-                    .join(" · ")}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRefsOpen(false)}>
-              Tutup
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Publication Confirmation */}
       <AlertDialog
