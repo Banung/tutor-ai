@@ -12,6 +12,16 @@ import {
   tutorStudioSourceSchema,
 } from "@/lib/tutor-ai/studio-schema";
 import {
+  evaluateQuizAttempt,
+  parseFlashcardsGenerationResponse,
+  parseQuizGenerationResponse,
+  parseTutorStudioStructuredData,
+  renderFlashcardsToMarkdown,
+  renderQuizToMarkdown,
+  type TutorStudioStructuredData,
+  type UpdateTutorStudioProgressInput,
+} from "@/lib/tutor-ai/studio-interactive";
+import {
   TutorAiServiceError,
   buildContextBlock,
   buildSummaryRetrievalQuestion,
@@ -48,23 +58,49 @@ Cantumkan sitasi [Sumber N] pada klaim yang didukung potongan PDF. Targetkan sek
   },
   QUIZ: {
     retrievalPrefix: "Konsep kunci, rumus, definisi, dan penerapan untuk soal evaluasi",
-    promptTitle: "Kuis Latihan Materi",
-    instruction: `Buat paket kuis latihan yang menguji pemahaman (bukan sekadar hafalan kata) berdasarkan konteks PDF yang diberikan.
-Awali baris pertama dengan satu judul H1 (# Kuis Latihan: Topik Materi).
-Sajikan 5 soal bervariasi (campuran Pilihan Ganda A-D dan Uraian/Analisis Singkat) di bagian "## Daftar Soal".
-Setelah semua soal, buat bagian terpisah "## Kunci Jawaban & Pembahasan" yang menuliskan jawaban benar, alasan ringkas, serta sitasi [Sumber N] untuk setiap nomor soal.`,
+    promptTitle: "Kuis Latihan Interaktif",
+    instruction: `Susun 5 sampai 8 soal pilihan ganda konseptual dan analitis (bukan sekadar hafalan kata) berdasarkan konteks PDF yang diberikan.
+Balas HANYA JSON murni yang valid tanpa pembungkus markdown code fence dan tanpa teks lain di luar JSON, mengikuti format persis ini:
+{
+  "title": "Kuis Latihan: Topik Singkat",
+  "questions": [
+    {
+      "topic": "Nama subtopik singkat",
+      "question": "Pertanyaan jelas dalam bahasa Indonesia (boleh memakai LaTeX $...$ bila perlu).",
+      "options": ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],
+      "correctIndex": 0,
+      "hint": "Petunjuk singkat yang mengarahkan cara berpikir tanpa membocorkan huruf atau jawaban.",
+      "explanation": "Pembahasan ringkas mengapa jawaban tersebut benar berdasarkan materi.",
+      "sourceNumbers": [1]
+    }
+  ]
+}
+Aturan ketat:
+- options wajib tepat 4 string tanpa awalan huruf "A.", "B.", "C.", atau "D.".
+- correctIndex adalah angka 0, 1, 2, atau 3.
+- sourceNumbers wajib berisi nomor sumber [Sumber N] dari konteks PDF yang benar-benar mendukung soal.`,
     maxOutputTokens: 4096,
   },
   FLASHCARDS: {
     retrievalPrefix: "Istilah penting, definisi inti, prinsip dasar, dan rumus kunci materi",
-    promptTitle: "Dek Flashcard Konsep",
-    instruction: `Buat 6 sampai 8 flashcard belajar aktif (active recall) dari konsep terpenting di konteks PDF yang diberikan.
-Awali baris pertama dengan satu judul H1 (# Flashcard: Topik Materi).
-Format setiap kartu secara seragam menggunakan subjudul:
-### Kartu N: Nama Konsep Singkat
-- **Pertanyaan:** Pertanyaan uji ingat yang tajam dan spesifik.
-- **Jawaban Inti:** Jawaban ringkas, akurat, dan mudah diingat beserta sitasi [Sumber N].`,
-    maxOutputTokens: 3072,
+    promptTitle: "Dek Flashcard Interaktif",
+    instruction: `Susun 8 sampai 12 kartu tanya-jawab belajar aktif (active recall) dari konsep terpenting pada konteks PDF yang diberikan.
+Balas HANYA JSON murni yang valid tanpa pembungkus markdown code fence dan tanpa teks lain di luar JSON, mengikuti format persis ini:
+{
+  "title": "Flashcard: Topik Singkat",
+  "cards": [
+    {
+      "topic": "Nama konsep singkat",
+      "front": "Pertanyaan uji ingat atau istilah inti di sisi depan kartu.",
+      "back": "Jawaban inti yang jelas, padat, dan akurat sesuai materi.",
+      "sourceNumbers": [1]
+    }
+  ]
+}
+Aturan ketat:
+- Wajib berisi minimal 5 kartu dan gunakan bahasa yang sama dengan materi/topik pertanyaan.
+- sourceNumbers wajib berisi nomor sumber [Sumber N] dari konteks PDF yang mendukung kartu.`,
+    maxOutputTokens: 4096,
   },
 };
 
@@ -94,6 +130,7 @@ type TutorStudioArtifactRecord = {
   type: TutorStudioArtifactType;
   title: string;
   content: string;
+  structuredData?: Prisma.JsonValue | null;
   sources: Prisma.JsonValue;
   materialTitles: Prisma.JsonValue;
   createdAt: Date;
@@ -110,6 +147,7 @@ function toStudioArtifactDto(row: TutorStudioArtifactRecord): TutorStudioArtifac
     type: row.type,
     title: row.title,
     content: row.content,
+    structuredData: parseTutorStudioStructuredData(row.structuredData ?? null),
     sources: parseStoredSources(row.sources),
     materialTitles: parseStoredStringArray(row.materialTitles),
     createdAt: row.createdAt.toISOString(),
@@ -537,9 +575,45 @@ export async function generateTutorStudioArtifact(input: {
     cleanTopic || anchorExchange[0]?.content,
     activeMaterials
   );
-  const { title, content } = extractTitleAndContent(generatedRaw, fallbackTitle);
   const pageSources = groupRetrievedChunksByPage(chunks);
-  const cited = collectCitedStudioSources(content, pageSources);
+  const validSourceNumbers = new Set(pageSources.map((page) => page.sourceNumber));
+
+  let title: string;
+  let rawBodyMarkdown: string;
+  let structuredData: TutorStudioStructuredData | null = null;
+
+  if (input.type === "QUIZ") {
+    const parsedQuiz = parseQuizGenerationResponse(generatedRaw, validSourceNumbers);
+    if (parsedQuiz) {
+      title = parsedQuiz.title || fallbackTitle;
+      structuredData = parsedQuiz.data;
+      rawBodyMarkdown = renderQuizToMarkdown(parsedQuiz.data);
+    } else {
+      const extracted = extractTitleAndContent(generatedRaw, fallbackTitle);
+      title = extracted.title;
+      rawBodyMarkdown = extracted.content;
+    }
+  } else if (input.type === "FLASHCARDS") {
+    const parsedFlashcards = parseFlashcardsGenerationResponse(
+      generatedRaw,
+      validSourceNumbers
+    );
+    if (parsedFlashcards) {
+      title = parsedFlashcards.title || fallbackTitle;
+      structuredData = parsedFlashcards.data;
+      rawBodyMarkdown = renderFlashcardsToMarkdown(parsedFlashcards.data);
+    } else {
+      const extracted = extractTitleAndContent(generatedRaw, fallbackTitle);
+      title = extracted.title;
+      rawBodyMarkdown = extracted.content;
+    }
+  } else {
+    const extracted = extractTitleAndContent(generatedRaw, fallbackTitle);
+    title = extracted.title;
+    rawBodyMarkdown = extracted.content;
+  }
+
+  const cited = collectCitedStudioSources(rawBodyMarkdown, pageSources);
   const materialTitles = [
     ...new Set(
       cited.sources.length > 0
@@ -557,6 +631,9 @@ export async function generateTutorStudioArtifact(input: {
       type: input.type,
       title,
       content: cited.content,
+      ...(structuredData !== null
+        ? { structuredData: structuredData as unknown as Prisma.InputJsonValue }
+        : {}),
       sources: cited.sources as unknown as Prisma.InputJsonValue,
       materialIds: selectedMaterialIds as unknown as Prisma.InputJsonValue,
       materialTitles: materialTitles as unknown as Prisma.InputJsonValue,
@@ -564,6 +641,98 @@ export async function generateTutorStudioArtifact(input: {
   });
 
   return { artifact: toStudioArtifactDto(created), alreadyExisted: false };
+}
+
+/** Update interactive Quiz attempt or Flashcard learning progress on an owned Studio artifact. */
+export async function saveTutorStudioProgress(input: {
+  courseId: string;
+  userId: string;
+  artifactId: string;
+  payload: UpdateTutorStudioProgressInput;
+}): Promise<TutorStudioArtifactDto> {
+  await getTutorAccess(input.courseId, input.userId);
+
+  const existing = await prisma.tutorStudioArtifact.findFirst({
+    where: {
+      id: input.artifactId,
+      courseId: input.courseId,
+      userId: input.userId,
+    },
+  });
+
+  if (!existing) {
+    throw new TutorAiServiceError("Artefak Studio tidak ditemukan.", 404);
+  }
+
+  const structured = parseTutorStudioStructuredData(existing.structuredData ?? null);
+  let nextStructured: TutorStudioStructuredData;
+
+  if (input.payload.kind === "quiz" && structured?.kind === "QUIZ") {
+    if (input.payload.reset) {
+      nextStructured = {
+        kind: "QUIZ",
+        version: 1,
+        questions: structured.questions,
+      };
+    } else {
+      const validIds = new Set(structured.questions.map((q) => q.id));
+      const sanitizedAnswers: Record<string, number> = {};
+      for (const [qId, choice] of Object.entries(input.payload.answers)) {
+        if (validIds.has(qId) && choice >= 0 && choice <= 3) {
+          sanitizedAnswers[qId] = choice;
+        }
+      }
+      const maxIdx = Math.max(0, structured.questions.length - 1);
+      const clampedIndex = Math.min(Math.max(0, input.payload.currentIndex), maxIdx);
+      const isCompleted = Boolean(input.payload.completed);
+      nextStructured = {
+        ...structured,
+        attempt: {
+          answers: sanitizedAnswers,
+          currentIndex: clampedIndex,
+          completedAt: isCompleted
+            ? new Date().toISOString()
+            : structured.attempt?.completedAt ?? null,
+          evaluation: isCompleted
+            ? evaluateQuizAttempt(structured, sanitizedAnswers)
+            : structured.attempt?.evaluation,
+        },
+      };
+    }
+  } else if (input.payload.kind === "flashcards" && structured?.kind === "FLASHCARDS") {
+    const validIds = new Set(structured.cards.map((c) => c.id));
+    const sanitizedStatus: Record<string, "known" | "review"> = {};
+    for (const [cardId, status] of Object.entries(input.payload.statusByCardId)) {
+      if (validIds.has(cardId)) {
+        sanitizedStatus[cardId] = status;
+      }
+    }
+    const maxIdx = Math.max(0, structured.cards.length - 1);
+    const clampedIndex = Math.min(Math.max(0, input.payload.currentIndex), maxIdx);
+    nextStructured = {
+      ...structured,
+      progress: {
+        trackLearning: input.payload.trackLearning,
+        statusByCardId: sanitizedStatus,
+        currentIndex: clampedIndex,
+        updatedAt: new Date().toISOString(),
+      },
+    };
+  } else {
+    throw new TutorAiServiceError(
+      "Artefak Studio ini tidak mendukung pembaruan progres interaktif.",
+      400
+    );
+  }
+
+  const updated = await prisma.tutorStudioArtifact.update({
+    where: { id: existing.id },
+    data: {
+      structuredData: nextStructured as unknown as Prisma.InputJsonValue,
+    },
+  });
+
+  return toStudioArtifactDto(updated);
 }
 
 /** Rename a saved Studio artifact owned by the authenticated student. */

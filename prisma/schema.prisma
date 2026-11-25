@@ -771,6 +771,7 @@ model TutorStudioArtifact {
   type            TutorStudioArtifactType
   title           String
   content         String
+  structuredData  Json?
   sources         Json                    @default("[]")
   materialIds     Json                    @default("[]")
   materialTitles  Json                    @default("[]")
