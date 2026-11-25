@@ -36,6 +36,7 @@ import rehypeRaw from "rehype-raw";
 import "katex/dist/katex.min.css";
 import { toast } from "sonner";
 
+import { playBrowserSpeech, playServerSpeech } from "@/lib/tutor-ai/chat-speech";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -172,7 +173,7 @@ export function prepareSpeechText(value: string) {
 }
 
 function getBrowserVoices() {
-  return window.speechSynthesis.getVoices();
+  return window.speechSynthesis?.getVoices() ?? [];
 }
 
 const INDONESIAN_WORD_HINTS = ["adalah", "akan", "atau", "dalam", "dan", "dengan", "dari", "di", "ini", "itu", "jika", "karena", "ke", "pada", "sebagai", "tidak", "untuk", "yang"];
@@ -430,8 +431,7 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   scrollContainerRef,
   messagesEndRef,
 }: TutorChatMessagesProps) {
-  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const speechRequestIdRef = useRef(0);
+  const speechControllerRef = useRef<AbortController | null>(null);
   const copiedTimeoutRef = useRef<number | null>(null);
   const lastMessage = activeSession?.messages[activeSession.messages.length - 1];
   const isStreamingEmpty = sending && lastMessage?.senderType === "ai" && !lastMessage.content;
@@ -455,26 +455,17 @@ export const TutorChatMessages = memo(function TutorChatMessages({
   );
 
   const cancelCurrentSpeech = useCallback(() => {
-    if (!("speechSynthesis" in window)) return;
-
-    if (speechUtteranceRef.current) {
-      speechUtteranceRef.current.onend = null;
-      speechUtteranceRef.current.onerror = null;
-    }
-
-    window.speechSynthesis.cancel();
-    speechUtteranceRef.current = null;
+    speechControllerRef.current?.abort();
+    speechControllerRef.current = null;
   }, []);
 
   const stopSpeech = useCallback(() => {
-    speechRequestIdRef.current += 1;
     cancelCurrentSpeech();
     setSpeakingMessageId(null);
   }, [cancelCurrentSpeech]);
 
   useEffect(() => {
     return () => {
-      speechRequestIdRef.current += 1;
       cancelCurrentSpeech();
       if (copiedTimeoutRef.current !== null) {
         window.clearTimeout(copiedTimeoutRef.current);
@@ -527,52 +518,54 @@ export const TutorChatMessages = memo(function TutorChatMessages({
     }
   }
 
-  function handleSpeakMessage(message: TutorMessage) {
+  async function handleSpeakMessage(message: TutorMessage) {
     if (speakingMessageId === message.id) {
       stopSpeech();
-      return;
-    }
-
-    if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
-      toast.error("Browser ini tidak mendukung text-to-speech.");
       return;
     }
 
     const text = prepareSpeechText(message.content);
     if (!text) return;
 
-    const requestId = speechRequestIdRef.current + 1;
-    speechRequestIdRef.current = requestId;
     cancelCurrentSpeech();
+    const controller = new AbortController();
+    const { signal } = controller;
+    speechControllerRef.current = controller;
     setSpeakingMessageId(message.id);
 
-    const speechLanguage = detectSpeechLanguage(text);
-    const selectedVoice = chooseTutorVoice(getBrowserVoices(), speechLanguage);
+    const synthesis = window.speechSynthesis;
+    const voices = getBrowserVoices();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.voice = selectedVoice;
-    utterance.lang = selectedVoice?.lang || (speechLanguage === "en" ? "en-US" : "id-ID");
-    utterance.rate = TUTOR_SPEECH_RATE;
-    utterance.pitch = TUTOR_SPEECH_PITCH;
-    utterance.volume = 1;
-    utterance.onend = () => {
-      if (speechRequestIdRef.current === requestId) stopSpeech();
-    };
-    utterance.onerror = (event) => {
-      if (speechRequestIdRef.current !== requestId) return;
-
-      stopSpeech();
-      if (event.error !== "canceled" && event.error !== "interrupted") {
-        toast.error(`Gagal memutar suara (${event.error}). Periksa pengaturan audio browser.`);
-      }
-    };
-
-    speechUtteranceRef.current = utterance;
     try {
-      window.speechSynthesis.speak(utterance);
+      if (synthesis && typeof SpeechSynthesisUtterance !== "undefined" && voices.length > 0) {
+        const speechLanguage = detectSpeechLanguage(text);
+        const selectedVoice = chooseTutorVoice(voices, speechLanguage);
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = selectedVoice;
+        utterance.lang = selectedVoice?.lang || (speechLanguage === "en" ? "en-US" : "id-ID");
+        utterance.rate = TUTOR_SPEECH_RATE;
+        utterance.pitch = TUTOR_SPEECH_PITCH;
+        utterance.volume = 1;
+
+        try {
+          await playBrowserSpeech(synthesis, utterance, signal);
+          return;
+        } catch {
+          if (signal.aborted) return;
+        }
+      }
+
+      await playServerSpeech(courseId, text, signal);
     } catch {
-      stopSpeech();
-      toast.error("Gagal memutar suara. Periksa pengaturan audio browser.");
+      if (!signal.aborted) {
+        toast.error(
+          voices.length === 0
+            ? "Browser atau sistem operasi tidak memiliki suara TTS, dan audio dari server gagal diputar."
+            : "Gagal memutar suara dari browser dan server."
+        );
+      }
+    } finally {
+      if (speechControllerRef.current === controller) stopSpeech();
     }
   }
 
