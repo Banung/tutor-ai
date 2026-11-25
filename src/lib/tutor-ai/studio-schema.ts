@@ -99,6 +99,7 @@ export const createTutorStudioArtifactSchema = z.discriminatedUnion("action", [
     type: z.enum(TUTOR_STUDIO_GENERATABLE_TYPES),
     chatSessionId: z.string().trim().min(1).nullable().optional(),
     anchorMessageId: z.string().trim().min(1).nullable().optional(),
+    launchMessageId: z.string().trim().min(1).nullable().optional(),
     materialIds: z.array(z.string().trim().min(1)).max(100).optional(),
     topic: z.string().trim().max(800).optional(),
   }),

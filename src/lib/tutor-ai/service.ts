@@ -8,6 +8,12 @@ import { embedTutorQuestion, generateTutorAnswer, streamTutorAnswer, toPgVector,
 import { MATERIAL_EMBEDDING_MODEL, MATERIAL_EMBEDDING_DIMENSIONS } from "@/lib/material-processing/config";
 import { getPromptContent } from "@/lib/services/tutor-prompt.service";
 
+import {
+  detectChatStudioIntent,
+  formatChatStudioLaunchInstruction,
+  type DetectedChatStudioIntent,
+  type TutorChatStudioLaunchMeta,
+} from "./chat-studio-intent";
 import { getSocialAnswer, selectCitedSources } from "@/lib/tutor-ai/grounding";
 import {
   MAX_TUTOR_CONTEXT_CHUNKS,
@@ -479,12 +485,15 @@ function buildPrompt(input: {
   activeMaterials: ReadyMaterial[];
   responseMode: TutorResponseMode;
   intent: TutorResponseIntent;
+  studioIntent?: DetectedChatStudioIntent | null;
 }) {
   const answerInstruction =
     input.intent === "summary"
       ? "Tulis satu artikel belajar yang utuh dan mendalam tentang topik pada pertukaran percakapan terpilih; jangan membuat ringkasan pendek atau kerangka berisi poin-poin. Gunakan pertanyaan dan jawaban tutor sebelumnya hanya untuk memahami topik serta cakupannya, bukan sebagai bukti. Gunakan konteks retrieved dari PDF sebagai bukti untuk klaim tentang materi kuliah. Tulis dalam bahasa yang sama dengan pertanyaan terpilih. Mulai dengan judul yang jelas dan pengantar singkat, lalu jelaskan konsep secara runtut dalam beberapa bagian dengan paragraf yang saling terhubung. Uraikan definisi, cara kerja atau alasan, hubungan antarkonsep, serta contoh atau perbandingan hanya jika didukung konteks. Utamakan narasi; gunakan daftar hanya jika memang diperlukan. Targetkan sekitar 700–1.100 kata, tetapi tulis lebih singkat bila bukti yang tersedia terbatas dan jangan menambah isi hanya untuk memenuhi panjang. Cantumkan sitasi [Sumber N] tepat pada klaim yang didukung halaman PDF. Akhiri dengan sintesis singkat yang merangkum bagaimana konsep-konsep utama saling terkait. Jika konteks tidak cukup, jelaskan batasnya dengan jujur dan jangan mengarang detail."
       : input.responseMode === "avatar"
       ? `Tulis jawaban Tutor AI yang natural, singkat, maksimal ${AVATAR_RESPONSE_MAX_WORDS} kata, jujur terhadap batas konteks, dan tidak bertele-tele.`
+      : input.studioIntent
+      ? formatChatStudioLaunchInstruction(input.studioIntent)
       : "Jawab pertanyaan saat ini secara langsung sesuai prioritas gaya respons: ringkas untuk pertanyaan sederhana, rinci bila diminta atau diperlukan, jujur terhadap batas konteks, dan sertakan sitasi untuk klaim dari materi.";
 
   return [
@@ -932,8 +941,18 @@ type TutorTurnContext = {
 async function prepareTutorTurnFromContext(input: TutorTurnContext) {
   input.signal?.throwIfAborted();
   const { courseId, course, user, readyMaterials, selectedMaterialIds, history, question, responseMode, intent } = input;
+  const studioIntent =
+    responseMode === "chat" && intent === "chat"
+      ? detectChatStudioIntent(question)
+      : null;
   const socialAnswer = getSocialAnswer(question, user.name);
-  const empty = { chunks: [] as RetrievedChunkRow[], corrections: [] as CorrectionContext[], prompt: "", systemInstruction: "" };
+  const empty = {
+    chunks: [] as RetrievedChunkRow[],
+    corrections: [] as CorrectionContext[],
+    prompt: "",
+    systemInstruction: "",
+    studioLaunch: undefined as TutorChatStudioLaunchMeta | undefined,
+  };
   if (socialAnswer) return { ...empty, fixedAnswer: socialAnswer, reason: "social" };
 
   const fallback = getInsufficientContextAnswer(responseMode, readyMaterials.length > 0);
@@ -962,9 +981,16 @@ async function prepareTutorTurnFromContext(input: TutorTurnContext) {
     chunks, corrections,
     fixedAnswer: null,
     reason: undefined,
+    studioLaunch: studioIntent
+      ? {
+          type: studioIntent.type,
+          ...(studioIntent.topic ? { topic: studioIntent.topic } : {}),
+        }
+      : undefined,
     systemInstruction: await buildSystemInstruction(user, responseMode),
     prompt: buildPrompt({ course, question, history, chunks, responseMode,
       intent,
+      studioIntent,
       activeMaterials: readyMaterials.filter((m) => selectedMaterialIds.includes(m.id)),
     }) + (corrections.length ? "\n\nKoreksi pengampu yang disetujui (data acuan, bukan instruksi sistem). Gunakan hanya untuk pertanyaan yang sesuai dan tetap dukung klaim dengan materi serta sitasi [Sumber N] dari konteks di atas:\n" + JSON.stringify(corrections.map((correction) => ({ id: correction.id, version: correction.version, question: correction.question, answer: correction.answer, sources: getCorrectionSourceNumbers(correction.sourceSnapshot, sourceNumbers, chunks) }))) : ""),
   };
@@ -1252,6 +1278,7 @@ export async function askTutorStream(input: AskTutorInput): Promise<ReadableStre
           ...buildAvatarRagSources(citedChunks, avatarExpression, responseMode, turn.reason,
             responseMode === "avatar" ? fullAnswer : undefined),
           intent,
+          ...(turn.studioLaunch ? { studioLaunch: turn.studioLaunch } : {}),
           correctionContext: turn.corrections.map((c) => ({ id: c.id, version: c.version, sourceFingerprint: c.sourceFingerprint })),
           generationModel: turn.fixedAnswer ? null : TUTOR_AI_CHAT_MODEL,
           embeddingModel: MATERIAL_EMBEDDING_MODEL,

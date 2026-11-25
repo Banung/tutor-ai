@@ -8,11 +8,20 @@ import type {
 } from "../tutor-chat-types";
 import type { TutorPanelMode } from "../tutor-chat-input";
 
+export type TutorAiMessageCompletePayload = {
+  sessionId: string;
+  messageId: string;
+  ragSources: unknown;
+  selectedMaterialIds: string[];
+  previousUserTopic?: string;
+};
+
 type UseTutorChatProps = {
   courseId: string;
   initialSessionId?: string;
   onNewChat?: () => void;
   onSessionChange?: (sessionId: string) => void;
+  onAiMessageComplete?: (payload: TutorAiMessageCompletePayload) => void;
   input: string;
   setInput: (value: string) => void;
   panelMode: TutorPanelMode;
@@ -23,6 +32,7 @@ export function useTutorChat({
   initialSessionId,
   onNewChat,
   onSessionChange,
+  onAiMessageComplete,
   input,
   setInput,
   panelMode,
@@ -33,6 +43,10 @@ export function useTutorChat({
 
   const activeSessionIdRef = useRef<string | null>(null);
   const activeSessionRef = useRef<TutorChatSession | null>(null);
+  const onAiMessageCompleteRef = useRef(onAiMessageComplete);
+  useEffect(() => {
+    onAiMessageCompleteRef.current = onAiMessageComplete;
+  }, [onAiMessageComplete]);
   const chatSessionsRef = useRef<TutorChatSessionSummary[]>([]);
   const readyMaterialsRef = useRef<TutorOverview["readyMaterials"]>([]);
   const loadingSessionRef = useRef(false);
@@ -467,6 +481,12 @@ export function useTutorChat({
       const finalizeStream = (userMessageId?: string, answerMessageId?: string) => {
         streamDone = true;
         lastAttemptRef.current = null;
+        const resolvedSessionId = isNewSession ? realSessionId : session.id;
+        const resolvedAnswerId = answerMessageId ?? `ai-${Date.now()}`;
+        const previousUserTopic = [...session.messages]
+          .reverse()
+          .find((msg) => msg.senderType === "user")?.content;
+
         setActiveSession((prev) => {
           if (!prev) return prev;
           const sessionId = isNewSession ? realSessionId : prev.id;
@@ -477,7 +497,7 @@ export function useTutorChat({
             if (msg.id === streamingAiMessage.id) {
               return {
                 ...msg,
-                id: answerMessageId ?? `ai-${Date.now()}`,
+                id: resolvedAnswerId,
                 content: accumulatedText,
                 ragSources,
                 responseTimeMs,
@@ -501,6 +521,20 @@ export function useTutorChat({
           );
           return [summary, ...others];
         });
+
+        if (answerMessageId) {
+          const selectedIds =
+            activeSessionRef.current?.selectedMaterialIds ?? session.selectedMaterialIds;
+          queueMicrotask(() => {
+            onAiMessageCompleteRef.current?.({
+              sessionId: resolvedSessionId,
+              messageId: answerMessageId,
+              ragSources,
+              selectedMaterialIds: selectedIds,
+              previousUserTopic,
+            });
+          });
+        }
       };
 
       const handleStreamEvent = (type: string, rawData: string) => {

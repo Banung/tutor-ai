@@ -91,6 +91,7 @@ export async function POST(
       type: parsed.data.type,
       chatSessionId: parsed.data.chatSessionId,
       anchorMessageId: parsed.data.anchorMessageId,
+      launchMessageId: parsed.data.launchMessageId,
       materialIds: parsed.data.materialIds,
       topic: parsed.data.topic,
       signal: request.signal,
