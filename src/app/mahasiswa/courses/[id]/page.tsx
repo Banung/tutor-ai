@@ -14,6 +14,7 @@ import {
   Users,
   MessageCircle,
 } from "lucide-react";
+import { CourseHeroCard } from "@/components/courses/course-hero-card";
 import { TutorFloatingButton } from "@/components/tutor/tutor-floating-button";
 import { MahasiswaSessionCard } from "./session-card";
 import type { MahasiswaCourseDetail, SessionItem } from "./types";
@@ -109,27 +110,11 @@ export default function MahasiswaCourseDetailPage() {
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="relative min-h-[360px] overflow-hidden rounded-xl border bg-card shadow-sm">
-          <div
-            className="absolute inset-0 bg-muted bg-cover bg-center"
-            style={{ backgroundImage: `url("${course.coverImage ?? ""}")` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10" />
-          <div className="absolute inset-x-0 bottom-0 flex flex-col gap-5 p-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0 max-w-full">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight drop-shadow-[0_1px_1px_rgba(255,255,255,0.85)]">
-                  {course.title}
-                </h1>
-              </div>
-              {course.description && (
-                <p className="mt-2 max-w-3xl whitespace-normal break-words leading-relaxed text-foreground/70 [overflow-wrap:anywhere] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
-                  {course.description}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        <CourseHeroCard
+          title={course.title}
+          description={course.description}
+          coverImage={course.coverImage}
+        />
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Card className="border-border/70 shadow-sm">
