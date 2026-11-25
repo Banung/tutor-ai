@@ -9,6 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { replaceSourceCitations } from "@/lib/tutor-ai/grounding";
 import { cn } from "@/lib/utils";
 import type { RagSource } from "./tutor-chat-types";
 
@@ -206,30 +207,11 @@ export function groupCitationSources(sources: RagSource[]): CitationSourceGroup[
 }
 
 export function linkifySourceCitations(markdown: string) {
-  const codeSegment = /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`)/g;
-
-  return markdown
-    .split(codeSegment)
-    .map((segment, index) => {
-      if (index % 2 === 1) return segment;
-
-      return segment.replace(
-        /\[((?:Sumber\s+\d+)(?:\s*,\s*(?:Sumber\s+)?\d+)*)\]/gi,
-        (citation, group: string) => {
-          const sourceNumbers = [...group.matchAll(/(?:Sumber\s+)?(\d+)/gi)].map((match) =>
-            Number(match[1])
-          );
-          const uniqueSourceNumbers = [...new Set(sourceNumbers)];
-
-          if (uniqueSourceNumbers.length === 0) return citation;
-
-          return uniqueSourceNumbers
-            .map((sourceNumber) => `[Sumber ${sourceNumber}](#tutor-source-${sourceNumber})`)
-            .join(", ");
-        }
-      );
-    })
-    .join("");
+  return replaceSourceCitations(markdown, (_citation, sourceNumbers) =>
+    sourceNumbers
+      .map((sourceNumber) => `[Sumber ${sourceNumber}](#tutor-source-${sourceNumber})`)
+      .join(", ")
+  );
 }
 
 /** Resolve the CitationPreviewState corresponding to a cited [Sumber N] link click. */
