@@ -28,7 +28,11 @@ export async function POST(request: NextRequest) {
 
   try {
     return NextResponse.json(
-      await createStudyProgram(parsed.data.facultyId, parsed.data.name),
+      await createStudyProgram(
+        parsed.data.facultyId,
+        parsed.data.name,
+        parsed.data.code
+      ),
       { status: 201 }
     );
   } catch (err) {

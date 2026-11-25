@@ -75,12 +75,50 @@ export const createFacultySchema = z
   })
   .strict();
 
+export const studyProgramCodeSchema = z.preprocess(
+  (value) => {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed === "" ? null : trimmed.toUpperCase();
+    }
+    return value;
+  },
+  z
+    .string()
+    .regex(
+      /^[A-Z0-9][A-Z0-9_-]{1,19}$/,
+      "Kode program studi harus 2–20 karakter huruf/angka, tanda hubung, atau garis bawah."
+    )
+    .nullable()
+    .optional()
+);
+
 export const createStudyProgramSchema = z
   .object({
     facultyId: z.string().trim().min(1, "Fakultas wajib dipilih."),
     name: z.string().trim().min(1, "Nama program studi wajib diisi.").max(150),
+    code: studyProgramCodeSchema,
   })
   .strict();
+
+export const updateStudyProgramSchema = z
+  .object({
+    facultyId: z.string().trim().min(1, "Fakultas wajib dipilih.").optional(),
+    name: z.string().trim().min(1, "Nama program studi wajib diisi.").max(150).optional(),
+    code: studyProgramCodeSchema,
+  })
+  .strict()
+  .refine(
+    (data) =>
+      data.facultyId !== undefined ||
+      data.name !== undefined ||
+      data.code !== undefined,
+    "Minimal satu perubahan harus diisi."
+  );
+
+export type UpdateStudyProgramInput = z.infer<typeof updateStudyProgramSchema>;
 
 export type CreateCourseInput = z.infer<typeof createCourseSchema>;
 export type AdminCreateCourseInput = z.infer<typeof adminCreateCourseSchema>;
