@@ -260,9 +260,11 @@ test("cited source numbers retain their original context identity", async (t) =>
     chunks: [chunk, secondMaterialChunk],
     availableMaterialIds: ["material-1", "material-2"],
     selected: ["material-1", "material-2"],
-    answer: "Lihat aturan pada halaman berikutnya. [Sumber 2]",
+    answer: "Lihat aturan pada halaman berikutnya. [2, 2]",
   });
-  await h.ask("Di mana aturannya?");
+  const events = await h.ask("Di mana aturannya?");
+  assert.match(events, /event: metadata/);
+  assert.match(events, /event: done/);
   const ai = h.saved.find((m) => m.senderType === "ai");
   const sources = (ai?.ragSources as { sources: Array<{ chunkId: string; sourceNumber: number }> }).sources;
   assert.equal(sources.length, 1);
