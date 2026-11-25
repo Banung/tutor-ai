@@ -80,8 +80,8 @@ function getUniqueSources(sources: RagSource[]) {
 }
 
 
-const TUTOR_SPEECH_RATE = 1.2;
-const TUTOR_SPEECH_PITCH = 1;
+export const TUTOR_SPEECH_RATE = 1.2;
+export const TUTOR_SPEECH_PITCH = 1;
 
 function isEdgeBrowser() {
   return /EdgA|EdgiOS|Edg\//i.test(navigator.userAgent);
@@ -139,7 +139,7 @@ function replaceMarkdownTablesForSpeech(value: string) {
   return speechLines.join("\n");
 }
 
-function prepareSpeechText(value: string) {
+export function prepareSpeechText(value: string) {
   const contentWithReadableBlocks = replaceMarkdownTablesForSpeech(value).replace(
     /```([a-zA-Z0-9_-]+)?[\s\S]*?```/g,
     (_, language: string | undefined) => {
@@ -172,7 +172,7 @@ function countWordHints(words: string[], hints: string[]) {
   return words.reduce((total, word) => total + (hintSet.has(word) ? 1 : 0), 0);
 }
 
-function detectSpeechLanguage(text: string): "id" | "en" {
+export function detectSpeechLanguage(text: string): "id" | "en" {
   const words = text.toLowerCase().match(/[a-z]+/g) ?? [];
   const englishScore = countWordHints(words, ENGLISH_WORD_HINTS);
   const indonesianScore = countWordHints(words, INDONESIAN_WORD_HINTS);
@@ -184,7 +184,7 @@ const TARGET_VOICES = {
   en: ["Google UK English Female", "Google US English Female", "Microsoft Aria Online", "Microsoft Jenny Online", "Microsoft Zira", "Samantha", "Victoria", "Jenny", "Aria"]
 };
 
-function chooseTutorVoice(voices: SpeechSynthesisVoice[], lang: "id" | "en") {
+export function chooseTutorVoice(voices: SpeechSynthesisVoice[], lang: "id" | "en") {
   const targets = TARGET_VOICES[lang];
 
   for (const target of targets) {

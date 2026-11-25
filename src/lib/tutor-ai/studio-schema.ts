@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import type { TutorStudioStructuredData } from "./studio-interactive";
 
 export const TUTOR_STUDIO_ARTIFACT_TYPES = [
   "SUMMARY",
@@ -48,6 +49,7 @@ export type TutorStudioArtifactDto = {
   type: TutorStudioArtifactType;
   title: string;
   content: string;
+  structuredData: TutorStudioStructuredData | null;
   sources: TutorStudioSource[];
   materialTitles: string[];
   createdAt: string;
@@ -98,7 +100,7 @@ export const createTutorStudioArtifactSchema = z.discriminatedUnion("action", [
     chatSessionId: z.string().trim().min(1).nullable().optional(),
     anchorMessageId: z.string().trim().min(1).nullable().optional(),
     materialIds: z.array(z.string().trim().min(1)).max(100).optional(),
-    topic: z.string().trim().max(300).optional(),
+    topic: z.string().trim().max(800).optional(),
   }),
   z.object({
     action: z.literal("save_note"),

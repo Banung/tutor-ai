@@ -62,6 +62,8 @@ import { useTutorSpeech } from "./hooks/use-tutor-speech";
 import { useTutorStudio } from "./hooks/use-tutor-studio";
 import { extractRagSources } from "./tutor-citation-preview";
 import { TutorStudioSidebar } from "./tutor-studio-sidebar";
+import { TutorStudioQuizCanvas } from "./tutor-studio-quiz-canvas";
+import { TutorStudioFlashcardsCanvas } from "./tutor-studio-flashcards-canvas";
 import {
   downloadStudioMarkdown,
   TutorStudioReaderDialog,
@@ -244,6 +246,9 @@ export function TutorAiChatPage({
     courseId,
     activeSessionId: activeSession?.id ?? null,
   });
+
+  const activeStructuredData = studio.activeArtifact?.structuredData ?? null;
+  const activeInteractiveKind = activeStructuredData?.kind ?? null;
 
   useEffect(() => {
     if (!activeSession || sending) return;
@@ -826,43 +831,82 @@ export function TutorAiChatPage({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ==================== RIGHT STUDIO SIDEBAR ==================== */}
-      <TutorStudioSidebar
-        open={studioOpen}
-        onClose={() => setStudioOpen(false)}
-        selectedMaterialCount={selectedMaterialSet.size}
-        totalMaterialCount={readyMaterials.length}
-        activeSessionId={activeSession?.id ?? null}
-        artifacts={studio.filteredArtifacts}
-        totalArtifactCount={studio.artifacts.length}
-        loadingArtifacts={studio.loadingArtifacts}
-        generatingType={studio.generatingType}
-        scope={studio.scope}
-        onScopeChange={studio.setScope}
-        typeFilter={studio.typeFilter}
-        onTypeFilterChange={studio.setTypeFilter}
-        renamingArtifactId={studio.renamingArtifactId}
-        setRenamingArtifactId={studio.setRenamingArtifactId}
-        renameValue={studio.renameValue}
-        setRenameValue={studio.setRenameValue}
-        savingRename={studio.savingRename}
-        onRenameArtifact={(artifactId) => void studio.handleRenameArtifact(artifactId)}
-        onRequestDeleteArtifact={(artifactId) => studio.setDeleteArtifactId(artifactId)}
-        onOpenArtifact={(artifact) => studio.setActiveArtifactId(artifact.id)}
-        onDownloadMarkdown={(artifact) => downloadStudioMarkdown(artifact)}
-        onQuickGenerate={(type, topic) => {
-          void studio.generateArtifact({
-            type,
-            chatSessionId: activeSession?.id ?? null,
-            materialIds: Array.from(selectedMaterialSet),
-            topic,
-          });
-        }}
-      />
+      {/* ==================== RIGHT STUDIO SIDEBAR / INTERACTIVE CANVAS ==================== */}
+      {studio.activeArtifact && activeStructuredData?.kind === "QUIZ" ? (
+        <div className="h-full w-[min(52vw,44rem)] shrink-0 border-l border-border bg-background max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:w-full">
+          <TutorStudioQuizCanvas
+            key={studio.activeArtifact.id}
+            artifact={studio.activeArtifact}
+            quizData={activeStructuredData}
+            generatingFollowUpType={studio.generatingType}
+            onClose={() => studio.setActiveArtifactId(null)}
+            onSaveProgress={(payload) =>
+              studio.activeArtifact
+                ? studio.saveArtifactProgress(studio.activeArtifact.id, payload)
+                : Promise.resolve(null)
+            }
+            onGenerateFollowUp={(type, topic) => {
+              void studio.generateArtifact({
+                type,
+                chatSessionId: activeSession?.id ?? null,
+                materialIds: Array.from(selectedMaterialSet),
+                topic,
+              });
+            }}
+          />
+        </div>
+      ) : studio.activeArtifact && activeStructuredData?.kind === "FLASHCARDS" ? (
+        <div className="h-full w-[min(52vw,44rem)] shrink-0 border-l border-border bg-background max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:w-full">
+          <TutorStudioFlashcardsCanvas
+            key={studio.activeArtifact.id}
+            artifact={studio.activeArtifact}
+            flashcardsData={activeStructuredData}
+            onClose={() => studio.setActiveArtifactId(null)}
+            onSaveProgress={(payload) =>
+              studio.activeArtifact
+                ? studio.saveArtifactProgress(studio.activeArtifact.id, payload)
+                : Promise.resolve(null)
+            }
+          />
+        </div>
+      ) : (
+        <TutorStudioSidebar
+          open={studioOpen}
+          onClose={() => setStudioOpen(false)}
+          selectedMaterialCount={selectedMaterialSet.size}
+          totalMaterialCount={readyMaterials.length}
+          activeSessionId={activeSession?.id ?? null}
+          artifacts={studio.filteredArtifacts}
+          totalArtifactCount={studio.artifacts.length}
+          loadingArtifacts={studio.loadingArtifacts}
+          generatingType={studio.generatingType}
+          scope={studio.scope}
+          onScopeChange={studio.setScope}
+          typeFilter={studio.typeFilter}
+          onTypeFilterChange={studio.setTypeFilter}
+          renamingArtifactId={studio.renamingArtifactId}
+          setRenamingArtifactId={studio.setRenamingArtifactId}
+          renameValue={studio.renameValue}
+          setRenameValue={studio.setRenameValue}
+          savingRename={studio.savingRename}
+          onRenameArtifact={(artifactId) => void studio.handleRenameArtifact(artifactId)}
+          onRequestDeleteArtifact={(artifactId) => studio.setDeleteArtifactId(artifactId)}
+          onOpenArtifact={(artifact) => studio.setActiveArtifactId(artifact.id)}
+          onDownloadMarkdown={(artifact) => downloadStudioMarkdown(artifact)}
+          onQuickGenerate={(type, topic) => {
+            void studio.generateArtifact({
+              type,
+              chatSessionId: activeSession?.id ?? null,
+              materialIds: Array.from(selectedMaterialSet),
+              topic,
+            });
+          }}
+        />
+      )}
 
       {/* ==================== STUDIO READER DIALOG ==================== */}
       <TutorStudioReaderDialog
-        artifact={studio.activeArtifact}
+        artifact={activeInteractiveKind ? null : studio.activeArtifact}
         onOpenChange={(open) => {
           if (!open) studio.setActiveArtifactId(null);
         }}

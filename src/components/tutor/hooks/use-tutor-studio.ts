@@ -9,6 +9,7 @@ import type {
   TutorStudioScope,
   TutorStudioSource,
 } from "@/lib/tutor-ai/studio-schema";
+import type { UpdateTutorStudioProgressInput } from "@/lib/tutor-ai/studio-interactive";
 
 export type TutorStudioFilterType = "ALL" | TutorStudioArtifactType;
 
@@ -293,6 +294,34 @@ export function useTutorStudio({
     [activeArtifactId, courseId]
   );
 
+  const saveArtifactProgress = useCallback(
+    async (artifactId: string, payload: UpdateTutorStudioProgressInput) => {
+      try {
+        const response = await fetch(
+          `/api/courses/${courseId}/tutor/studio/${artifactId}/progress`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+        const data = (await response.json().catch(() => ({}))) as {
+          artifact?: TutorStudioArtifactDto;
+          error?: string;
+        };
+        if (!response.ok || !data.artifact) {
+          throw new Error(data.error ?? "Gagal menyimpan progres.");
+        }
+        upsertArtifact(data.artifact);
+        return data.artifact;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Gagal menyimpan progres.");
+        return null;
+      }
+    },
+    [courseId, upsertArtifact]
+  );
+
   return {
     artifacts,
     filteredArtifacts,
@@ -321,5 +350,6 @@ export function useTutorStudio({
     saveMessageToNote,
     handleRenameArtifact,
     handleDeleteArtifact,
+    saveArtifactProgress,
   };
 }

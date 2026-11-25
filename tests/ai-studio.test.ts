@@ -38,6 +38,7 @@ type StoredArtifactRow = {
   type: "SUMMARY" | "QUIZ" | "FLASHCARDS" | "NOTE";
   title: string;
   content: string;
+  structuredData?: unknown;
   sources: unknown;
   materialIds: unknown;
   materialTitles: unknown;
@@ -195,6 +196,7 @@ async function createStudioHarness(
     const created: StoredArtifactRow = {
       id: `artifact-${seq}`,
       ...data,
+      structuredData: data.structuredData ?? null,
       createdAt: now,
       updatedAt: now,
     };
@@ -202,10 +204,11 @@ async function createStudioHarness(
     return created;
   });
 
-  replace(studioDelegate, "update", async ({ where, data }: { where: { id: string }; data: { title?: string } }) => {
+  replace(studioDelegate, "update", async ({ where, data }: { where: { id: string }; data: { title?: string; structuredData?: unknown } }) => {
     const row = storedArtifacts.find((item) => item.id === where.id);
     if (!row) throw new Error("Artifact not found");
     if (typeof data.title === "string") row.title = data.title;
+    if (data.structuredData !== undefined) row.structuredData = data.structuredData;
     row.updatedAt = new Date();
     return row;
   });
@@ -498,6 +501,7 @@ test("studio export helpers format filename, Markdown, and escaped printable HTM
     type: "QUIZ",
     title: "Kuis <Rekursi> & Stack",
     content: "## Daftar Soal\n1. Apa itu base case? [Sumber 1]",
+    structuredData: null,
     sources: [
       {
         chunkId: "c-1",
@@ -619,4 +623,261 @@ test("studio service generates, saves notes idempotently, filters, renames, and 
       }),
     /tidak ditemukan/i
   );
+});
+
+
+test("interactive quiz and flashcards parsers, Markdown renderers, and evaluator work cleanly", async () => {
+  const {
+    buildQuizFollowUpTopic,
+    evaluateQuizAttempt,
+    parseFlashcardsGenerationResponse,
+    parseQuizGenerationResponse,
+    renderFlashcardsToMarkdown,
+    renderQuizToMarkdown,
+  } = await import("../src/lib/tutor-ai/studio-interactive");
+
+  const validSources = new Set([1, 2]);
+  const rawQuizJson = [
+    "```json",
+    JSON.stringify({
+      title: "**Kuis Rekursi & Kompleksitas**",
+      questions: [
+        {
+          id: "q1",
+          topic: "Base Case",
+          question: "Apa fungsi utama base case pada fungsi rekursif?",
+          options: [
+            "A. Mempercepat kompilasi",
+            "B. Menghentikan pemanggilan rekursif",
+            "C. Menambah ukuran stack",
+            "D. Menghapus variabel lokal",
+          ],
+          correctIndex: 1,
+          hint: "Pikirkan kondisi berhenti agar tidak terjadi infinite recursion.",
+          explanation: "Base case menghentikan panggilan rekursif saat kondisi dasar tercapai.",
+          sourceNumbers: [1, 99],
+        },
+        {
+          id: "q2",
+          topic: "Call Stack",
+          question: "Struktur data apa yang menyimpan activation record pemanggilan fungsi?",
+          options: ["Queue", "Stack", "Hash Table", "Trie"],
+          correctIndex: 1,
+          hint: "Mengikuti prinsip LIFO.",
+          explanation: "Setiap pemanggilan fungsi disimpan ke call stack secara LIFO.",
+          sourceNumbers: [2],
+        },
+        {
+          id: "q3",
+          topic: "Kompleksitas",
+          question: "Apa akibat jika base case tidak pernah tercapai?",
+          options: ["Sorting gagal", "Stack overflow", "Cache miss", "Deadlock"],
+          correctIndex: 1,
+          hint: "Memori stack terus bertambah.",
+          explanation: "Rekursi tanpa henti menghabiskan memori call stack hingga stack overflow.",
+          sourceNumbers: [1],
+        },
+      ],
+    }),
+    "```",
+  ].join("\n");
+
+  const parsedQuiz = parseQuizGenerationResponse(rawQuizJson, validSources);
+  assert.ok(parsedQuiz);
+  assert.equal(parsedQuiz.title, "Kuis Rekursi & Kompleksitas");
+  assert.equal(parsedQuiz.data.questions.length, 3);
+  assert.equal(parsedQuiz.data.questions[0]?.options[1], "Menghentikan pemanggilan rekursif");
+  assert.deepEqual(parsedQuiz.data.questions[0]?.sourceNumbers, [1]);
+
+  const quizMd = renderQuizToMarkdown(parsedQuiz.data);
+  assert.match(quizMd, /## Daftar Soal/);
+  assert.match(quizMd, /## Kunci Jawaban & Pembahasan/);
+  assert.match(quizMd, /\[Sumber 1\]/);
+  assert.doesNotMatch(quizMd, /\[Sumber 99\]/);
+
+  const evalResult = evaluateQuizAttempt(parsedQuiz.data, {
+    q1: 1,
+    q2: 0,
+  });
+  assert.equal(evalResult.correctCount, 1);
+  assert.equal(evalResult.wrongCount, 1);
+  assert.equal(evalResult.skippedCount, 1);
+  assert.equal(evalResult.totalCount, 3);
+  assert.equal(evalResult.strengths[0]?.title, "Base Case");
+  assert.match(evalResult.focusAreas[0]?.title ?? "", /Call Stack \(Soal 2\)/);
+  assert.match(evalResult.focusAreas[1]?.title ?? "", /Topik Belum Dijawab \(1 soal\)/);
+
+  const followUpTopic = buildQuizFollowUpTopic("Kuis Rekursi", parsedQuiz.data, {
+    q1: 1,
+    q2: 0,
+  });
+  assert.match(followUpTopic, /Call Stack/);
+  assert.match(followUpTopic, /Kompleksitas/);
+  assert.doesNotMatch(followUpTopic, /Base Case/);
+
+  const rawFlashcardsJson = JSON.stringify({
+    title: "Flashcard Rekursi Inti",
+    cards: [
+      {
+        id: "c1",
+        topic: "Base Case",
+        front: "Apa itu base case?",
+        back: "Kondisi terminasi agar rekursi berhenti.",
+        sourceNumbers: [1, 88],
+      },
+      {
+        id: "c2",
+        topic: "Recursive Step",
+        front: "Apa fungsi recursive step?",
+        back: "Memecah masalah menjadi submasalah lebih kecil.",
+        sourceNumbers: [2],
+      },
+    ],
+  });
+
+  const parsedCards = parseFlashcardsGenerationResponse(rawFlashcardsJson, validSources);
+  assert.ok(parsedCards);
+  assert.equal(parsedCards.title, "Flashcard Rekursi Inti");
+  assert.equal(parsedCards.data.cards.length, 2);
+  assert.deepEqual(parsedCards.data.cards[0]?.sourceNumbers, [1]);
+
+  const cardsMd = renderFlashcardsToMarkdown(parsedCards.data);
+  assert.match(cardsMd, /### Kartu 1: Base Case/);
+  assert.match(cardsMd, /\[Sumber 1\]/);
+  assert.doesNotMatch(cardsMd, /\[Sumber 88\]/);
+});
+
+test("studio service persists structured interactive quiz/flashcards and updates progress", async (t) => {
+  const quizPayload = JSON.stringify({
+    title: "Kuis Latihan Rekursi",
+    questions: [
+      {
+        id: "q-1",
+        topic: "Base Case",
+        question: "Mengapa base case penting?",
+        options: ["Agar loop cepat", "Agar rekursi berhenti", "Agar RAM bebas", "Agar UI responsif"],
+        correctIndex: 1,
+        hint: "Kondisi terminasi",
+        explanation: "Tanpa base case, fungsi akan memanggil dirinya sendiri tanpa henti.",
+        sourceNumbers: [1, 99],
+      },
+      {
+        id: "q-2",
+        topic: "Call Stack",
+        question: "Apa urutan eksekusi frame di call stack?",
+        options: ["FIFO", "LIFO", "Random", "Round-robin"],
+        correctIndex: 1,
+        hint: "Paling akhir masuk, pertama keluar",
+        explanation: "Stack memakai mekanisme Last-In First-Out.",
+        sourceNumbers: [1],
+      },
+    ],
+  });
+
+  const h = await createStudioHarness(t, { generatedText: quizPayload });
+  const quizRes = await h.studio.generateTutorStudioArtifact({
+    courseId: "course-1",
+    userId: "student-1",
+    type: "QUIZ",
+    chatSessionId: "chat-1",
+    topic: "Rekursi dasar",
+  });
+
+  assert.equal(quizRes.artifact.structuredData?.kind, "QUIZ");
+  assert.equal(quizRes.artifact.structuredData?.questions.length, 2);
+  assert.deepEqual(quizRes.artifact.structuredData?.questions[0]?.sourceNumbers, [1]);
+  assert.match(quizRes.artifact.content, /## Daftar Soal/);
+
+  const savedAttempt = await h.studio.saveTutorStudioProgress({
+    courseId: "course-1",
+    userId: "student-1",
+    artifactId: quizRes.artifact.id,
+    payload: {
+      kind: "quiz",
+      answers: { "q-1": 1, "q-2": 0 },
+      currentIndex: 1,
+      completed: true,
+    },
+  });
+
+  assert.equal(savedAttempt.structuredData?.kind, "QUIZ");
+  assert.ok(savedAttempt.structuredData?.attempt?.completedAt);
+  assert.equal(savedAttempt.structuredData?.attempt?.evaluation?.correctCount, 1);
+  assert.equal(savedAttempt.structuredData?.attempt?.evaluation?.wrongCount, 1);
+
+  const resetAttempt = await h.studio.saveTutorStudioProgress({
+    courseId: "course-1",
+    userId: "student-1",
+    artifactId: quizRes.artifact.id,
+    payload: {
+      kind: "quiz",
+      answers: {},
+      currentIndex: 0,
+      reset: true,
+    },
+  });
+
+  assert.equal(resetAttempt.structuredData?.kind, "QUIZ");
+  assert.equal(resetAttempt.structuredData?.attempt, undefined);
+
+  // Plain Markdown fallback still generates QUIZ without crashing when LLM does not output JSON
+  const fallbackHarness = await createStudioHarness(t, {
+    generatedText: "# Kuis Fallback\n1. Apa itu rekursi? [Sumber 1]",
+  });
+  const fallbackRes = await fallbackHarness.studio.generateTutorStudioArtifact({
+    courseId: "course-1",
+    userId: "student-1",
+    type: "QUIZ",
+    chatSessionId: "chat-1",
+  });
+  assert.equal(fallbackRes.artifact.structuredData, null);
+  assert.match(fallbackRes.artifact.content, /Apa itu rekursi\?/);
+
+  // Flashcards structured generation & progress update
+  const cardsPayload = JSON.stringify({
+    title: "Flashcard Rekursi & Stack",
+    cards: [
+      {
+        id: "card-1",
+        topic: "Base Case",
+        front: "Kapan fungsi rekursif berhenti?",
+        back: "Ketika kondisi base case terpenuhi.",
+        sourceNumbers: [1],
+      },
+      {
+        id: "card-2",
+        topic: "Stack Frame",
+        front: "Apa isi stack frame?",
+        back: "Parameter, alamat kembali, dan variabel lokal.",
+        sourceNumbers: [1],
+      },
+    ],
+  });
+  const cardsHarness = await createStudioHarness(t, { generatedText: cardsPayload });
+  const cardsRes = await cardsHarness.studio.generateTutorStudioArtifact({
+    courseId: "course-1",
+    userId: "student-1",
+    type: "FLASHCARDS",
+    chatSessionId: "chat-1",
+  });
+
+  assert.equal(cardsRes.artifact.structuredData?.kind, "FLASHCARDS");
+  assert.equal(cardsRes.artifact.structuredData?.cards.length, 2);
+
+  const cardsProgress = await cardsHarness.studio.saveTutorStudioProgress({
+    courseId: "course-1",
+    userId: "student-1",
+    artifactId: cardsRes.artifact.id,
+    payload: {
+      kind: "flashcards",
+      trackLearning: true,
+      statusByCardId: { "card-1": "known", "card-2": "review" },
+      currentIndex: 1,
+    },
+  });
+
+  assert.equal(cardsProgress.structuredData?.kind, "FLASHCARDS");
+  assert.equal(cardsProgress.structuredData?.progress?.trackLearning, true);
+  assert.equal(cardsProgress.structuredData?.progress?.statusByCardId["card-1"], "known");
+  assert.equal(cardsProgress.structuredData?.progress?.currentIndex, 1);
 });

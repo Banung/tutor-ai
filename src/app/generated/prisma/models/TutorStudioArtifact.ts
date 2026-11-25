@@ -59,6 +59,7 @@ export type TutorStudioArtifactCountAggregateOutputType = {
   type: number
   title: number
   content: number
+  structuredData: number
   sources: number
   materialIds: number
   materialTitles: number
@@ -103,6 +104,7 @@ export type TutorStudioArtifactCountAggregateInputType = {
   type?: true
   title?: true
   content?: true
+  structuredData?: true
   sources?: true
   materialIds?: true
   materialTitles?: true
@@ -192,6 +194,7 @@ export type TutorStudioArtifactGroupByOutputType = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData: runtime.JsonValue | null
   sources: runtime.JsonValue
   materialIds: runtime.JsonValue
   materialTitles: runtime.JsonValue
@@ -229,6 +232,7 @@ export type TutorStudioArtifactWhereInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFilter<"TutorStudioArtifact"> | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFilter<"TutorStudioArtifact"> | string
   content?: Prisma.StringFilter<"TutorStudioArtifact"> | string
+  structuredData?: Prisma.JsonNullableFilter<"TutorStudioArtifact">
   sources?: Prisma.JsonFilter<"TutorStudioArtifact">
   materialIds?: Prisma.JsonFilter<"TutorStudioArtifact">
   materialTitles?: Prisma.JsonFilter<"TutorStudioArtifact">
@@ -248,6 +252,7 @@ export type TutorStudioArtifactOrderByWithRelationInput = {
   type?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  structuredData?: Prisma.SortOrderInput | Prisma.SortOrder
   sources?: Prisma.SortOrder
   materialIds?: Prisma.SortOrder
   materialTitles?: Prisma.SortOrder
@@ -270,6 +275,7 @@ export type TutorStudioArtifactWhereUniqueInput = Prisma.AtLeast<{
   type?: Prisma.EnumTutorStudioArtifactTypeFilter<"TutorStudioArtifact"> | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFilter<"TutorStudioArtifact"> | string
   content?: Prisma.StringFilter<"TutorStudioArtifact"> | string
+  structuredData?: Prisma.JsonNullableFilter<"TutorStudioArtifact">
   sources?: Prisma.JsonFilter<"TutorStudioArtifact">
   materialIds?: Prisma.JsonFilter<"TutorStudioArtifact">
   materialTitles?: Prisma.JsonFilter<"TutorStudioArtifact">
@@ -289,6 +295,7 @@ export type TutorStudioArtifactOrderByWithAggregationInput = {
   type?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  structuredData?: Prisma.SortOrderInput | Prisma.SortOrder
   sources?: Prisma.SortOrder
   materialIds?: Prisma.SortOrder
   materialTitles?: Prisma.SortOrder
@@ -311,6 +318,7 @@ export type TutorStudioArtifactScalarWhereWithAggregatesInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeWithAggregatesFilter<"TutorStudioArtifact"> | $Enums.TutorStudioArtifactType
   title?: Prisma.StringWithAggregatesFilter<"TutorStudioArtifact"> | string
   content?: Prisma.StringWithAggregatesFilter<"TutorStudioArtifact"> | string
+  structuredData?: Prisma.JsonNullableWithAggregatesFilter<"TutorStudioArtifact">
   sources?: Prisma.JsonWithAggregatesFilter<"TutorStudioArtifact">
   materialIds?: Prisma.JsonWithAggregatesFilter<"TutorStudioArtifact">
   materialTitles?: Prisma.JsonWithAggregatesFilter<"TutorStudioArtifact">
@@ -324,6 +332,7 @@ export type TutorStudioArtifactCreateInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -343,6 +352,7 @@ export type TutorStudioArtifactUncheckedCreateInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -356,6 +366,7 @@ export type TutorStudioArtifactUpdateInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -375,6 +386,7 @@ export type TutorStudioArtifactUncheckedUpdateInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -391,6 +403,7 @@ export type TutorStudioArtifactCreateManyInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -404,6 +417,7 @@ export type TutorStudioArtifactUpdateManyMutationInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -420,6 +434,7 @@ export type TutorStudioArtifactUncheckedUpdateManyInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -446,6 +461,7 @@ export type TutorStudioArtifactCountOrderByAggregateInput = {
   type?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  structuredData?: Prisma.SortOrder
   sources?: Prisma.SortOrder
   materialIds?: Prisma.SortOrder
   materialTitles?: Prisma.SortOrder
@@ -615,6 +631,7 @@ export type TutorStudioArtifactCreateWithoutUserInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -632,6 +649,7 @@ export type TutorStudioArtifactUncheckedCreateWithoutUserInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -677,6 +695,7 @@ export type TutorStudioArtifactScalarWhereInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFilter<"TutorStudioArtifact"> | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFilter<"TutorStudioArtifact"> | string
   content?: Prisma.StringFilter<"TutorStudioArtifact"> | string
+  structuredData?: Prisma.JsonNullableFilter<"TutorStudioArtifact">
   sources?: Prisma.JsonFilter<"TutorStudioArtifact">
   materialIds?: Prisma.JsonFilter<"TutorStudioArtifact">
   materialTitles?: Prisma.JsonFilter<"TutorStudioArtifact">
@@ -690,6 +709,7 @@ export type TutorStudioArtifactCreateWithoutCourseInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -707,6 +727,7 @@ export type TutorStudioArtifactUncheckedCreateWithoutCourseInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -746,6 +767,7 @@ export type TutorStudioArtifactCreateWithoutChatSessionInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -763,6 +785,7 @@ export type TutorStudioArtifactUncheckedCreateWithoutChatSessionInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -804,6 +827,7 @@ export type TutorStudioArtifactCreateManyUserInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -817,6 +841,7 @@ export type TutorStudioArtifactUpdateWithoutUserInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -834,6 +859,7 @@ export type TutorStudioArtifactUncheckedUpdateWithoutUserInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -849,6 +875,7 @@ export type TutorStudioArtifactUncheckedUpdateManyWithoutUserInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -864,6 +891,7 @@ export type TutorStudioArtifactCreateManyCourseInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -877,6 +905,7 @@ export type TutorStudioArtifactUpdateWithoutCourseInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -894,6 +923,7 @@ export type TutorStudioArtifactUncheckedUpdateWithoutCourseInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -909,6 +939,7 @@ export type TutorStudioArtifactUncheckedUpdateManyWithoutCourseInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -924,6 +955,7 @@ export type TutorStudioArtifactCreateManyChatSessionInput = {
   type: $Enums.TutorStudioArtifactType
   title: string
   content: string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -937,6 +969,7 @@ export type TutorStudioArtifactUpdateWithoutChatSessionInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -954,6 +987,7 @@ export type TutorStudioArtifactUncheckedUpdateWithoutChatSessionInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -969,6 +1003,7 @@ export type TutorStudioArtifactUncheckedUpdateManyWithoutChatSessionInput = {
   type?: Prisma.EnumTutorStudioArtifactTypeFieldUpdateOperationsInput | $Enums.TutorStudioArtifactType
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  structuredData?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   sources?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialIds?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   materialTitles?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -987,6 +1022,7 @@ export type TutorStudioArtifactSelect<ExtArgs extends runtime.Types.Extensions.I
   type?: boolean
   title?: boolean
   content?: boolean
+  structuredData?: boolean
   sources?: boolean
   materialIds?: boolean
   materialTitles?: boolean
@@ -1006,6 +1042,7 @@ export type TutorStudioArtifactSelectCreateManyAndReturn<ExtArgs extends runtime
   type?: boolean
   title?: boolean
   content?: boolean
+  structuredData?: boolean
   sources?: boolean
   materialIds?: boolean
   materialTitles?: boolean
@@ -1025,6 +1062,7 @@ export type TutorStudioArtifactSelectUpdateManyAndReturn<ExtArgs extends runtime
   type?: boolean
   title?: boolean
   content?: boolean
+  structuredData?: boolean
   sources?: boolean
   materialIds?: boolean
   materialTitles?: boolean
@@ -1044,6 +1082,7 @@ export type TutorStudioArtifactSelectScalar = {
   type?: boolean
   title?: boolean
   content?: boolean
+  structuredData?: boolean
   sources?: boolean
   materialIds?: boolean
   materialTitles?: boolean
@@ -1051,7 +1090,7 @@ export type TutorStudioArtifactSelectScalar = {
   updatedAt?: boolean
 }
 
-export type TutorStudioArtifactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "courseId" | "userId" | "chatSessionId" | "sourceMessageId" | "type" | "title" | "content" | "sources" | "materialIds" | "materialTitles" | "createdAt" | "updatedAt", ExtArgs["result"]["tutorStudioArtifact"]>
+export type TutorStudioArtifactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "courseId" | "userId" | "chatSessionId" | "sourceMessageId" | "type" | "title" | "content" | "structuredData" | "sources" | "materialIds" | "materialTitles" | "createdAt" | "updatedAt", ExtArgs["result"]["tutorStudioArtifact"]>
 export type TutorStudioArtifactInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1084,6 +1123,7 @@ export type $TutorStudioArtifactPayload<ExtArgs extends runtime.Types.Extensions
     type: $Enums.TutorStudioArtifactType
     title: string
     content: string
+    structuredData: runtime.JsonValue | null
     sources: runtime.JsonValue
     materialIds: runtime.JsonValue
     materialTitles: runtime.JsonValue
@@ -1523,6 +1563,7 @@ export interface TutorStudioArtifactFieldRefs {
   readonly type: Prisma.FieldRef<"TutorStudioArtifact", 'TutorStudioArtifactType'>
   readonly title: Prisma.FieldRef<"TutorStudioArtifact", 'String'>
   readonly content: Prisma.FieldRef<"TutorStudioArtifact", 'String'>
+  readonly structuredData: Prisma.FieldRef<"TutorStudioArtifact", 'Json'>
   readonly sources: Prisma.FieldRef<"TutorStudioArtifact", 'Json'>
   readonly materialIds: Prisma.FieldRef<"TutorStudioArtifact", 'Json'>
   readonly materialTitles: Prisma.FieldRef<"TutorStudioArtifact", 'Json'>

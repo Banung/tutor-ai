@@ -3466,6 +3466,7 @@ export const TutorStudioArtifactScalarFieldEnum = {
   type: 'type',
   title: 'title',
   content: 'content',
+  structuredData: 'structuredData',
   sources: 'sources',
   materialIds: 'materialIds',
   materialTitles: 'materialTitles',
