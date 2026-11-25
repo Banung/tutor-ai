@@ -11,8 +11,9 @@ export async function GET(request: NextRequest) {
   const { error } = await requireAdmin(request);
   if (error) return error;
 
-  const facultyId = request.nextUrl.searchParams.get("facultyId") || undefined;
-  return NextResponse.json(await listStudyPrograms(facultyId));
+  const facultyId = request.nextUrl.searchParams.get("facultyId")?.trim() || undefined;
+  const search = request.nextUrl.searchParams.get("search")?.trim() || undefined;
+  return NextResponse.json(await listStudyPrograms(facultyId, search));
 }
 
 export async function POST(request: NextRequest) {

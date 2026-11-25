@@ -1,3 +1,4 @@
+import type { Prisma } from "@/app/generated/prisma/client";
 import prisma from "@/lib/prisma";
 
 export class AcademicReferenceError extends Error {
@@ -36,11 +37,29 @@ export async function createFaculty(name: string) {
   }
 }
 
-export async function listStudyPrograms(facultyId?: string) {
+export async function listStudyPrograms(facultyId?: string, search?: string) {
+  const trimmedFacultyId = facultyId?.trim();
+  const trimmedSearch = search?.trim();
+
+  const where: Prisma.StudyProgramWhereInput = {};
+  if (trimmedFacultyId) {
+    where.facultyId = trimmedFacultyId;
+  }
+  if (trimmedSearch) {
+    where.OR = [
+      { name: { contains: trimmedSearch, mode: "insensitive" } },
+      { code: { contains: trimmedSearch, mode: "insensitive" } },
+      { faculty: { name: { contains: trimmedSearch, mode: "insensitive" } } },
+    ];
+  }
+
   return prisma.studyProgram.findMany({
-    where: facultyId ? { facultyId } : {},
-    include: { faculty: { select: { id: true, name: true } } },
-    orderBy: { name: "asc" },
+    where,
+    include: {
+      faculty: { select: { id: true, name: true, code: true } },
+      _count: { select: { courses: true } },
+    },
+    orderBy: [{ faculty: { name: "asc" } }, { name: "asc" }],
   });
 }
 
