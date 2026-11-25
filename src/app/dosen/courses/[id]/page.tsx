@@ -24,6 +24,7 @@ import { SessionCard } from "./session-card";
 import { StudentListDialog } from "./student-list-dialog";
 import { CourseKeyConfirmDialog } from "./course-key-confirm-dialog";
 import { StatusToggleButton } from "./status-toggle-button";
+import { CourseHeroCard } from "@/components/courses/course-hero-card";
 import { CourseInvitationButton } from "@/components/courses/course-invitation-button";
 import type { CourseDetail, SessionItem } from "./types";
 
@@ -341,22 +342,12 @@ export default function DosenCourseDetailPage() {
       </Button>
 
       <div className="flex flex-col gap-6">
-        <div className="relative min-h-[360px] overflow-hidden rounded-xl border bg-card shadow-sm">
-          <div
-            className="absolute inset-0 bg-muted bg-cover bg-center"
-            style={{ backgroundImage: `url("${course.coverImage ?? ""}")` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10" />
-          <div className="absolute inset-x-0 bottom-0 flex flex-col gap-5 p-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight drop-shadow-[0_1px_1px_rgba(255,255,255,0.85)]">{course.title}</h1>
-              </div>
-              {course.description && (
-                <p className="mt-2 max-w-3xl text-foreground/70 leading-relaxed whitespace-pre-wrap break-words drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">{course.description}</p>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+        <CourseHeroCard
+          title={course.title}
+          description={course.description}
+          coverImage={course.coverImage}
+          actions={
+            <>
               <StatusToggleButton
                 active={course.isActive}
                 onClick={() => setCourseAction({ type: "toggle", nextActive: !course.isActive })}
@@ -383,9 +374,9 @@ export default function DosenCourseDetailPage() {
                 <Trash2 data-icon="inline-start" />
                 Hapus
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-border/70 shadow-sm">
