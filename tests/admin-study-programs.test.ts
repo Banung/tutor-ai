@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { NextRequest } from "next/server";
 import {
+  createFacultySchema,
   createStudyProgramSchema,
+  updateFacultySchema,
   updateStudyProgramSchema,
 } from "../src/lib/schemas/course.schema";
 
@@ -862,6 +864,547 @@ test("DELETE /api/admin/academic/study-programs/[id] handles auth, 404, 409, and
           method: "DELETE",
         }),
         makeRouteContext("sp-1")
+      );
+      assert.equal(ok.status, 200);
+      assert.deepEqual(await ok.json(), { success: true });
+    } finally {
+      restoreDeleteOk();
+      restoreFindOk();
+    }
+  } finally {
+    restoreSession();
+  }
+});
+
+const EXPECTED_FACULTY_INCLUDE = {
+  studyPrograms: {
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  },
+};
+
+test("createFacultySchema normalizes optional code and rejects invalid codes", () => {
+  const withCode = createFacultySchema.parse({
+    name: " Fakultas Teknik ",
+    code: " ft_01-a ",
+  });
+  assert.deepEqual(withCode, {
+    name: "Fakultas Teknik",
+    code: "FT_01-A",
+  });
+
+  const blankCode = createFacultySchema.parse({
+    name: "Fakultas Teknik",
+    code: "   ",
+  });
+  assert.equal(blankCode.code, null);
+
+  const nullCode = createFacultySchema.parse({
+    name: "Fakultas Teknik",
+    code: null,
+  });
+  assert.equal(nullCode.code, null);
+
+  const omittedCode = createFacultySchema.parse({
+    name: "Fakultas Teknik",
+  });
+  assert.equal(omittedCode.code, undefined);
+
+  for (const invalidCode of ["A", "A".repeat(21), "-FT", "_FT", "FT 1", "FT@1"]) {
+    assert.equal(
+      createFacultySchema.safeParse({
+        name: "Fakultas Teknik",
+        code: invalidCode,
+      }).success,
+      false,
+      `expected faculty code ${invalidCode} to be rejected`
+    );
+  }
+});
+
+test("updateFacultySchema allows partial updates and rejects empty or unknown payloads", () => {
+  assert.deepEqual(updateFacultySchema.parse({ name: "  Fakultas Sains  " }), {
+    name: "Fakultas Sains",
+  });
+  assert.deepEqual(updateFacultySchema.parse({ code: " fs-01 " }), {
+    code: "FS-01",
+  });
+  assert.deepEqual(updateFacultySchema.parse({ code: "" }), {
+    code: null,
+  });
+
+  assert.equal(updateFacultySchema.safeParse({}).success, false);
+  assert.equal(
+    updateFacultySchema.safeParse({ name: "Valid", unknownField: "x" }).success,
+    false
+  );
+  assert.equal(updateFacultySchema.safeParse({ code: "x" }).success, false);
+});
+
+test("createFaculty() supports code and distinguishes duplicate name vs duplicate code (409)", async () => {
+  const { prisma, academicService } = await loadDeps();
+
+  const createdSample = {
+    id: "fac-new",
+    name: "Fakultas Teknik",
+    code: "FT",
+    studyPrograms: [],
+  };
+
+  let createArgs: unknown = null;
+  const restoreCreate = replaceMethod(prisma.faculty, "create", async (args: unknown) => {
+    createArgs = args;
+    return createdSample;
+  });
+
+  try {
+    const created = await academicService.createFaculty(" Fakultas Teknik ", "FT");
+    assert.deepEqual(created, createdSample);
+    assert.deepEqual(
+      (createArgs as { include: unknown }).include,
+      EXPECTED_FACULTY_INCLUDE
+    );
+    assert.equal(
+      (createArgs as { data: Record<string, unknown> }).data.name,
+      "Fakultas Teknik"
+    );
+    assert.equal((createArgs as { data: Record<string, unknown> }).data.code, "FT");
+
+    const restoreDupCode = replaceMethod(prisma.faculty, "create", async () => {
+      throw { code: "P2002", meta: { target: ["code"] } };
+    });
+    try {
+      await assert.rejects(
+        () => academicService.createFaculty("Fakultas Teknik", "FT"),
+        (err: unknown) =>
+          err instanceof academicService.AcademicReferenceError &&
+          err.status === 409 &&
+          err.message === "Kode fakultas tersebut sudah digunakan."
+      );
+    } finally {
+      restoreDupCode();
+    }
+
+    const restoreDupName = replaceMethod(prisma.faculty, "create", async () => {
+      throw { code: "P2002", meta: { target: ["name"] } };
+    });
+    try {
+      await assert.rejects(
+        () => academicService.createFaculty("Fakultas Teknik"),
+        (err: unknown) =>
+          err instanceof academicService.AcademicReferenceError &&
+          err.status === 409 &&
+          err.message === "Fakultas dengan nama tersebut sudah ada."
+      );
+    } finally {
+      restoreDupName();
+    }
+  } finally {
+    restoreCreate();
+  }
+});
+
+test("updateFaculty() updates fields, checks existence (404), and distinguishes name/code conflicts (409)", async () => {
+  const { prisma, academicService } = await loadDeps();
+
+  const updatedRow = {
+    id: "fac-1",
+    name: "Fakultas Ilmu Komputer",
+    code: "FIK",
+    studyPrograms: [{ id: "sp-1", name: "Informatika" }],
+  };
+  let updateArgs: unknown = null;
+
+  const restoreFind = replaceMethod(prisma.faculty, "findUnique", async (args: unknown) => {
+    const { where } = args as { where: { id: string } };
+    return where.id === "fac-1" ? { id: "fac-1" } : null;
+  });
+  const restoreUpdate = replaceMethod(prisma.faculty, "update", async (args: unknown) => {
+    updateArgs = args;
+    return updatedRow;
+  });
+
+  try {
+    const result = await academicService.updateFaculty("fac-1", {
+      name: "  Fakultas Ilmu Komputer  ",
+      code: "FIK",
+    });
+    assert.deepEqual(result, updatedRow);
+    assert.deepEqual(updateArgs, {
+      where: { id: "fac-1" },
+      data: { name: "Fakultas Ilmu Komputer", code: "FIK" },
+      include: EXPECTED_FACULTY_INCLUDE,
+    });
+
+    await assert.rejects(
+      () => academicService.updateFaculty("missing-fac", { name: "Baru" }),
+      (err: unknown) =>
+        err instanceof academicService.AcademicReferenceError &&
+        err.status === 404 &&
+        err.message === "Fakultas tidak ditemukan."
+    );
+
+    const restoreDupCode = replaceMethod(prisma.faculty, "update", async () => {
+      throw { code: "P2002", meta: { target: ["code"] } };
+    });
+    try {
+      await assert.rejects(
+        () => academicService.updateFaculty("fac-1", { code: "DUP" }),
+        (err: unknown) =>
+          err instanceof academicService.AcademicReferenceError &&
+          err.status === 409 &&
+          err.message === "Kode fakultas tersebut sudah digunakan."
+      );
+    } finally {
+      restoreDupCode();
+    }
+
+    const restoreDupName = replaceMethod(prisma.faculty, "update", async () => {
+      throw { code: "P2002", meta: { target: ["name"] } };
+    });
+    try {
+      await assert.rejects(
+        () => academicService.updateFaculty("fac-1", { name: "Duplikat" }),
+        (err: unknown) =>
+          err instanceof academicService.AcademicReferenceError &&
+          err.status === 409 &&
+          err.message === "Fakultas dengan nama tersebut sudah ada."
+      );
+    } finally {
+      restoreDupName();
+    }
+  } finally {
+    restoreUpdate();
+    restoreFind();
+  }
+});
+
+test("deleteFaculty() deletes unused faculties and blocks deletion when study programs exist or on P2003", async () => {
+  const { prisma, academicService } = await loadDeps();
+
+  let deletedWhere: unknown = null;
+  const countsById: Record<string, { studyPrograms: number }> = {
+    "fac-free": { studyPrograms: 0 },
+    "fac-busy": { studyPrograms: 2 },
+    "fac-fk": { studyPrograms: 0 },
+  };
+
+  const restoreFind = replaceMethod(prisma.faculty, "findUnique", async (args: unknown) => {
+    const { where } = args as { where: { id: string } };
+    const counts = countsById[where.id];
+    return counts ? { id: where.id, _count: counts } : null;
+  });
+  const restoreDelete = replaceMethod(prisma.faculty, "delete", async (args: unknown) => {
+    const { where } = args as { where: { id: string } };
+    if (where.id === "fac-fk") {
+      throw { code: "P2003" };
+    }
+    deletedWhere = where;
+    return { id: where.id };
+  });
+
+  try {
+    const res = await academicService.deleteFaculty("fac-free");
+    assert.deepEqual(res, { success: true });
+    assert.deepEqual(deletedWhere, { id: "fac-free" });
+
+    await assert.rejects(
+      () => academicService.deleteFaculty("missing-fac"),
+      (err: unknown) =>
+        err instanceof academicService.AcademicReferenceError &&
+        err.status === 404 &&
+        err.message === "Fakultas tidak ditemukan."
+    );
+
+    await assert.rejects(
+      () => academicService.deleteFaculty("fac-busy"),
+      (err: unknown) =>
+        err instanceof academicService.AcademicReferenceError &&
+        err.status === 409 &&
+        err.message === "Fakultas tidak dapat dihapus karena masih memiliki program studi terkait."
+    );
+
+    await assert.rejects(
+      () => academicService.deleteFaculty("fac-fk"),
+      (err: unknown) =>
+        err instanceof academicService.AcademicReferenceError &&
+        err.status === 409 &&
+        err.message === "Fakultas tidak dapat dihapus karena masih memiliki program studi terkait."
+    );
+  } finally {
+    restoreDelete();
+    restoreFind();
+  }
+});
+
+test("POST /api/admin/academic/faculties forwards normalized code and returns 201", async () => {
+  const { prisma } = await loadDeps();
+  const { POST } = await import("../src/app/api/admin/academic/faculties/route");
+
+  let capturedData: unknown = null;
+  const created = {
+    id: "fac-1",
+    name: "Fakultas Teknik",
+    code: "FT-01",
+    studyPrograms: [],
+  };
+
+  const restoreSession = await withSession({
+    id: "admin-1",
+    role: "admin",
+    isActive: true,
+    isFrozen: false,
+  });
+  const restoreCreate = replaceMethod(prisma.faculty, "create", async (args: unknown) => {
+    capturedData = (args as { data: Record<string, unknown> }).data;
+    return created;
+  });
+
+  try {
+    const res = await POST(
+      new NextRequest("http://localhost/api/admin/academic/faculties", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: "Fakultas Teknik",
+          code: " ft-01 ",
+        }),
+      })
+    );
+    assert.equal(res.status, 201);
+    assert.deepEqual(await res.json(), created);
+    assert.equal((capturedData as { code?: unknown } | null)?.code, "FT-01");
+  } finally {
+    restoreCreate();
+    restoreSession();
+  }
+});
+
+test("PATCH /api/admin/academic/faculties/[id] handles auth, validation, 404, 409, and 200", async () => {
+  const { prisma } = await loadDeps();
+  const { PATCH } = await import("../src/app/api/admin/academic/faculties/[id]/route");
+
+  const updatedRow = {
+    id: "fac-1",
+    name: "Fakultas Teknik",
+    code: "FT",
+    studyPrograms: [{ id: "sp-1", name: "Informatika" }],
+  };
+
+  let restoreSession = await withSession(null);
+  try {
+    const unauth = await PATCH(
+      new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+        method: "PATCH",
+        body: JSON.stringify({ name: "Fakultas Teknik" }),
+      }),
+      makeRouteContext("fac-1")
+    );
+    assert.equal(unauth.status, 401);
+  } finally {
+    restoreSession();
+  }
+
+  restoreSession = await withSession({
+    id: "user-2",
+    role: "dosen",
+    isActive: true,
+    isFrozen: false,
+  });
+  try {
+    const forbidden = await PATCH(
+      new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+        method: "PATCH",
+        body: JSON.stringify({ name: "Fakultas Teknik" }),
+      }),
+      makeRouteContext("fac-1")
+    );
+    assert.equal(forbidden.status, 403);
+  } finally {
+    restoreSession();
+  }
+
+  restoreSession = await withSession({
+    id: "admin-1",
+    role: "admin",
+    isActive: true,
+    isFrozen: false,
+  });
+  try {
+    const badJson = await PATCH(
+      new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+        method: "PATCH",
+        body: "{invalid",
+      }),
+      makeRouteContext("fac-1")
+    );
+    assert.equal(badJson.status, 400);
+
+    const badSchema = await PATCH(
+      new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+        method: "PATCH",
+        body: JSON.stringify({}),
+      }),
+      makeRouteContext("fac-1")
+    );
+    assert.equal(badSchema.status, 400);
+    const badSchemaBody = await badSchema.json();
+    assert.equal(typeof badSchemaBody.error, "string");
+    assert.ok(Array.isArray(badSchemaBody.issues));
+
+    const restoreMissing = replaceMethod(prisma.faculty, "findUnique", async () => null);
+    try {
+      const notFound = await PATCH(
+        new NextRequest("http://localhost/api/admin/academic/faculties/missing", {
+          method: "PATCH",
+          body: JSON.stringify({ name: "Baru" }),
+        }),
+        makeRouteContext("missing")
+      );
+      assert.equal(notFound.status, 404);
+    } finally {
+      restoreMissing();
+    }
+
+    const restoreFind = replaceMethod(
+      prisma.faculty,
+      "findUnique",
+      async () => ({ id: "fac-1" })
+    );
+    const restoreConflict = replaceMethod(prisma.faculty, "update", async () => {
+      throw { code: "P2002", meta: { target: ["code"] } };
+    });
+    try {
+      const conflict = await PATCH(
+        new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+          method: "PATCH",
+          body: JSON.stringify({ code: "FT" }),
+        }),
+        makeRouteContext("fac-1")
+      );
+      assert.equal(conflict.status, 409);
+    } finally {
+      restoreConflict();
+      restoreFind();
+    }
+
+    const restoreFindOk = replaceMethod(
+      prisma.faculty,
+      "findUnique",
+      async () => ({ id: "fac-1" })
+    );
+    const restoreUpdateOk = replaceMethod(
+      prisma.faculty,
+      "update",
+      async () => updatedRow
+    );
+    try {
+      const ok = await PATCH(
+        new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+          method: "PATCH",
+          body: JSON.stringify({ name: "Fakultas Teknik", code: "ft" }),
+        }),
+        makeRouteContext("fac-1")
+      );
+      assert.equal(ok.status, 200);
+      assert.deepEqual(await ok.json(), updatedRow);
+    } finally {
+      restoreUpdateOk();
+      restoreFindOk();
+    }
+  } finally {
+    restoreSession();
+  }
+});
+
+test("DELETE /api/admin/academic/faculties/[id] handles auth, 404, 409, and 200", async () => {
+  const { prisma } = await loadDeps();
+  const { DELETE } = await import("../src/app/api/admin/academic/faculties/[id]/route");
+
+  let restoreSession = await withSession(null);
+  try {
+    const unauth = await DELETE(
+      new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+        method: "DELETE",
+      }),
+      makeRouteContext("fac-1")
+    );
+    assert.equal(unauth.status, 401);
+  } finally {
+    restoreSession();
+  }
+
+  restoreSession = await withSession({
+    id: "user-2",
+    role: "dosen",
+    isActive: true,
+    isFrozen: false,
+  });
+  try {
+    const forbidden = await DELETE(
+      new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+        method: "DELETE",
+      }),
+      makeRouteContext("fac-1")
+    );
+    assert.equal(forbidden.status, 403);
+  } finally {
+    restoreSession();
+  }
+
+  restoreSession = await withSession({
+    id: "admin-1",
+    role: "admin",
+    isActive: true,
+    isFrozen: false,
+  });
+  try {
+    const restoreMissing = replaceMethod(prisma.faculty, "findUnique", async () => null);
+    try {
+      const notFound = await DELETE(
+        new NextRequest("http://localhost/api/admin/academic/faculties/missing", {
+          method: "DELETE",
+        }),
+        makeRouteContext("missing")
+      );
+      assert.equal(notFound.status, 404);
+    } finally {
+      restoreMissing();
+    }
+
+    const restoreInUse = replaceMethod(
+      prisma.faculty,
+      "findUnique",
+      async () => ({ id: "fac-1", _count: { studyPrograms: 1 } })
+    );
+    try {
+      const conflict = await DELETE(
+        new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+          method: "DELETE",
+        }),
+        makeRouteContext("fac-1")
+      );
+      assert.equal(conflict.status, 409);
+    } finally {
+      restoreInUse();
+    }
+
+    const restoreFindOk = replaceMethod(
+      prisma.faculty,
+      "findUnique",
+      async () => ({ id: "fac-1", _count: { studyPrograms: 0 } })
+    );
+    const restoreDeleteOk = replaceMethod(
+      prisma.faculty,
+      "delete",
+      async () => ({ id: "fac-1" })
+    );
+    try {
+      const ok = await DELETE(
+        new NextRequest("http://localhost/api/admin/academic/faculties/fac-1", {
+          method: "DELETE",
+        }),
+        makeRouteContext("fac-1")
       );
       assert.equal(ok.status, 200);
       assert.deepEqual(await ok.json(), { success: true });

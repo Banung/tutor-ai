@@ -69,22 +69,50 @@ export const enrollStudentSchema = z.object({
   userId: z.string().min(1, "User ID wajib diisi"),
 });
 
+function normalizeOptionalCode(value: unknown) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed === "" ? null : trimmed.toUpperCase();
+  }
+  return value;
+}
+
+export const facultyCodeSchema = z.preprocess(
+  normalizeOptionalCode,
+  z
+    .string()
+    .regex(
+      /^[A-Z0-9][A-Z0-9_-]{1,19}$/,
+      "Kode fakultas harus 2–20 karakter huruf/angka, tanda hubung, atau garis bawah."
+    )
+    .nullable()
+    .optional()
+);
+
 export const createFacultySchema = z
   .object({
     name: z.string().trim().min(1, "Nama fakultas wajib diisi.").max(150),
+    code: facultyCodeSchema,
   })
   .strict();
 
+export const updateFacultySchema = z
+  .object({
+    name: z.string().trim().min(1, "Nama fakultas wajib diisi.").max(150).optional(),
+    code: facultyCodeSchema,
+  })
+  .strict()
+  .refine(
+    (data) => data.name !== undefined || data.code !== undefined,
+    "Minimal satu perubahan harus diisi."
+  );
+
+export type UpdateFacultyInput = z.infer<typeof updateFacultySchema>;
+
 export const studyProgramCodeSchema = z.preprocess(
-  (value) => {
-    if (value === undefined) return undefined;
-    if (value === null) return null;
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      return trimmed === "" ? null : trimmed.toUpperCase();
-    }
-    return value;
-  },
+  normalizeOptionalCode,
   z
     .string()
     .regex(

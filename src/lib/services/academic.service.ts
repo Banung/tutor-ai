@@ -1,6 +1,9 @@
 import type { Prisma } from "@/app/generated/prisma/client";
 import prisma from "@/lib/prisma";
-import type { UpdateStudyProgramInput } from "@/lib/schemas/course.schema";
+import type {
+  UpdateFacultyInput,
+  UpdateStudyProgramInput,
+} from "@/lib/schemas/course.schema";
 
 export class AcademicReferenceError extends Error {
   constructor(message: string, readonly status = 400) {
@@ -21,18 +24,34 @@ function isRecordNotFoundError(error: unknown) {
   return (error as { code?: string })?.code === "P2025";
 }
 
-function studyProgramConflictMessage(error: unknown) {
+function extractUniqueTarget(error: unknown) {
   const target = (error as { meta?: { target?: unknown } })?.meta?.target;
-  const targetText = Array.isArray(target)
-    ? target.map((item) => String(item)).join(",")
-    : typeof target === "string"
-      ? target
-      : "";
-  if (targetText.toLowerCase().includes("code")) {
+  if (Array.isArray(target)) {
+    return target.map((item) => String(item)).join(",");
+  }
+  return typeof target === "string" ? target : "";
+}
+
+function facultyConflictMessage(error: unknown) {
+  if (extractUniqueTarget(error).toLowerCase().includes("code")) {
+    return "Kode fakultas tersebut sudah digunakan.";
+  }
+  return "Fakultas dengan nama tersebut sudah ada.";
+}
+
+function studyProgramConflictMessage(error: unknown) {
+  if (extractUniqueTarget(error).toLowerCase().includes("code")) {
     return "Kode program studi tersebut sudah digunakan pada fakultas ini.";
   }
   return "Program studi dengan nama tersebut sudah ada pada fakultas ini.";
 }
+
+const facultyInclude = {
+  studyPrograms: {
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  },
+} as const;
 
 const studyProgramInclude = {
   faculty: { select: { id: true, name: true, code: true } },
@@ -41,24 +60,86 @@ const studyProgramInclude = {
 
 export async function listFaculties() {
   return prisma.faculty.findMany({
-    include: {
-      studyPrograms: {
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      },
-    },
+    include: facultyInclude,
     orderBy: { name: "asc" },
   });
 }
 
-export async function createFaculty(name: string) {
+export async function createFaculty(name: string, code?: string | null) {
   try {
     return await prisma.faculty.create({
-      data: { id: crypto.randomUUID(), name: name.trim() },
+      data: {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        ...(code !== undefined && { code }),
+      },
+      include: facultyInclude,
     });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
-      throw new AcademicReferenceError("Fakultas dengan nama tersebut sudah ada.", 409);
+      throw new AcademicReferenceError(facultyConflictMessage(error), 409);
+    }
+    throw error;
+  }
+}
+
+export async function updateFaculty(id: string, data: UpdateFacultyInput) {
+  const existing = await prisma.faculty.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!existing) {
+    throw new AcademicReferenceError("Fakultas tidak ditemukan.", 404);
+  }
+
+  try {
+    return await prisma.faculty.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name.trim() }),
+        ...(data.code !== undefined && { code: data.code }),
+      },
+      include: facultyInclude,
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new AcademicReferenceError(facultyConflictMessage(error), 409);
+    }
+    if (isRecordNotFoundError(error)) {
+      throw new AcademicReferenceError("Fakultas tidak ditemukan.", 404);
+    }
+    throw error;
+  }
+}
+
+export async function deleteFaculty(id: string) {
+  const existing = await prisma.faculty.findUnique({
+    where: { id },
+    select: { id: true, _count: { select: { studyPrograms: true } } },
+  });
+  if (!existing) {
+    throw new AcademicReferenceError("Fakultas tidak ditemukan.", 404);
+  }
+
+  if (existing._count.studyPrograms > 0) {
+    throw new AcademicReferenceError(
+      "Fakultas tidak dapat dihapus karena masih memiliki program studi terkait.",
+      409
+    );
+  }
+
+  try {
+    await prisma.faculty.delete({ where: { id } });
+    return { success: true };
+  } catch (error) {
+    if (isForeignKeyConstraintError(error)) {
+      throw new AcademicReferenceError(
+        "Fakultas tidak dapat dihapus karena masih memiliki program studi terkait.",
+        409
+      );
+    }
+    if (isRecordNotFoundError(error)) {
+      throw new AcademicReferenceError("Fakultas tidak ditemukan.", 404);
     }
     throw error;
   }

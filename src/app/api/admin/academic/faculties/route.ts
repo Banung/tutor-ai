@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    return NextResponse.json(await createFaculty(parsed.data.name), { status: 201 });
+    return NextResponse.json(
+      await createFaculty(parsed.data.name, parsed.data.code),
+      { status: 201 }
+    );
   } catch (err) {
     if (err instanceof AcademicReferenceError) {
       return NextResponse.json({ error: err.message }, { status: err.status });
