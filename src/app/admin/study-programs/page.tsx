@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -19,15 +20,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertCircle,
   Building2,
   GraduationCap,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
   RotateCcw,
   Search,
+  Trash2,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Faculty {
   id: string;
@@ -62,6 +94,23 @@ function isAbortError(err: unknown): boolean {
         (err as { name?: unknown }).name === "AbortError";
 }
 
+async function getErrorMessage(res: Response, fallback: string): Promise<string> {
+  const data: unknown = await res.json().catch(() => null);
+  if (typeof data !== "object" || data === null) return fallback;
+  const error = (data as { error?: unknown }).error;
+  if (Array.isArray(error)) {
+    const messages = error
+      .map((issue) =>
+        typeof issue === "object" && issue !== null && "message" in issue
+          ? String((issue as { message: unknown }).message)
+          : ""
+      )
+      .filter(Boolean);
+    return messages.length > 0 ? messages.join(", ") : fallback;
+  }
+  return typeof error === "string" && error.trim() ? error : fallback;
+}
+
 function renderSourceBadge(source: StudyProgram["source"]) {
   if (source === "SIAT") {
     return <Badge variant="default">SIAT</Badge>;
@@ -86,6 +135,29 @@ export default function StudyProgramsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [facultiesReloadKey, setFacultiesReloadKey] = useState(0);
+
+  // Create/Edit Study Program Dialog
+  const [programDialogOpen, setProgramDialogOpen] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<StudyProgram | null>(null);
+  const [programFacultyId, setProgramFacultyId] = useState("");
+  const [programName, setProgramName] = useState("");
+  const [programCode, setProgramCode] = useState("");
+  const [programErrors, setProgramErrors] = useState<{
+    facultyId?: string;
+    name?: string;
+  }>({});
+  const [submittingProgram, setSubmittingProgram] = useState(false);
+
+  // Create Faculty Dialog
+  const [facultyDialogOpen, setFacultyDialogOpen] = useState(false);
+  const [facultyName, setFacultyName] = useState("");
+  const [facultyError, setFacultyError] = useState<string | null>(null);
+  const [submittingFaculty, setSubmittingFaculty] = useState(false);
+
+  // Delete Confirmation AlertDialog
+  const [deleteTarget, setDeleteTarget] = useState<StudyProgram | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -109,7 +181,7 @@ export default function StudyProgramsPage() {
 
     void loadFaculties();
     return () => controller.abort();
-  }, []);
+  }, [reloadKey, facultiesReloadKey]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -185,6 +257,163 @@ export default function StudyProgramsPage() {
     setSearch("");
   }
 
+  function openCreateFaculty() {
+    setFacultyName("");
+    setFacultyError(null);
+    setFacultyDialogOpen(true);
+  }
+
+  function openCreateProgram() {
+    setEditingProgram(null);
+    setProgramFacultyId(facultyFilter !== "all" ? facultyFilter : "");
+    setProgramName("");
+    setProgramCode("");
+    setProgramErrors({});
+    setProgramDialogOpen(true);
+  }
+
+  function openEditProgram(program: StudyProgram) {
+    setEditingProgram(program);
+    setProgramFacultyId(program.facultyId);
+    setProgramName(program.name);
+    setProgramCode(program.code ?? "");
+    setProgramErrors({});
+    setProgramDialogOpen(true);
+  }
+
+  async function handleCreateFaculty(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const trimmedName = facultyName.trim();
+    if (!trimmedName) {
+      const msg = "Nama fakultas wajib diisi.";
+      setFacultyError(msg);
+      toast.error(msg);
+      return;
+    }
+
+    setFacultyError(null);
+    setSubmittingFaculty(true);
+    try {
+      const res = await fetch("/api/admin/academic/faculties", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+      if (!res.ok) {
+        throw new Error(await getErrorMessage(res, "Gagal menambahkan fakultas"));
+      }
+      toast.success("Fakultas berhasil ditambahkan");
+      setFacultyDialogOpen(false);
+      setFacultyName("");
+      setFacultiesReloadKey((prev) => prev + 1);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal menambahkan fakultas"
+      );
+    } finally {
+      setSubmittingFaculty(false);
+    }
+  }
+
+  async function handleSubmitProgram(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const trimmedName = programName.trim();
+    const trimmedCode = programCode.trim().toUpperCase();
+    const nextErrors: { facultyId?: string; name?: string } = {};
+
+    if (!programFacultyId) {
+      nextErrors.facultyId = "Fakultas wajib dipilih.";
+    }
+    if (!trimmedName) {
+      nextErrors.name = "Nama program studi wajib diisi.";
+    }
+
+    if (nextErrors.facultyId || nextErrors.name) {
+      setProgramErrors(nextErrors);
+      if (nextErrors.facultyId) toast.error(nextErrors.facultyId);
+      if (nextErrors.name) toast.error(nextErrors.name);
+      return;
+    }
+
+    setProgramErrors({});
+    setSubmittingProgram(true);
+    try {
+      if (editingProgram) {
+        const res = await fetch(
+          `/api/admin/academic/study-programs/${editingProgram.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              facultyId: programFacultyId,
+              name: trimmedName,
+              code: trimmedCode || null,
+            }),
+          }
+        );
+        if (!res.ok) {
+          throw new Error(
+            await getErrorMessage(res, "Gagal memperbarui program studi")
+          );
+        }
+        toast.success("Program studi berhasil diperbarui");
+      } else {
+        const res = await fetch("/api/admin/academic/study-programs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            facultyId: programFacultyId,
+            name: trimmedName,
+            ...(trimmedCode ? { code: trimmedCode } : {}),
+          }),
+        });
+        if (!res.ok) {
+          throw new Error(
+            await getErrorMessage(res, "Gagal menambahkan program studi")
+          );
+        }
+        toast.success("Program studi berhasil ditambahkan");
+      }
+
+      setProgramDialogOpen(false);
+      setReloadKey((prev) => prev + 1);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal menyimpan program studi"
+      );
+    } finally {
+      setSubmittingProgram(false);
+    }
+  }
+
+  async function handleDeleteProgram() {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/admin/academic/study-programs/${deleteTarget.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!res.ok) {
+        throw new Error(
+          await getErrorMessage(res, "Gagal menghapus program studi")
+        );
+      }
+      toast.success("Program studi berhasil dihapus");
+      setDeleteTarget(null);
+      setReloadKey((prev) => prev + 1);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal menghapus program studi"
+      );
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -194,20 +423,41 @@ export default function StudyProgramsPage() {
             Daftar seluruh program studi dan fakultas yang tersimpan di database.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-sm">
-            <GraduationCap className="size-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Program Studi:</span>
-            <span className="font-semibold tabular-nums">
-              {loading ? "—" : studyPrograms.length.toLocaleString("id-ID")}
-            </span>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={openCreateFaculty}
+              className="gap-2"
+            >
+              <Plus data-icon="inline-start" />
+              Tambah Fakultas
+            </Button>
+            <Button
+              type="button"
+              onClick={openCreateProgram}
+              className="gap-2 bg-brand text-black hover:bg-brand/90"
+            >
+              <Plus data-icon="inline-start" />
+              Tambah Program Studi
+            </Button>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-sm">
-            <Building2 className="size-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Fakultas:</span>
-            <span className="font-semibold tabular-nums">
-              {faculties.length.toLocaleString("id-ID")}
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-sm">
+              <GraduationCap className="size-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Program Studi:</span>
+              <span className="font-semibold tabular-nums">
+                {loading ? "—" : studyPrograms.length.toLocaleString("id-ID")}
+              </span>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-sm">
+              <Building2 className="size-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Fakultas:</span>
+              <span className="font-semibold tabular-nums">
+                {faculties.length.toLocaleString("id-ID")}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -303,15 +553,21 @@ export default function StudyProgramsPage() {
               <TableHead>Program Studi</TableHead>
               <TableHead>Fakultas</TableHead>
               <TableHead>Sumber</TableHead>
-              <TableHead className="pr-6 text-center">Mata Kuliah</TableHead>
+              <TableHead className="text-center">Mata Kuliah</TableHead>
+              <TableHead className="w-[80px] pr-6 text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <TableCell key={j} className={j === 0 ? "pl-6" : j === 4 ? "pr-6" : undefined}>
+                  {Array.from({ length: 6 }).map((_, j) => (
+                    <TableCell
+                      key={j}
+                      className={
+                        j === 0 ? "pl-6" : j === 5 ? "pr-6" : undefined
+                      }
+                    >
                       <Skeleton className="h-5 w-full" />
                     </TableCell>
                   ))}
@@ -319,13 +575,19 @@ export default function StudyProgramsPage() {
               ))
             ) : loadError ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   Data program studi gagal dimuat.
                 </TableCell>
               </TableRow>
             ) : studyPrograms.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   {hasCommittedFilters
                     ? "Tidak ada program studi yang sesuai dengan filter."
                     : "Belum ada data program studi di database."}
@@ -358,8 +620,39 @@ export default function StudyProgramsPage() {
                     </div>
                   </TableCell>
                   <TableCell>{renderSourceBadge(program.source)}</TableCell>
-                  <TableCell className="pr-6 text-center font-medium tabular-nums">
+                  <TableCell className="text-center font-medium tabular-nums">
                     {program._count.courses.toLocaleString("id-ID")}
+                  </TableCell>
+                  <TableCell className="pr-6 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8"
+                          aria-label={`Aksi untuk ${program.name}`}
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem
+                            onClick={() => openEditProgram(program)}
+                          >
+                            <Pencil data-icon="inline-start" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setDeleteTarget(program)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 data-icon="inline-start" />
+                            Hapus
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -367,6 +660,244 @@ export default function StudyProgramsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Create Faculty Dialog */}
+      <Dialog
+        open={facultyDialogOpen}
+        onOpenChange={(open) => {
+          if (!submittingFaculty) setFacultyDialogOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-[460px] flex flex-col gap-0 p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-6 border-b bg-muted/30">
+            <DialogTitle className="text-xl">Tambah Fakultas</DialogTitle>
+            <DialogDescription>
+              Tambahkan fakultas baru agar dapat dipilih saat membuat program studi.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateFaculty}>
+            <div className="px-6 py-5">
+              <div className="grid gap-2">
+                <Label htmlFor="faculty-name">Nama Fakultas</Label>
+                <Input
+                  id="faculty-name"
+                  value={facultyName}
+                  maxLength={150}
+                  onChange={(e) => {
+                    setFacultyName(e.target.value);
+                    if (facultyError) setFacultyError(null);
+                  }}
+                  placeholder="Contoh: Fakultas Teknik Elektro"
+                  aria-invalid={!!facultyError}
+                />
+                {facultyError && (
+                  <p className="text-xs text-destructive">{facultyError}</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="m-0 px-6 py-4 border-t bg-muted/10">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setFacultyDialogOpen(false)}
+                disabled={submittingFaculty}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={submittingFaculty}
+                className="bg-brand text-black hover:bg-brand/90"
+              >
+                {submittingFaculty && (
+                  <Loader2 className="animate-spin" data-icon="inline-start" />
+                )}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Study Program Dialog */}
+      <Dialog
+        open={programDialogOpen}
+        onOpenChange={(open) => {
+          if (!submittingProgram) setProgramDialogOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-[500px] flex flex-col gap-0 p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-6 border-b bg-muted/30">
+            <DialogTitle className="text-xl">
+              {editingProgram ? "Edit Program Studi" : "Tambah Program Studi"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingProgram
+                ? "Perbarui fakultas, nama, atau kode program studi."
+                : "Tambahkan program studi baru ke referensi akademik."}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitProgram}>
+            <div className="px-6 py-4 max-h-[60vh] overflow-y-auto pr-4">
+              <div className="grid gap-5 py-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="program-faculty">Fakultas</Label>
+                  <Select
+                    value={programFacultyId}
+                    onValueChange={(value) => {
+                      setProgramFacultyId(value);
+                      if (programErrors.facultyId) {
+                        setProgramErrors((prev) => ({
+                          ...prev,
+                          facultyId: undefined,
+                        }));
+                      }
+                    }}
+                    disabled={faculties.length === 0}
+                  >
+                    <SelectTrigger
+                      id="program-faculty"
+                      aria-invalid={!!programErrors.facultyId}
+                    >
+                      <SelectValue placeholder="Pilih fakultas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {faculties.map((faculty) => (
+                        <SelectItem key={faculty.id} value={faculty.id}>
+                          {faculty.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {programErrors.facultyId && (
+                    <p className="text-xs text-destructive">
+                      {programErrors.facultyId}
+                    </p>
+                  )}
+                  {faculties.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Belum ada fakultas tersedia. Tambahkan fakultas terlebih
+                      dahulu menggunakan tombol &quot;Tambah Fakultas&quot;.
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="program-name">Nama Program Studi</Label>
+                  <Input
+                    id="program-name"
+                    value={programName}
+                    maxLength={150}
+                    onChange={(e) => {
+                      setProgramName(e.target.value);
+                      if (programErrors.name) {
+                        setProgramErrors((prev) => ({
+                          ...prev,
+                          name: undefined,
+                        }));
+                      }
+                    }}
+                    placeholder="Contoh: Teknik Informatika"
+                    aria-invalid={!!programErrors.name}
+                  />
+                  {programErrors.name && (
+                    <p className="text-xs text-destructive">
+                      {programErrors.name}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="program-code">
+                    Kode Program Studi{" "}
+                    <span className="text-muted-foreground font-normal text-xs">
+                      (opsional)
+                    </span>
+                  </Label>
+                  <Input
+                    id="program-code"
+                    value={programCode}
+                    maxLength={20}
+                    onChange={(e) =>
+                      setProgramCode(e.target.value.toUpperCase())
+                    }
+                    placeholder="Contoh: IF atau TIP (opsional, 2–20 karakter)"
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Gunakan 2–20 huruf kapital, angka, tanda hubung (-), atau
+                    garis bawah (_). Kosongkan untuk menghapus atau melewati kode.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="m-0 px-6 py-4 border-t bg-muted/10">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setProgramDialogOpen(false)}
+                disabled={submittingProgram}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={submittingProgram}
+                className="bg-brand text-black hover:bg-brand/90"
+              >
+                {submittingProgram && (
+                  <Loader2 className="animate-spin" data-icon="inline-start" />
+                )}
+                {editingProgram ? "Simpan" : "Tambah Program Studi"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Program Studi</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus program studi{" "}
+              <strong>{deleteTarget?.name}</strong> dari fakultas{" "}
+              <strong>{deleteTarget?.faculty.name}</strong>? Tindakan ini tidak
+              dapat dibatalkan.
+              {deleteTarget && deleteTarget._count.courses > 0 && (
+                <span className="mt-2 block rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  Program studi ini sedang terhubung dengan{" "}
+                  {deleteTarget._count.courses.toLocaleString("id-ID")} mata
+                  kuliah. Penghapusan akan ditolak oleh sistem selama masih
+                  digunakan.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDeleteProgram();
+              }}
+              disabled={deleting}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {deleting && (
+                <Loader2 className="animate-spin" data-icon="inline-start" />
+              )}
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
